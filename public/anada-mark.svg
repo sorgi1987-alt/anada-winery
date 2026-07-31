@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Añada</title>
+  <rect width="64" height="64" rx="18" fill="#5A122B"/>
+  <g fill="none" stroke="#FFF8F4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M33 16c7 5 11 11 11 18 0 10-7 17-16 17S13 44 13 35c0-8 7-14 20-19Z"/>
+    <path d="M32 17c-1 9-5 15-12 20M31 18c4 8 4 16 0 24M32 18c7 6 10 12 9 20"/>
+    <path d="M38 13c3 0 6-2 8-5"/>
+  </g>
+</svg>

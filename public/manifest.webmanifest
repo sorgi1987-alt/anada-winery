@@ -1,0 +1,13 @@
+{
+  "name": "Añada · Gestión de bodega",
+  "short_name": "Añada",
+  "lang": "es",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F7F3ED",
+  "theme_color": "#3A0B1D",
+  "description": "Gestión visual de elaboración y bodega para productores de Rioja.",
+  "icons": [
+    { "src": "./anada-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
