@@ -1,4 +1,4 @@
-import type { CellarTask, GrapeDelivery, LabSample, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { Barrel, BarrelOperation, CellarTask, GrapeDelivery, LabSample, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -185,4 +185,43 @@ export const labSamples: LabSample[] = [
     collectedAt: '2026-09-19T11:40:00+02:00', collectedBy: 'Martín Ruiz', assignedTo: 'Lucía Sáenz', dueAt: '16:30', priority: 'routine', status: 'queued',
     requestedAnalyses: ['free_so2', 'total_so2', 'turbidity', 'residual_sugar'], results: [], notes: 'Control previo a estabilización.',
   },
+]
+
+const cooperages = ['Radoux', 'Seguin Moreau', 'Demptos', 'Murúa']
+
+export const barrels: Barrel[] = Array.from({ length: 18 }, (_, index) => {
+  const rack = index < 8 ? 'A' : index < 15 ? 'B' : 'C'
+  const rackIndex = index < 8 ? index + 1 : index < 15 ? index - 7 : index - 14
+  const isEmpty = index === 15 || index === 16
+  const maintenance = index === 17
+  const isLasSuertes = index < 8
+  const lotId = isEmpty || maintenance ? undefined : isLasSuertes ? 'T-25-012' : 'CR-25-004'
+  const attention = index === 2 || index === 10 ? 'warning' as const : maintenance ? 'critical' as const : 'normal' as const
+  return {
+    id: `barrel-${String(index + 1).padStart(3, '0')}`,
+    code: `BR-${rack}-${String(rackIndex).padStart(2, '0')}`,
+    cooperage: cooperages[index % cooperages.length],
+    oakOrigin: index % 4 === 0 ? 'american' as const : index % 5 === 0 ? 'hungarian' as const : 'french' as const,
+    toast: index % 3 === 0 ? 'medium_plus' as const : index % 3 === 1 ? 'medium' as const : 'light' as const,
+    grain: index % 4 === 0 ? 'medium' as const : 'fine' as const,
+    capacity: 225,
+    volume: isEmpty || maintenance ? 0 : index % 4 === 0 ? 219 : index % 3 === 0 ? 222 : 225,
+    status: maintenance ? 'maintenance' as const : isEmpty ? 'empty' as const : 'filled' as const,
+    room: 'Sala de barricas', rack, position: `${rack}-${String(rackIndex).padStart(2, '0')}`, useNumber: index % 3 + 1,
+    lotId, lotName: lotId === 'T-25-012' ? 'Las Suertes' : lotId === 'CR-25-004' ? 'Cueva del Moncalvillo' : undefined,
+    wineType: lotId ? 'tinto' as const : undefined,
+    filledAt: lotId === 'T-25-012' ? '2026-01-18' : lotId === 'CR-25-004' ? '2025-11-06' : undefined,
+    plannedMonths: lotId === 'T-25-012' ? 12 : lotId === 'CR-25-004' ? 18 : undefined,
+    attention,
+    nextAction: maintenance ? 'Revisión de duelas' : isEmpty ? 'Limpieza y conservación' : attention === 'warning' ? 'Relleno de barrica' : index % 2 ? 'Control de SO₂' : 'Cata de evolución',
+    nextDue: maintenance ? 'Hoy' : isEmpty ? 'Esta semana' : attention === 'warning' ? 'Hoy · 16:00' : index % 2 ? '25 sept' : '2 oct',
+    notes: maintenance ? 'Pequeña pérdida detectada en la duela inferior.' : '',
+  }
+})
+
+export const barrelOperations: BarrelOperation[] = [
+  { id: 'barrel-op-001', type: 'top_up', barrelIds: ['barrel-001', 'barrel-002', 'barrel-003', 'barrel-004'], targetLabel: 'T-25-012 · Las Suertes', performedAt: '2026-09-18T16:20:00+02:00', person: 'Martín Ruiz', volumeAdded: 9, notes: 'Sin incidencias. Merma homogénea.' },
+  { id: 'barrel-op-002', type: 'tasting', barrelIds: ['barrel-009', 'barrel-010', 'barrel-011'], targetLabel: 'CR-25-004 · Cueva del Moncalvillo', performedAt: '2026-09-17T11:45:00+02:00', person: 'Elena Martín', notes: 'Fruta integrada, madera todavía presente.' },
+  { id: 'barrel-op-003', type: 'so2_check', barrelIds: ['barrel-005', 'barrel-006', 'barrel-007', 'barrel-008'], targetLabel: 'T-25-012 · Las Suertes', performedAt: '2026-09-15T09:30:00+02:00', person: 'Lucía Sáenz', notes: 'SO₂ libre dentro del objetivo.' },
+  { id: 'barrel-op-004', type: 'cleaning', barrelIds: ['barrel-016', 'barrel-017'], targetLabel: 'BR-C-01 · BR-C-02', performedAt: '2026-09-14T15:10:00+02:00', person: 'Martín Ruiz', notes: 'Lavado, vapor y conservación completados.' },
 ]

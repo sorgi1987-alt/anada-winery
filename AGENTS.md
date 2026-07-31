@@ -18,6 +18,8 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - Never expose red-only actions such as `Remontado`, `Bazuqueo` or `Descube` on a white lot.
 - Never expose white-specific operations such as `Desfangado` as a routine red-lot action.
 - Process stages can be complete, current, upcoming or optional.
+- Keep the physical barrel, its current wine assignment and its operation history as distinct domain concepts.
+- Topping-up volume must not exceed the measured headspace of the selected filled barrels.
 - Regulatory eligibility is indicative until it has been validated against the relevant DOCa rules and vintage.
 - All future mutations require an audit trail and user attribution.
 
@@ -35,4 +37,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 2B is a bilingual laboratory and sample-workflow frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.
+Phase 2C is a bilingual barrel-inventory and ageing-workflow frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.

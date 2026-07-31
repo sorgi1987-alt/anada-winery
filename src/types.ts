@@ -138,13 +138,15 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 3
+  schemaVersion: 4
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
   parcels: VineyardParcel[]
   deliveries: GrapeDelivery[]
   samples: LabSample[]
+  barrels: Barrel[]
+  barrelOperations: BarrelOperation[]
 }
 
 export interface NewLotInput {
@@ -237,5 +239,71 @@ export interface NewLabSampleInput {
 export interface LabResultsInput {
   sampleId: string
   values: Partial<Record<LabAnalysisKey, number>>
+  notes: string
+}
+
+export type BarrelStatus = 'filled' | 'empty' | 'maintenance'
+export type OakOrigin = 'french' | 'american' | 'hungarian'
+export type ToastLevel = 'light' | 'medium' | 'medium_plus' | 'heavy'
+export type BarrelOperationType = 'top_up' | 'tasting' | 'so2_check' | 'racking' | 'cleaning' | 'repair'
+
+export interface Barrel {
+  id: string
+  code: string
+  cooperage: string
+  oakOrigin: OakOrigin
+  toast: ToastLevel
+  grain: 'fine' | 'medium'
+  capacity: number
+  volume: number
+  status: BarrelStatus
+  room: string
+  rack: string
+  position: string
+  useNumber: number
+  lotId?: string
+  lotName?: string
+  wineType?: WineType
+  filledAt?: string
+  plannedMonths?: number
+  attention: AttentionLevel
+  nextAction: string
+  nextDue: string
+  notes: string
+}
+
+export interface BarrelOperation {
+  id: string
+  type: BarrelOperationType
+  barrelIds: string[]
+  targetLabel: string
+  performedAt: string
+  person: string
+  volumeAdded?: number
+  notes: string
+}
+
+export interface NewBarrelInput {
+  code: string
+  cooperage: string
+  oakOrigin: OakOrigin
+  toast: ToastLevel
+  grain: Barrel['grain']
+  capacity: number
+  room: string
+  rack: string
+  position: string
+  useNumber: number
+  lotId: string
+  plannedMonths: number
+  notes: string
+}
+
+export interface NewBarrelOperationInput {
+  targetType: 'barrel' | 'lot'
+  targetId: string
+  type: BarrelOperationType
+  performedAt: string
+  volumeAdded: number
   notes: string
 }

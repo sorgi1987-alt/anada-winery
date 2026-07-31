@@ -70,9 +70,21 @@ Status: completed.
 - Desktop legibility pass for 1440p displays
 - Schema migration preserving Phase 2A browser data
 
+### Phase 2C — Barrel inventory and ageing
+
+Status: completed.
+
+- Visual barrel-room map organised by rack and position
+- Physical barrel register with cooperage, origin, toast, grain and use
+- Explicit wine-lot assignment, volume, fill date and planned ageing
+- Lot-level ageing progress and oak-origin composition
+- Topping-up, tasting, SO₂, racking, cleaning and repair operations
+- Barrel attention states and next-operation agenda
+- Persistent barrel and operation history with responsible operator
+- Schema migration preserving Phase 2B browser data
+
 Remaining Phase 2 modules:
 
-- Barrel inventory and ageing
 - Blending workspace
 - Bottling orders and packaging
 - Traceability explorer

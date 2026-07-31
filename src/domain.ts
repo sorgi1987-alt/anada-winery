@@ -1,5 +1,5 @@
 import { images, redProcess, whiteProcess } from './data'
-import type { CellarTask, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { Barrel, BarrelOperation, CellarTask, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -211,4 +211,63 @@ export const recordLabResults = (samples: LabSample[], input: LabResultsInput) =
   const status = results.some((result) => result.status !== 'normal') ? 'review' as const : 'validated' as const
   const updated: LabSample = { ...current, status, results, notes: input.notes.trim() || current.notes, validatedAt: new Date().toISOString() }
   return { sample: updated, samples: samples.map((sample) => sample.id === updated.id ? updated : sample) }
+}
+
+export const nextBarrelCode = (barrels: Barrel[]) => {
+  const highest = barrels.reduce((maximum, barrel) => {
+    const match = barrel.code.match(/^BR-N-(\d+)$/)
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0)
+  return `BR-N-${String(highest + 1).padStart(2, '0')}`
+}
+
+export const createBarrel = (input: NewBarrelInput, barrels: Barrel[], lots: WineLot[]): Barrel => {
+  const code = input.code.trim().toUpperCase()
+  const position = input.position.trim().toUpperCase()
+  if (!code || !position || !input.room.trim() || !input.cooperage.trim() || input.capacity <= 0 || input.useNumber < 1) throw new Error('Invalid barrel identity')
+  if (barrels.some((barrel) => barrel.code.toUpperCase() === code)) throw new Error('Barrel code already exists')
+  if (barrels.some((barrel) => barrel.room === input.room.trim() && barrel.position.toUpperCase() === position)) throw new Error('Barrel position already occupied')
+  const lot = input.lotId ? lots.find((item) => item.id === input.lotId) : undefined
+  if (input.lotId && !lot) throw new Error('Wine lot not found')
+  const filled = Boolean(lot)
+  return {
+    id: nowId('barrel'), code, cooperage: input.cooperage.trim(), oakOrigin: input.oakOrigin, toast: input.toast,
+    grain: input.grain, capacity: input.capacity, volume: filled ? input.capacity : 0, status: filled ? 'filled' : 'empty', room: input.room.trim(),
+    rack: input.rack.trim().toUpperCase(), position, useNumber: input.useNumber, lotId: lot?.id, lotName: lot?.name,
+    wineType: lot?.type, filledAt: filled ? new Date().toISOString().slice(0, 10) : undefined, plannedMonths: filled ? input.plannedMonths : undefined,
+    attention: 'normal', nextAction: filled ? 'Control de SO₂' : 'Limpieza y conservación', nextDue: filled ? '7 días' : 'Esta semana', notes: input.notes.trim(),
+  }
+}
+
+export const recordBarrelOperation = (
+  barrels: Barrel[],
+  operations: BarrelOperation[],
+  input: NewBarrelOperationInput,
+) => {
+  const targets = input.targetType === 'barrel' ? barrels.filter((barrel) => barrel.id === input.targetId) : barrels.filter((barrel) => barrel.lotId === input.targetId)
+  if (!targets.length) throw new Error('Barrel operation target not found')
+  const requiresWine = ['top_up', 'tasting', 'so2_check', 'racking'].includes(input.type)
+  if (requiresWine && targets.some((barrel) => barrel.status !== 'filled')) throw new Error('Operation requires filled barrels')
+  if (['cleaning', 'repair'].includes(input.type) && targets.some((barrel) => barrel.status === 'filled')) throw new Error('Wine must be transferred before maintenance')
+  const totalHeadspace = targets.reduce((total, barrel) => total + Math.max(0, barrel.capacity - barrel.volume), 0)
+  if (input.type === 'top_up' && (!Number.isFinite(input.volumeAdded) || input.volumeAdded <= 0 || input.volumeAdded > totalHeadspace + 0.001)) throw new Error('Topping-up volume exceeds measured headspace')
+  const targetIds = new Set(targets.map((barrel) => barrel.id))
+  const additions = new Map(targets.map((barrel) => [barrel.id, input.type === 'top_up' && totalHeadspace > 0 ? input.volumeAdded * Math.max(0, barrel.capacity - barrel.volume) / totalHeadspace : 0]))
+  const nextByType: Record<NewBarrelOperationInput['type'], { action: string; due: string }> = {
+    top_up: { action: 'Control de SO₂', due: '7 días' }, tasting: { action: 'Cata de evolución', due: '30 días' }, so2_check: { action: 'Relleno de barrica', due: '14 días' },
+    racking: { action: 'Control de turbidez', due: '48 h' }, cleaning: { action: 'Conservación de barrica', due: 'Esta semana' }, repair: { action: 'Limpieza y conservación', due: 'Mañana' },
+  }
+  const next = nextByType[input.type]
+  const updatedBarrels = barrels.map((barrel) => {
+    if (!targetIds.has(barrel.id)) return barrel
+    if (input.type === 'repair') return { ...barrel, status: 'empty' as const, volume: 0, lotId: undefined, lotName: undefined, wineType: undefined, filledAt: undefined, plannedMonths: undefined, attention: 'normal' as const, nextAction: next.action, nextDue: next.due }
+    if (input.type === 'cleaning') return { ...barrel, attention: 'normal' as const, nextAction: next.action, nextDue: next.due }
+    return { ...barrel, volume: Math.min(barrel.capacity, barrel.volume + (additions.get(barrel.id) ?? 0)), attention: input.type === 'top_up' ? 'normal' as const : barrel.attention, nextAction: next.action, nextDue: next.due }
+  })
+  const targetLabel = input.targetType === 'lot' ? `${targets[0].lotId} · ${targets[0].lotName}` : targets[0].code
+  const operation: BarrelOperation = {
+    id: nowId('barrel-op'), type: input.type, barrelIds: targets.map((barrel) => barrel.id), targetLabel, performedAt: input.performedAt,
+    person: 'Elena Martín', volumeAdded: input.type === 'top_up' ? input.volumeAdded : undefined, notes: input.notes.trim(),
+  }
+  return { barrels: updatedBarrels, operations: [operation, ...operations], operation }
 }
