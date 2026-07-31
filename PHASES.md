@@ -57,9 +57,21 @@ Status: completed.
 - Persistent parcel-to-intake traceability
 - Schema migration preserving Phase 1 browser data
 
+### Phase 2B — Laboratory and sample workflow
+
+Status: completed.
+
+- Priority-based sample work queue
+- Traceable lot, delivery and parcel samples
+- Maturity, fermentation, malolactic and pre-bottling profiles
+- Guided result entry with process-aware units
+- Indicative limits and review flags
+- Persistent analytical history and responsible operator
+- Desktop legibility pass for 1440p displays
+- Schema migration preserving Phase 2A browser data
+
 Remaining Phase 2 modules:
 
-- Laboratory and sample workflow
 - Barrel inventory and ageing
 - Blending workspace
 - Bottling orders and packaging

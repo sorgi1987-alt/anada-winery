@@ -9,12 +9,13 @@ import {
 } from 'lucide-react'
 import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { images, lots as seedLots } from './data'
-import { assignLotToTank, createLot as buildLot, createOpeningTask, createTask, receiveGrapeDelivery } from './domain'
+import { assignLotToTank, createLabSample, createLot as buildLot, createOpeningTask, createTask, receiveGrapeDelivery, recordLabResults } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
 import { useLanguage, type Language } from './i18n'
+import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { browserWineryRepository } from './store'
-import type { CellarTask, GrapeDelivery, NewGrapeIntakeInput, NewLotInput, NewTaskInput, ReadingPoint, Tank, VineyardParcel, WineLot, WineType } from './types'
+import type { CellarTask, GrapeDelivery, LabResultsInput, LabSample, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ReadingPoint, Tank, VineyardParcel, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -54,6 +55,7 @@ function App() {
   const [demoTanks, setDemoTanks] = useState<Tank[]>(initialState.tanks)
   const [parcels, setParcels] = useState<VineyardParcel[]>(initialState.parcels)
   const [deliveries, setDeliveries] = useState<GrapeDelivery[]>(initialState.deliveries)
+  const [samples, setSamples] = useState<LabSample[]>(initialState.samples)
   const [cellarMode, setCellarMode] = useState(() => localStorage.getItem('anada-theme') === 'cellar')
   const [menuOpen, setMenuOpen] = useState(false)
   const [readingLotId, setReadingLotId] = useState<string | null>(null)
@@ -63,8 +65,8 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 2, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries })
-  }, [demoLots, tasks, demoTanks, parcels, deliveries])
+    browserWineryRepository.save({ schemaVersion: 3, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples })
+  }, [demoLots, tasks, demoTanks, parcels, deliveries, samples])
 
   const toggleCellarMode = () => {
     setCellarMode((current) => {
@@ -143,6 +145,20 @@ function App() {
     window.setTimeout(() => setToast(null), 4200)
   }
 
+  const addLabSample = (input: NewLabSampleInput) => {
+    const sample = createLabSample(input, samples, demoLots, deliveries, parcels)
+    setSamples((current) => [sample, ...current])
+    setToast(t('toast.sampleCreated', { code: sample.code }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
+  const saveLabResults = (input: LabResultsInput) => {
+    const result = recordLabResults(samples, input)
+    setSamples(result.samples)
+    setToast(t(result.sample.status === 'review' ? 'toast.resultsReview' : 'toast.resultsValidated', { code: result.sample.code }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
   const resetDemoData = () => {
     const reset = browserWineryRepository.clear()
     setDemoLots(reset.lots)
@@ -150,6 +166,7 @@ function App() {
     setDemoTanks(reset.tanks)
     setParcels(reset.parcels)
     setDeliveries(reset.deliveries)
+    setSamples(reset.samples)
     setUndoLot(null)
     setToast(t('toast.reset'))
     window.setTimeout(() => setToast(null), 3200)
@@ -168,7 +185,7 @@ function App() {
   else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} />
   else if (pathname === '/cellar') currentPage = <CellarMap tanks={demoTanks} />
   else if (pathname === '/tasks') currentPage = <TasksPage lots={demoLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} />
-  else if (pathname === '/laboratory') currentPage = <PreviewModule type="laboratory" />
+  else if (pathname === '/laboratory') currentPage = <LaboratoryPage samples={samples} lots={demoLots} deliveries={deliveries} parcels={parcels} onCreate={addLabSample} onRecordResults={saveLabResults} />
   else if (pathname === '/ageing') currentPage = <PreviewModule type="ageing" />
   else if (pathname === '/bottling') currentPage = <PreviewModule type="bottling" />
   else if (pathname === '/traceability') currentPage = <PreviewModule type="traceability" />
@@ -236,7 +253,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.4</span>
+          <span>Añada 0.5</span>
         </div>
       </section>
     </main>

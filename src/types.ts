@@ -138,12 +138,13 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 2
+  schemaVersion: 3
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
   parcels: VineyardParcel[]
   deliveries: GrapeDelivery[]
+  samples: LabSample[]
 }
 
 export interface NewLotInput {
@@ -186,5 +187,55 @@ export interface NewGrapeIntakeInput {
   potentialAlcohol: number
   condition: GrapeCondition
   processingDestination: string
+  notes: string
+}
+
+export type LabSampleStatus = 'queued' | 'in_analysis' | 'review' | 'validated'
+export type LabSampleSource = 'lot' | 'delivery' | 'parcel'
+export type LabPriority = 'urgent' | 'today' | 'routine'
+export type LabProfile = 'maturity' | 'fermentation' | 'malolactic' | 'bottling'
+export type LabAnalysisKey = 'temperature' | 'density' | 'ph' | 'total_acidity' | 'volatile_acidity' | 'potential_alcohol' | 'malic_acid' | 'free_so2' | 'total_so2' | 'turbidity' | 'residual_sugar'
+export type LabResultStatus = 'normal' | 'warning' | 'critical'
+
+export interface LabResult {
+  analysis: LabAnalysisKey
+  value: number
+  unit: string
+  status: LabResultStatus
+}
+
+export interface LabSample {
+  id: string
+  code: string
+  sourceType: LabSampleSource
+  sourceId: string
+  sourceName: string
+  wineType?: WineType
+  profile: LabProfile
+  collectedAt: string
+  collectedBy: string
+  assignedTo: string
+  dueAt: string
+  priority: LabPriority
+  status: LabSampleStatus
+  requestedAnalyses: LabAnalysisKey[]
+  results: LabResult[]
+  notes: string
+  validatedAt?: string
+}
+
+export interface NewLabSampleInput {
+  sourceType: LabSampleSource
+  sourceId: string
+  profile: LabProfile
+  assignedTo: string
+  dueAt: string
+  priority: LabPriority
+  notes: string
+}
+
+export interface LabResultsInput {
+  sampleId: string
+  values: Partial<Record<LabAnalysisKey, number>>
   notes: string
 }

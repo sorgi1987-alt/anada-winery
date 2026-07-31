@@ -27,6 +27,8 @@ Colours are exposed as CSS custom properties. Status must never rely on colour a
 
 - Interface: DM Sans with system fallbacks
 - Display: Manrope with system fallbacks
+- Desktop operational metadata should normally be at least 10px; primary labels and body copy should normally be 12–14px.
+- Do not reduce text merely to keep every card on one screen; allow the page to scroll.
 - Mobile body text should normally be 16px for input and longer reading contexts.
 - Operational numbers use strong weights and consistent decimal formatting.
 

@@ -1,5 +1,5 @@
 import { images, redProcess, whiteProcess } from './data'
-import type { CellarTask, GrapeDelivery, LotActivity, NewGrapeIntakeInput, NewLotInput, NewTaskInput, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { CellarTask, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -142,4 +142,73 @@ export const receiveGrapeDelivery = (
       : [delivery, ...deliveries],
     parcels: parcels.map((item) => item.id === parcel.id ? { ...item, readiness: parcelHasPendingDeliveries ? 'scheduled' as const : 'harvested' as const } : item),
   }
+}
+
+export const labAnalysisProfiles: Record<LabProfile, LabAnalysisKey[]> = {
+  maturity: ['potential_alcohol', 'ph', 'total_acidity'],
+  fermentation: ['temperature', 'density', 'ph', 'total_acidity', 'volatile_acidity'],
+  malolactic: ['malic_acid', 'ph', 'volatile_acidity', 'free_so2'],
+  bottling: ['free_so2', 'total_so2', 'turbidity', 'residual_sugar'],
+}
+
+export const labAnalysisUnits: Record<LabAnalysisKey, string> = {
+  temperature: '°C', density: '', ph: '', total_acidity: 'g/L', volatile_acidity: 'g/L', potential_alcohol: '% vol.',
+  malic_acid: 'g/L', free_so2: 'mg/L', total_so2: 'mg/L', turbidity: 'NTU', residual_sugar: 'g/L',
+}
+
+const evaluateLabResult = (analysis: LabAnalysisKey, value: number): LabResult['status'] => {
+  const warning = () => 'warning' as const
+  const critical = () => 'critical' as const
+  switch (analysis) {
+    case 'temperature': return value >= 8 && value <= 30 ? 'normal' : value >= 4 && value <= 35 ? warning() : critical()
+    case 'density': return value >= 0.98 && value <= 1.15 ? 'normal' : warning()
+    case 'ph': return value >= 2.9 && value <= 4 ? 'normal' : value >= 2.7 && value <= 4.2 ? warning() : critical()
+    case 'total_acidity': return value >= 4 && value <= 9 ? 'normal' : value >= 3 && value <= 11 ? warning() : critical()
+    case 'volatile_acidity': return value < 0.8 ? 'normal' : value <= 1.2 ? warning() : critical()
+    case 'potential_alcohol': return value >= 9 && value <= 16 ? 'normal' : warning()
+    case 'malic_acid': return value <= 0.3 ? 'normal' : value <= 0.8 ? warning() : critical()
+    case 'free_so2': return value >= 15 && value <= 45 ? 'normal' : value >= 8 && value <= 60 ? warning() : critical()
+    case 'total_so2': return value <= 150 ? 'normal' : value <= 200 ? warning() : critical()
+    case 'turbidity': return value <= 2 ? 'normal' : value <= 5 ? warning() : critical()
+    case 'residual_sugar': return value <= 4 ? 'normal' : value <= 9 ? warning() : critical()
+  }
+}
+
+export const createLabSample = (
+  input: NewLabSampleInput,
+  samples: LabSample[],
+  lots: WineLot[],
+  deliveries: GrapeDelivery[],
+  parcels: VineyardParcel[],
+): LabSample => {
+  const lot = input.sourceType === 'lot' ? lots.find((item) => item.id === input.sourceId) : undefined
+  const delivery = input.sourceType === 'delivery' ? deliveries.find((item) => item.code === input.sourceId) : undefined
+  const parcel = input.sourceType === 'parcel'
+    ? parcels.find((item) => item.id === input.sourceId)
+    : delivery ? parcels.find((item) => item.id === delivery.parcelId) : undefined
+  if (!lot && !delivery && !parcel) throw new Error('Sample source not found')
+  const highest = samples.reduce((maximum, sample) => {
+    const match = sample.code.match(/^LAB-\d{2}-(\d+)$/)
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0)
+  const now = new Date().toISOString()
+  return {
+    id: nowId('sample'), code: `LAB-${String(new Date().getFullYear()).slice(-2)}-${String(highest + 1).padStart(3, '0')}`,
+    sourceType: input.sourceType, sourceId: input.sourceId, sourceName: lot?.name ?? parcel?.name ?? delivery?.varieties ?? input.sourceId,
+    wineType: lot?.type, profile: input.profile, collectedAt: now, collectedBy: 'Elena Martín', assignedTo: input.assignedTo,
+    dueAt: input.dueAt, priority: input.priority, status: 'queued', requestedAnalyses: labAnalysisProfiles[input.profile], results: [], notes: input.notes.trim(),
+  }
+}
+
+export const recordLabResults = (samples: LabSample[], input: LabResultsInput) => {
+  const current = samples.find((sample) => sample.id === input.sampleId)
+  if (!current) throw new Error('Sample not found')
+  const results = current.requestedAnalyses.map((analysis) => {
+    const value = input.values[analysis]
+    if (value === undefined || !Number.isFinite(value)) throw new Error('Missing analysis result')
+    return { analysis, value, unit: labAnalysisUnits[analysis], status: evaluateLabResult(analysis, value) }
+  })
+  const status = results.some((result) => result.status !== 'normal') ? 'review' as const : 'validated' as const
+  const updated: LabSample = { ...current, status, results, notes: input.notes.trim() || current.notes, validatedAt: new Date().toISOString() }
+  return { sample: updated, samples: samples.map((sample) => sample.id === updated.id ? updated : sample) }
 }

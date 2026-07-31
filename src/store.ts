@@ -1,16 +1,18 @@
-import { deliveries, initialTasks, lots, parcels, tanks } from './data'
+import { deliveries, initialTasks, labSamples, lots, parcels, tanks } from './data'
 import type { WineryState } from './types'
 
-const STORAGE_KEY = 'anada-winery-state-v2'
-const LEGACY_STORAGE_KEY = 'anada-winery-state-v1'
+const STORAGE_KEY = 'anada-winery-state-v3'
+const LEGACY_V2_STORAGE_KEY = 'anada-winery-state-v2'
+const LEGACY_V1_STORAGE_KEY = 'anada-winery-state-v1'
 
 const seedState = (): WineryState => ({
-  schemaVersion: 2,
+  schemaVersion: 3,
   lots: structuredClone(lots),
   tasks: structuredClone(initialTasks),
   tanks: structuredClone(tanks),
   parcels: structuredClone(parcels),
   deliveries: structuredClone(deliveries),
+  samples: structuredClone(labSamples),
 })
 
 export interface WineryRepository {
@@ -22,25 +24,27 @@ export interface WineryRepository {
 const isWineryState = (value: unknown): value is WineryState => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<WineryState>
-  return candidate.schemaVersion === 2
+  return candidate.schemaVersion === 3
     && Array.isArray(candidate.lots)
     && Array.isArray(candidate.tasks)
     && Array.isArray(candidate.tanks)
     && Array.isArray(candidate.parcels)
     && Array.isArray(candidate.deliveries)
+    && Array.isArray(candidate.samples)
 }
 
 const migrateLegacyState = (value: unknown): WineryState | null => {
   if (!value || typeof value !== 'object') return null
   const candidate = value as Record<string, unknown>
-  if (candidate.schemaVersion !== 1 || !Array.isArray(candidate.lots) || !Array.isArray(candidate.tasks) || !Array.isArray(candidate.tanks)) return null
+  if ((candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) || !Array.isArray(candidate.lots) || !Array.isArray(candidate.tasks) || !Array.isArray(candidate.tanks)) return null
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     lots: candidate.lots as WineryState['lots'],
     tasks: candidate.tasks as WineryState['tasks'],
     tanks: candidate.tanks as WineryState['tanks'],
-    parcels: structuredClone(parcels),
-    deliveries: structuredClone(deliveries),
+    parcels: candidate.schemaVersion === 2 && Array.isArray(candidate.parcels) ? candidate.parcels as WineryState['parcels'] : structuredClone(parcels),
+    deliveries: candidate.schemaVersion === 2 && Array.isArray(candidate.deliveries) ? candidate.deliveries as WineryState['deliveries'] : structuredClone(deliveries),
+    samples: structuredClone(labSamples),
   }
 }
 
@@ -52,7 +56,7 @@ export const browserWineryRepository: WineryRepository = {
         const parsed: unknown = JSON.parse(stored)
         return isWineryState(parsed) ? parsed : seedState()
       }
-      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+      const legacy = localStorage.getItem(LEGACY_V2_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V1_STORAGE_KEY)
       if (!legacy) return seedState()
       return migrateLegacyState(JSON.parse(legacy)) ?? seedState()
     } catch {
@@ -64,7 +68,8 @@ export const browserWineryRepository: WineryRepository = {
   },
   clear() {
     localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem(LEGACY_STORAGE_KEY)
+    localStorage.removeItem(LEGACY_V2_STORAGE_KEY)
+    localStorage.removeItem(LEGACY_V1_STORAGE_KEY)
     return seedState()
   },
 }

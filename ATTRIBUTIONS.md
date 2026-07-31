@@ -9,5 +9,6 @@ Phase 1 uses remote Unsplash images solely as replaceable demonstration assets. 
 | Barrel cellar | Eric Cook | https://unsplash.com/photos/barrels-of-liquor-in-a-basement-D9WH_vlxicA |
 | White grapes | Jeswin Thomas | https://unsplash.com/photos/a-bunch-of-grapes-hanging-from-a-vine-ZTD5owFxFzs |
 | Cellar tunnel | Kristina Kutleša | https://unsplash.com/photos/a-tunnel-with-several-wine-barrels-in-it-pg_IUseDxTE |
+| Laboratory | Louis Reed | https://unsplash.com/photos/refill-of-liquid-on-tubes-pwcKF7L4-no |
 
 Before commercial release, download approved images, optimise them locally and complete a final licence review. Avoid visible brands and labels.

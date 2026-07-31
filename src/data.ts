@@ -1,4 +1,4 @@
-import type { CellarTask, GrapeDelivery, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { CellarTask, GrapeDelivery, LabSample, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -6,6 +6,7 @@ export const images = {
   tanks: 'https://images.unsplash.com/photo-1765850258953-16e2b4cf70db?auto=format&fit=crop&w=1800&q=82',
   barrels: 'https://images.unsplash.com/photo-1561906814-23da9a8bfee0?auto=format&fit=crop&w=1800&q=82',
   whiteGrapes: 'https://images.unsplash.com/photo-1686359532306-f95743030ad5?auto=format&fit=crop&w=1800&q=82',
+  laboratory: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1800&q=82',
 }
 
 export const redProcess: ProcessStage[] = [
@@ -144,5 +145,44 @@ export const deliveries: GrapeDelivery[] = [
   {
     id: 'delivery-005', code: 'ENT-26-044', parcelId: 'PAR-VIL-021', grower: 'Bodegas ValdeIregua', varieties: 'Tempranillo', origin: 'Villamediana de Iregua · Rioja Oriental',
     scheduledDate: '2026-09-20', scheduledTime: '09:00', expectedKg: 8100, status: 'planned', vehicle: 'LO-9024-AF', processingDestination: 'Mesa de selección',
+  },
+]
+
+export const labSamples: LabSample[] = [
+  {
+    id: 'sample-085', code: 'LAB-26-085', sourceType: 'lot', sourceId: 'T-26-017', sourceName: 'Ladera del Iregua', wineType: 'tinto', profile: 'fermentation',
+    collectedAt: '2026-09-19T12:10:00+02:00', collectedBy: 'Elena Martín', assignedTo: 'Lucía Sáenz', dueAt: '14:00', priority: 'urgent', status: 'in_analysis',
+    requestedAnalyses: ['temperature', 'density', 'ph', 'total_acidity', 'volatile_acidity'], results: [], notes: 'Temperatura en ascenso durante el último remontado.',
+  },
+  {
+    id: 'sample-084', code: 'LAB-26-084', sourceType: 'lot', sourceId: 'B-26-006', sourceName: 'Viura de Nalda', wineType: 'blanco', profile: 'fermentation',
+    collectedAt: '2026-09-19T09:05:00+02:00', collectedBy: 'Elena Martín', assignedTo: 'Lucía Sáenz', dueAt: '11:30', priority: 'today', status: 'validated',
+    requestedAnalyses: ['temperature', 'density', 'ph', 'total_acidity', 'volatile_acidity'],
+    results: [
+      { analysis: 'temperature', value: 15.2, unit: '°C', status: 'normal' }, { analysis: 'density', value: 1.018, unit: '', status: 'normal' },
+      { analysis: 'ph', value: 3.18, unit: '', status: 'normal' }, { analysis: 'total_acidity', value: 6.1, unit: 'g/L', status: 'normal' },
+      { analysis: 'volatile_acidity', value: 0.28, unit: 'g/L', status: 'normal' },
+    ], notes: 'Cinética estable.', validatedAt: '2026-09-19T10:02:00+02:00',
+  },
+  {
+    id: 'sample-083', code: 'LAB-26-083', sourceType: 'lot', sourceId: 'T-25-012', sourceName: 'Las Suertes', wineType: 'tinto', profile: 'malolactic',
+    collectedAt: '2026-09-19T08:20:00+02:00', collectedBy: 'Martín Ruiz', assignedTo: 'Lucía Sáenz', dueAt: '12:00', priority: 'today', status: 'review',
+    requestedAnalyses: ['malic_acid', 'ph', 'volatile_acidity', 'free_so2'],
+    results: [
+      { analysis: 'malic_acid', value: 0.55, unit: 'g/L', status: 'warning' }, { analysis: 'ph', value: 3.61, unit: '', status: 'normal' },
+      { analysis: 'volatile_acidity', value: 0.62, unit: 'g/L', status: 'normal' }, { analysis: 'free_so2', value: 11, unit: 'mg/L', status: 'warning' },
+    ], notes: 'Repetir málico en 48 h.', validatedAt: '2026-09-19T09:18:00+02:00',
+  },
+  {
+    id: 'sample-082', code: 'LAB-26-082', sourceType: 'delivery', sourceId: 'ENT-26-040', sourceName: 'Camino de Moncalvillo', profile: 'maturity',
+    collectedAt: '2026-09-19T07:25:00+02:00', collectedBy: 'Elena Martín', assignedTo: 'Elena Martín', dueAt: '08:15', priority: 'today', status: 'validated',
+    requestedAnalyses: ['potential_alcohol', 'ph', 'total_acidity'],
+    results: [{ analysis: 'potential_alcohol', value: 13.1, unit: '% vol.', status: 'normal' }, { analysis: 'ph', value: 3.44, unit: '', status: 'normal' }, { analysis: 'total_acidity', value: 5.5, unit: 'g/L', status: 'normal' }],
+    notes: 'Uva sana y fresca.', validatedAt: '2026-09-19T07:52:00+02:00',
+  },
+  {
+    id: 'sample-086', code: 'LAB-26-086', sourceType: 'lot', sourceId: 'CR-25-004', sourceName: 'Cueva del Moncalvillo', wineType: 'tinto', profile: 'bottling',
+    collectedAt: '2026-09-19T11:40:00+02:00', collectedBy: 'Martín Ruiz', assignedTo: 'Lucía Sáenz', dueAt: '16:30', priority: 'routine', status: 'queued',
+    requestedAnalyses: ['free_so2', 'total_so2', 'turbidity', 'residual_sugar'], results: [], notes: 'Control previo a estabilización.',
   },
 ]
