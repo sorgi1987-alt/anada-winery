@@ -228,6 +228,9 @@ h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -0.0
   font-weight: 600;
   cursor: pointer;
 }
+.language-selector { min-height:38px;padding:3px 4px 3px 10px;display:flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:12px;color:var(--text-muted);background:var(--surface-soft); }
+.language-selector>svg{margin-right:auto}.language-selector button{min-width:36px;height:30px;padding:0 8px;border:0;border-radius:9px;color:var(--text-muted);background:transparent;font-size:9px;font-weight:800;letter-spacing:.04em;cursor:pointer;transition:.16s ease}.language-selector button:hover{color:var(--wine-700)}.language-selector button.active{color:var(--wine-700);background:var(--surface);box-shadow:var(--shadow-sm)}
+.language-selector.compact{min-height:40px;padding:3px;background:var(--surface)}.language-selector.compact button{min-width:32px;height:32px;padding:0 6px}.cellar-theme .language-selector button.active{color:#f4cbd7;background:var(--surface)}
 
 .notification-button { position: relative; }
 .notification-button i { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border: 2px solid var(--surface); border-radius: 50%; background: var(--critical); }
@@ -390,6 +393,7 @@ h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -0.0
 .welcome-panel h2 { margin: 6px 0 8px; font-size: 34px; }
 .muted { color: var(--text-muted); }
 .demo-pill { width: fit-content; padding: 7px 10px; display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; color: var(--success); background: var(--success-soft); font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.welcome-tools{display:flex;align-items:center;justify-content:space-between;gap:12px}.welcome-tools .language-selector{flex:none}
 .winery-selector { width: 100%; min-height: 76px; padding: 12px; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 18px; color: var(--text); background: var(--surface-soft); text-align: left; }
 .winery-selector > span:nth-child(2) { display: grid; }
 .winery-selector strong { font-size: 13px; }.winery-selector small { color: var(--text-muted); font-size: 10px; }

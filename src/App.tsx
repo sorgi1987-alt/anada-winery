@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } f
 import {
   Activity, ArrowLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
-  Factory, FlaskConical, Gauge, Grape, Grid2X2, Home, Leaf, List, MapPin, Menu, Moon,
+  Factory, FlaskConical, Gauge, Grape, Grid2X2, Home, Languages, Leaf, List, MapPin, Menu, Moon,
   MoreHorizontal, Package, Plus, Save, Search, Settings2, ShieldCheck,
   Sparkles, Sprout, Sun, Thermometer, Undo2, Warehouse,
   Waypoints, Wine, X,
@@ -10,17 +10,15 @@ import {
 import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { images, lots as seedLots } from './data'
 import { assignLotToTank, createLot as buildLot, createOpeningTask, createTask } from './domain'
+import { useLanguage, type Language } from './i18n'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { browserWineryRepository } from './store'
 import type { CellarTask, NewLotInput, NewTaskInput, ReadingPoint, Tank, WineLot, WineType } from './types'
 
-const formatVolume = (volume: number) => `${new Intl.NumberFormat('es-ES').format(volume)} L`
+const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
-const wineLabel: Record<WineType, string> = {
-  tinto: 'Tinto',
-  blanco: 'Blanco',
-  rosado: 'Rosado',
-  espumoso: 'Espumoso',
+const wineLabelKey: Record<WineType, 'wine.red' | 'wine.white' | 'wine.rose' | 'wine.sparkling'> = {
+  tinto: 'wine.red', blanco: 'wine.white', rosado: 'wine.rose', espumoso: 'wine.sparkling',
 }
 
 const FermentationChart = lazy(() => import('./Charts').then((module) => ({ default: module.FermentationChart })))
@@ -34,19 +32,20 @@ const typeIcon: Record<WineType, ReactNode> = {
 }
 
 const navItems = [
-  { label: 'Hoy', path: '/dashboard', icon: Home },
-  { label: 'Vendimia', path: '/production', icon: Sprout },
-  { label: 'Elaboración', path: '/lots', icon: Grape },
-  { label: 'Bodega', path: '/cellar', icon: Warehouse },
-  { label: 'Laboratorio', path: '/laboratory', icon: FlaskConical },
-  { label: 'Crianza', path: '/ageing', icon: Wine },
-  { label: 'Embotellado', path: '/bottling', icon: Package },
-  { label: 'Trazabilidad', path: '/traceability', icon: Waypoints },
-  { label: 'Informes', path: '/reports', icon: BarChart3 },
+  { labelKey: 'nav.today' as const, path: '/dashboard', icon: Home },
+  { labelKey: 'nav.harvest' as const, path: '/production', icon: Sprout },
+  { labelKey: 'nav.production' as const, path: '/lots', icon: Grape },
+  { labelKey: 'nav.cellar' as const, path: '/cellar', icon: Warehouse },
+  { labelKey: 'nav.laboratory' as const, path: '/laboratory', icon: FlaskConical },
+  { labelKey: 'nav.ageing' as const, path: '/ageing', icon: Wine },
+  { labelKey: 'nav.bottling' as const, path: '/bottling', icon: Package },
+  { labelKey: 'nav.traceability' as const, path: '/traceability', icon: Waypoints },
+  { labelKey: 'nav.reports' as const, path: '/reports', icon: BarChart3 },
 ]
 
 function App() {
   const { pathname } = useHashLocation()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const [initialState] = useState(() => browserWineryRepository.load())
   const [demoLots, setDemoLots] = useState<WineLot[]>(initialState.lots)
@@ -96,7 +95,7 @@ function App() {
       ? { ...tank, temperature: reading.temperature, volume: nextVolume ?? tank.volume }
       : tank))
     setReadingLotId(null)
-    setToast(`Lectura guardada en ${lotId}`)
+    setToast(t('toast.readingSaved', { id: lotId }))
     window.setTimeout(() => setToast(null), 4200)
   }
 
@@ -106,7 +105,7 @@ function App() {
     setDemoTanks((current) => current.map((tank) => tank.lot === undoLot.id
       ? { ...tank, temperature: undoLot.temperature, volume: undoLot.volume }
       : tank))
-    setToast(`Última lectura de ${undoLot.id} deshecha`)
+    setToast(t('toast.readingUndone', { id: undoLot.id }))
     setUndoLot(null)
     window.setTimeout(() => setToast(null), 3200)
   }
@@ -118,7 +117,7 @@ function App() {
     setDemoTanks((current) => assignLotToTank(current, lot))
     setNewLotType(null)
     setUndoLot(null)
-    setToast(`${lot.id} creado y asignado a ${lot.vessel}`)
+    setToast(t('toast.lotCreated', { id: lot.id, vessel: lot.vessel }))
     window.setTimeout(() => setToast(null), 4200)
     navigate(`/lots/${lot.id}`)
   }
@@ -127,7 +126,7 @@ function App() {
     const task = createTask(input)
     setTasks((current) => [task, ...current])
     setUndoLot(null)
-    setToast(`Tarea creada para ${task.lot}`)
+    setToast(t('toast.taskCreated', { id: task.lot }))
     window.setTimeout(() => setToast(null), 3200)
   }
 
@@ -137,7 +136,7 @@ function App() {
     setTasks(reset.tasks)
     setDemoTanks(reset.tanks)
     setUndoLot(null)
-    setToast('Datos locales restablecidos')
+    setToast(t('toast.reset'))
     window.setTimeout(() => setToast(null), 3200)
     navigate('/dashboard')
   }
@@ -170,7 +169,7 @@ function App() {
         setMenuOpen={setMenuOpen}
         onQuickReading={() => setReadingLotId('T-26-017')}
         onNotifications={() => {
-          setToast('3 alertas activas · 1 requiere revisión')
+          setToast(t('toast.alerts'))
           window.setTimeout(() => setToast(null), 3200)
         }}
       >
@@ -183,7 +182,7 @@ function App() {
         <div className="toast" role="status">
           <CheckCircle2 size={19} />
           <span>{toast}</span>
-          {undoLot && <button onClick={undoReading} aria-label="Deshacer última lectura"><Undo2 size={17} /> Deshacer</button>}
+          {undoLot && <button onClick={undoReading} aria-label={t('toast.undo')}><Undo2 size={17} /> {t('toast.undo')}</button>}
         </div>
       )}
     </div>
@@ -192,34 +191,35 @@ function App() {
 
 function Welcome() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   return (
     <main className="welcome-screen">
       <div className="welcome-visual" style={{ backgroundImage: `url(${images.vineyard})` }}>
         <div className="welcome-brand"><Brand light /></div>
         <div className="welcome-caption">
-          <span className="eyebrow light">Desde la viña hasta la botella</span>
-          <h1>El vino marca el ritmo.<br />Añada lo hace visible.</h1>
-          <p>Una forma más clara y natural de trabajar en bodega.</p>
+          <span className="eyebrow light">{t('welcome.kicker')}</span>
+          <h1>{t('welcome.title').split('\n').map((line, index) => <span key={line}>{line}{index === 0 && <br />}</span>)}</h1>
+          <p>{t('welcome.subtitle')}</p>
         </div>
       </div>
       <section className="welcome-panel">
-        <div className="demo-pill"><Circle size={8} fill="currentColor" /> Entorno de demostración</div>
+        <div className="welcome-tools"><div className="demo-pill"><Circle size={8} fill="currentColor" /> {t('welcome.demo')}</div><LanguageSelector compact /></div>
         <div>
-          <span className="eyebrow">Tu espacio de trabajo</span>
-          <h2>Bienvenida, Elena</h2>
-          <p className="muted">Retoma la vendimia donde la dejaste.</p>
+          <span className="eyebrow">{t('welcome.workspace')}</span>
+          <h2>{t('welcome.hello')}</h2>
+          <p className="muted">{t('welcome.resume')}</p>
         </div>
         <div className="winery-selector">
           <span className="winery-mark">VI</span>
-          <span><strong>Bodega ValdeIregua</strong><small>Alberite · Rioja Oriental</small></span>
+          <span><strong>{t('welcome.winery')}</strong><small>Alberite · Rioja Oriental</small></span>
           <ChevronDown size={18} />
         </div>
         <button className="primary-button full" onClick={() => navigate('/dashboard')}>
-          Entrar en bodega <ArrowUpRight size={18} />
+          {t('welcome.enter')} <ArrowUpRight size={18} />
         </button>
         <div className="welcome-meta">
-          <span><ShieldCheck size={16} /> Datos de demostración</span>
-          <span>Añada 0.2</span>
+          <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
+          <span>Añada 0.3</span>
         </div>
       </section>
     </main>
@@ -231,6 +231,16 @@ function Brand({ light = false }: { light?: boolean }) {
     <div className={`brand ${light ? 'brand-light' : ''}`}>
       <span className="brand-glyph"><Grape size={22} strokeWidth={1.7} /></span>
       <span>Añada</span>
+    </div>
+  )
+}
+
+function LanguageSelector({ compact = false }: { compact?: boolean }) {
+  const { language, setLanguage, t } = useLanguage()
+  return (
+    <div className={`language-selector ${compact ? 'compact' : ''}`} aria-label={t('language.label')}>
+      {!compact && <Languages size={16} />}
+      {(['es', 'en'] as Language[]).map((option) => <button key={option} type="button" className={language === option ? 'active' : ''} onClick={() => setLanguage(option)} aria-pressed={language === option}>{option === 'es' ? t('language.es') : t('language.en')}</button>)}
     </div>
   )
 }
@@ -247,62 +257,66 @@ interface ShellProps {
 
 function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onQuickReading, onNotifications }: ShellProps) {
   const location = useHashLocation()
-  const page = navItems.find((item) => location.pathname.startsWith(item.path))?.label ?? 'Añada'
+  const { t } = useLanguage()
+  const pageItem = navItems.find((item) => location.pathname.startsWith(item.path))
+  const page = pageItem ? t(pageItem.labelKey) : 'Añada'
   return (
     <div className="shell">
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-top">
           <Brand />
-          <button className="icon-button sidebar-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><X size={20} /></button>
+          <button className="icon-button sidebar-close" onClick={() => setMenuOpen(false)} aria-label={t('common.close')}><X size={20} /></button>
         </div>
         <div className="winery-mini">
           <span className="winery-mark small">VI</span>
-          <span><strong>ValdeIregua</strong><small>Vendimia 2026</small></span>
+          <span><strong>ValdeIregua</strong><small>{t('shell.harvest')}</small></span>
           <ChevronDown size={15} />
         </div>
-        <nav className="primary-nav" aria-label="Navegación principal">
-          {navItems.map(({ label, path, icon: Icon }) => (
+        <nav className="primary-nav" aria-label={t('nav.primary')}>
+          {navItems.map(({ labelKey, path, icon: Icon }) => (
             <NavLink key={path} to={path} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={() => setMenuOpen(false)}>
               <Icon size={19} strokeWidth={1.8} />
-              <span>{label}</span>
+              <span>{t(labelKey)}</span>
             </NavLink>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <NavLink to="/settings" className="nav-item"><Settings2 size={19} /><span>Configuración</span></NavLink>
+          <LanguageSelector />
+          <NavLink to="/settings" className="nav-item"><Settings2 size={19} /><span>{t('nav.settings')}</span></NavLink>
           <div className="user-mini">
             <span className="avatar">EM</span>
-            <span><strong>Elena Martín</strong><small>Enóloga</small></span>
+            <span><strong>Elena Martín</strong><small>{t('shell.role')}</small></span>
             <MoreHorizontal size={18} />
           </div>
         </div>
       </aside>
-      {menuOpen && <button className="sidebar-scrim" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú" />}
+      {menuOpen && <button className="sidebar-scrim" onClick={() => setMenuOpen(false)} aria-label={t('common.close')} />}
 
       <section className="main-area">
         <header className="topbar">
           <div className="topbar-left">
-            <button className="icon-button menu-trigger" onClick={() => setMenuOpen(true)} aria-label="Abrir menú"><Menu size={21} /></button>
+            <button className="icon-button menu-trigger" onClick={() => setMenuOpen(true)} aria-label={t('common.open')}><Menu size={21} /></button>
             <span className="mobile-page-title">{page}</span>
           </div>
           <div className="topbar-actions">
             <button className="mode-button" onClick={toggleCellarMode}>
               {cellarMode ? <Sun size={17} /> : <Moon size={17} />}
-              <span>{cellarMode ? 'Modo claro' : 'Modo bodega'}</span>
+              <span>{cellarMode ? t('shell.light') : t('shell.cellar')}</span>
             </button>
-            <button className="icon-button notification-button" onClick={onNotifications} aria-label="Notificaciones"><Bell size={19} /><i /></button>
+            <LanguageSelector compact />
+            <button className="icon-button notification-button" onClick={onNotifications} aria-label={t('shell.notifications')}><Bell size={19} /><i /></button>
             <span className="avatar top-avatar">EM</span>
           </div>
         </header>
         <div className="page-content">{children}</div>
       </section>
 
-      <nav className="mobile-nav" aria-label="Navegación móvil">
-        <MobileNavItem to="/dashboard" icon={<Home />} label="Hoy" />
-        <MobileNavItem to="/lots" icon={<Grape />} label="Lotes" />
-        <button className="mobile-quick" onClick={onQuickReading} aria-label="Registrar lectura"><Plus /></button>
-        <MobileNavItem to="/cellar" icon={<Warehouse />} label="Bodega" />
-        <MobileNavItem to="/tasks" icon={<ClipboardCheck />} label="Tareas" />
+      <nav className="mobile-nav" aria-label={t('nav.mobile')}>
+        <MobileNavItem to="/dashboard" icon={<Home />} label={t('nav.today')} />
+        <MobileNavItem to="/lots" icon={<Grape />} label={t('nav.lots')} />
+        <button className="mobile-quick" onClick={onQuickReading} aria-label={t('detail.registerReading')}><Plus /></button>
+        <MobileNavItem to="/cellar" icon={<Warehouse />} label={t('nav.cellar')} />
+        <MobileNavItem to="/tasks" icon={<ClipboardCheck />} label={t('nav.tasks')} />
       </nav>
     </div>
   )
@@ -322,6 +336,7 @@ interface DashboardProps {
 
 function Dashboard({ lots, tanks, tasks, setTasks, onReading }: DashboardProps) {
   const navigate = useNavigate()
+  const { t, locale } = useLanguage()
   const pending = tasks.filter((task) => !task.complete)
   const occupied = tanks.filter((tank) => tank.volume > 0)
   const totalCapacity = tanks.reduce((total, tank) => total + tank.capacity, 0)
@@ -331,21 +346,21 @@ function Dashboard({ lots, tanks, tasks, setTasks, onReading }: DashboardProps) 
   return (
     <main>
       <PageHeader
-        eyebrow="Jueves, 31 de julio"
-        title="Buenos días, Elena"
-        description="La bodega está en marcha. Hay tres asuntos que necesitan tu atención."
-        action={<button className="primary-button" onClick={() => navigate('/production')}><Plus size={18} /> Nueva elaboración</button>}
+        eyebrow={t('dashboard.date')}
+        title={t('dashboard.greeting')}
+        description={t('dashboard.description')}
+        action={<button className="primary-button" onClick={() => navigate('/production')}><Plus size={18} /> {t('dashboard.new')}</button>}
       />
 
-      <section className="metrics-grid" aria-label="Resumen de bodega">
-        <MetricCard label="Lotes activos" value={String(lots.length)} detail={`${activeFermentations} en fermentación`} icon={<Grape />} accent="wine" />
-        <MetricCard label="Capacidad ocupada" value={`${occupiedPercentage}%`} detail={`${formatVolume(occupiedVolume)} de ${formatVolume(totalCapacity)}`} icon={<Gauge />} accent="stone" />
-        <MetricCard label="Tareas pendientes" value={String(pending.length)} detail="2 antes de las 17:00" icon={<ClipboardCheck />} accent="gold" />
-        <MetricCard label="Alertas activas" value="3" detail="1 requiere revisión" icon={<Activity />} accent="red" />
+      <section className="metrics-grid" aria-label={t('dashboard.summary')}>
+        <MetricCard label={t('dashboard.activeLots')} value={String(lots.length)} detail={t('dashboard.inFermentation', { count: activeFermentations })} icon={<Grape />} accent="wine" />
+        <MetricCard label={t('dashboard.capacityUsed')} value={`${occupiedPercentage}%`} detail={t('dashboard.capacityDetail', { used: formatVolume(occupiedVolume, locale), total: formatVolume(totalCapacity, locale) })} icon={<Gauge />} accent="stone" />
+        <MetricCard label={t('dashboard.pendingTasks')} value={String(pending.length)} detail={t('dashboard.beforeTime')} icon={<ClipboardCheck />} accent="gold" />
+        <MetricCard label={t('dashboard.activeAlerts')} value="3" detail={t('dashboard.alertDetail')} icon={<Activity />} accent="red" />
       </section>
 
       <section className="section-block">
-        <SectionHeading title="Ahora en bodega" subtitle="Lo que está evolucionando en este momento" link="Ver todos los lotes" onLink={() => navigate('/lots')} />
+        <SectionHeading title={t('dashboard.now')} subtitle={t('dashboard.nowSubtitle')} link={t('dashboard.viewLots')} onLink={() => navigate('/lots')} />
         <div className="active-lots-grid">
           {lots.slice(0, 3).map((lot) => <LotCard key={lot.id} lot={lot} onOpen={() => navigate(`/lots/${lot.id}`)} onReading={() => onReading(lot.id)} />)}
         </div>
@@ -353,7 +368,7 @@ function Dashboard({ lots, tanks, tasks, setTasks, onReading }: DashboardProps) 
 
       <section className="dashboard-columns">
         <div className="task-panel panel">
-          <SectionHeading title="Tareas de hoy" subtitle={`${pending.length} operaciones pendientes`} link="Ver agenda" onLink={() => navigate('/tasks')} compact />
+          <SectionHeading title={t('dashboard.todayTasks')} subtitle={t('dashboard.operationsPending', { count: pending.length })} link={t('dashboard.viewAgenda')} onLink={() => navigate('/tasks')} compact />
           <div className="task-list">
             {tasks.slice(0, 4).map((task) => (
               <TaskRow key={task.id} task={task} onToggle={() => setTasks((current) => current.map((item) => item.id === task.id ? { ...item, complete: !item.complete } : item))} />
@@ -361,14 +376,14 @@ function Dashboard({ lots, tanks, tasks, setTasks, onReading }: DashboardProps) 
           </div>
         </div>
         <div className="occupancy-panel panel">
-          <SectionHeading title="Ocupación" subtitle="Nave de fermentación" link="Abrir mapa" onLink={() => navigate('/cellar')} compact />
+          <SectionHeading title={t('dashboard.occupancy')} subtitle={t('dashboard.fermentationHall')} link={t('dashboard.openMap')} onLink={() => navigate('/cellar')} compact />
           <div className="occupancy-visual">
             <ProgressRing value={occupiedPercentage} />
             <div className="mini-tanks">
               {occupied.slice(0, 6).map((tank) => <MiniTank key={tank.id} tank={tank} />)}
             </div>
           </div>
-          <div className="occupancy-legend"><span><i className="dot wine" /> Tinto</span><span><i className="dot white" /> Blanco</span><span><i className="dot empty" /> Libre {100 - occupiedPercentage}%</span></div>
+          <div className="occupancy-legend"><span><i className="dot wine" /> {t('wine.red')}</span><span><i className="dot white" /> {t('wine.white')}</span><span><i className="dot empty" /> {t('dashboard.free', { value: 100 - occupiedPercentage })}</span></div>
         </div>
       </section>
     </main>
@@ -403,33 +418,35 @@ function SectionHeading({ title, subtitle, link, onLink, compact = false }: { ti
 }
 
 function LotCard({ lot, onOpen, onReading }: { lot: WineLot; onOpen: () => void; onReading: () => void }) {
+  const { t, d, locale } = useLanguage()
   return (
     <article className={`lot-card lot-${lot.type}`}>
-      <button className="lot-image" style={{ backgroundImage: `url(${lot.image})` }} onClick={onOpen} aria-label={`Abrir lote ${lot.id}`}>
-        <span className="lot-type-chip">{typeIcon[lot.type]} {wineLabel[lot.type]}</span>
-        {lot.attention !== 'normal' && <span className={`attention-chip ${lot.attention}`}><Activity size={14} /> {lot.attentionText}</span>}
+      <button className="lot-image" style={{ backgroundImage: `url(${lot.image})` }} onClick={onOpen} aria-label={t('lot.open', { id: lot.id })}>
+        <span className="lot-type-chip">{typeIcon[lot.type]} {t(wineLabelKey[lot.type])}</span>
+        {lot.attention !== 'normal' && <span className={`attention-chip ${lot.attention}`}><Activity size={14} /> {d(lot.attentionText ?? '')}</span>}
       </button>
       <div className="lot-card-body">
-        <div className="lot-title"><div><span>{lot.id}</span><h3>{lot.name}</h3></div><button className="icon-button small" onClick={onOpen} aria-label="Abrir detalle"><ArrowUpRight size={17} /></button></div>
+        <div className="lot-title"><div><span>{lot.id}</span><h3>{lot.name}</h3></div><button className="icon-button small" onClick={onOpen} aria-label={t('lot.openDetail')}><ArrowUpRight size={17} /></button></div>
         <p className="lot-origin"><MapPin size={14} /> {lot.origin}</p>
-        <div className="lot-stage"><span>{lot.stage}</span>{lot.day && <small>Día {lot.day}</small>}</div>
+        <div className="lot-stage"><span>{d(lot.stage)}</span>{lot.day && <small>{t('common.day')} {lot.day}</small>}</div>
         <div className="progress-track"><i style={{ width: `${lot.progress}%` }} /></div>
         <div className="lot-readings">
-          {lot.temperature && <span><Thermometer size={16} /><strong>{lot.temperature.toFixed(1)}°</strong><small>Temp.</small></span>}
-          {lot.density && <span><Droplets size={16} /><strong>{lot.density.toFixed(3)}</strong><small>Densidad</small></span>}
-          <span><Gauge size={16} /><strong>{formatVolume(lot.volume)}</strong><small>{lot.vessel}</small></span>
+          {lot.temperature && <span><Thermometer size={16} /><strong>{lot.temperature.toFixed(1)}°</strong><small>{t('lot.temp')}</small></span>}
+          {lot.density && <span><Droplets size={16} /><strong>{lot.density.toFixed(3)}</strong><small>{t('common.density')}</small></span>}
+          <span><Gauge size={16} /><strong>{formatVolume(lot.volume, locale)}</strong><small>{lot.vessel}</small></span>
         </div>
-        <button className="next-operation" onClick={onReading}><span><Clock3 size={16} /><i>Próximo</i><strong>{lot.nextAction}</strong></span><small>{lot.nextTime}</small></button>
+        <button className="next-operation" onClick={onReading}><span><Clock3 size={16} /><i>{t('lot.next')}</i><strong>{d(lot.nextAction)}</strong></span><small>{d(lot.nextTime)}</small></button>
       </div>
     </article>
   )
 }
 
 function TaskRow({ task, onToggle }: { task: CellarTask; onToggle: () => void }) {
+  const { t, d } = useLanguage()
   return (
     <div className={`task-row ${task.complete ? 'complete' : ''}`}>
-      <button className="task-check" onClick={onToggle} aria-label={task.complete ? 'Reabrir tarea' : 'Completar tarea'}>{task.complete ? <Check size={16} /> : null}</button>
-      <div className="task-copy"><strong>{task.title}</strong><span>{task.lot} · {task.assignee}</span></div>
+      <button className="task-check" onClick={onToggle} aria-label={task.complete ? t('lot.reopenTask') : t('lot.completeTask')}>{task.complete ? <Check size={16} /> : null}</button>
+      <div className="task-copy"><strong>{d(task.title)}</strong><span>{task.lot} · {task.assignee}</span></div>
       <span className={`priority-dot ${task.priority}`} />
       <time>{task.time}</time>
     </div>
@@ -437,7 +454,8 @@ function TaskRow({ task, onToggle }: { task: CellarTask; onToggle: () => void })
 }
 
 function ProgressRing({ value }: { value: number }) {
-  return <div className="progress-ring" style={{ '--progress': `${value * 3.6}deg` } as React.CSSProperties}><div><strong>{value}%</strong><span>ocupado</span></div></div>
+  const { t } = useLanguage()
+  return <div className="progress-ring" style={{ '--progress': `${value * 3.6}deg` } as React.CSSProperties}><div><strong>{value}%</strong><span>{t('dashboard.used')}</span></div></div>
 }
 
 function MiniTank({ tank }: { tank: Tank }) {
@@ -448,16 +466,17 @@ function MiniTank({ tank }: { tank: Tank }) {
 function Production({ onStartCreate }: { onStartCreate: (type: NewLotInput['type']) => void }) {
   const [selected, setSelected] = useState<WineType | null>(null)
   const navigate = useNavigate()
+  const { t, d } = useLanguage()
   const options = [
-    { type: 'tinto' as const, title: 'Tinto', image: images.cellar, detail: 'Fermentación con hollejos, maceración, descube y maloláctica.', stages: '11 etapas', active: true },
-    { type: 'blanco' as const, title: 'Blanco', image: images.whiteGrapes, detail: 'Prensado, desfangado y fermentación protegida a baja temperatura.', stages: '10 etapas', active: true },
-    { type: 'rosado' as const, title: 'Rosado / Clarete', image: images.vineyard, detail: 'Prensado directo, sangrado o maceración corta.', stages: 'Fase 2', active: false },
-    { type: 'espumoso' as const, title: 'Espumoso', image: images.barrels, detail: 'Vino base y método tradicional con crianza sobre lías.', stages: 'Fase 4', active: false },
+    { type: 'tinto' as const, title: t('wine.red'), image: images.cellar, detail: t('production.redDetail'), stages: t('production.stages', { count: 11 }), active: true },
+    { type: 'blanco' as const, title: t('wine.white'), image: images.whiteGrapes, detail: t('production.whiteDetail'), stages: t('production.stages', { count: 10 }), active: true },
+    { type: 'rosado' as const, title: `${t('wine.rose')} / Clarete`, image: images.vineyard, detail: t('production.roseDetail'), stages: t('production.phase2'), active: false },
+    { type: 'espumoso' as const, title: t('wine.sparkling'), image: images.barrels, detail: t('production.sparklingDetail'), stages: t('production.phase4'), active: false },
   ]
   const selectedLot = selected === 'tinto' ? seedLots[0] : seedLots[1]
   return (
     <main>
-      <PageHeader eyebrow="Vendimia 2026" title="Nueva elaboración" description="Elige el tipo de vino. Añada adaptará etapas, controles y operaciones al proceso real." />
+      <PageHeader eyebrow={t('production.kicker')} title={t('production.title')} description={t('production.description')} />
       <div className="process-choice-grid">
         {options.map((option) => (
           <button
@@ -467,7 +486,7 @@ function Production({ onStartCreate }: { onStartCreate: (type: NewLotInput['type
             aria-disabled={!option.active}
             disabled={!option.active}
           >
-            <span className="process-choice-image" style={{ backgroundImage: `url(${option.image})` }}><i>{option.active ? option.stages : 'Próximamente'}</i></span>
+            <span className="process-choice-image" style={{ backgroundImage: `url(${option.image})` }}><i>{option.active ? option.stages : t('production.soon')}</i></span>
             <span className="process-choice-copy"><span className={`wine-symbol ${option.type}`}>{typeIcon[option.type]}</span><strong>{option.title}</strong><small>{option.detail}</small></span>
             <ChevronRight size={19} />
           </button>
@@ -475,10 +494,10 @@ function Production({ onStartCreate }: { onStartCreate: (type: NewLotInput['type
       </div>
       {selected && selectedLot && (
         <section className={`process-preview preview-${selected}`}>
-          <div className="process-preview-head"><div><span className="eyebrow">Plantilla seleccionada</span><h2>Elaboración de {wineLabel[selected].toLowerCase()} tradicional</h2><p>Las etapas se pueden adaptar antes de crear el lote.</p></div><div className="process-preview-actions"><button className="secondary-button" onClick={() => navigate(`/lots/${selectedLot.id}`)}>Ver ejemplo</button><button className="primary-button" onClick={() => onStartCreate(selected as NewLotInput['type'])}>Configurar lote <ArrowUpRight size={18} /></button></div></div>
+          <div className="process-preview-head"><div><span className="eyebrow">{t('production.template')}</span><h2>{t('production.traditional', { wine: t(wineLabelKey[selected]).toLowerCase() })}</h2><p>{t('production.adapt')}</p></div><div className="process-preview-actions"><button className="secondary-button" onClick={() => navigate(`/lots/${selectedLot.id}`)}>{t('production.example')}</button><button className="primary-button" onClick={() => onStartCreate(selected as NewLotInput['type'])}>{t('production.configure')} <ArrowUpRight size={18} /></button></div></div>
           <ProcessTimeline lot={selectedLot} />
           <div className="context-operation-row">
-            {(selected === 'tinto' ? ['Remontado', 'Bazuqueo', 'Descube', 'Control de málico'] : ['Prensado', 'Desfangado', 'Control de turbidez', 'Bâtonnage']).map((operation) => <span key={operation}><CheckCircle2 size={15} /> {operation}</span>)}
+            {(selected === 'tinto' ? ['Remontado', 'Bazuqueo', 'Descube', 'Control de málico'] : ['Prensado', 'Desfangado', 'Control de turbidez', 'Bâtonnage']).map((operation) => <span key={operation}><CheckCircle2 size={15} /> {d(operation)}</span>)}
           </div>
         </section>
       )}
@@ -491,6 +510,7 @@ function LotsOverview({ lots }: { lots: WineLot[] }) {
   const [filter, setFilter] = useState<'todos' | WineType | 'attention'>('todos')
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const filtered = lots.filter((lot) => {
     const matchesQuery = `${lot.id} ${lot.name} ${lot.varieties} ${lot.origin}`.toLowerCase().includes(query.toLowerCase())
     const matchesFilter = filter === 'todos' || (filter === 'attention' ? lot.attention !== 'normal' : lot.type === filter)
@@ -498,29 +518,30 @@ function LotsOverview({ lots }: { lots: WineLot[] }) {
   })
   return (
     <main>
-      <PageHeader eyebrow="Elaboración" title="Lotes en bodega" description={`${lots.length} lotes activos · Vendimias 2025–2026`} action={<button className="primary-button" onClick={() => navigate('/production')}><Plus size={18} /> Nuevo lote</button>} />
+      <PageHeader eyebrow={t('lots.kicker')} title={t('lots.title')} description={t('lots.description', { count: lots.length })} action={<button className="primary-button" onClick={() => navigate('/production')}><Plus size={18} /> {t('lots.new')}</button>} />
       <div className="filter-bar">
-        <label className="search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar lote, variedad u origen" /></label>
+        <label className="search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('lots.search')} /></label>
         <div className="filter-chips">
-          {([['todos', 'Todos'], ['tinto', 'Tintos'], ['blanco', 'Blancos'], ['attention', 'Requieren atención']] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}
+          {([['todos', t('lots.all')], ['tinto', t('lots.red')], ['blanco', t('lots.white')], ['attention', t('lots.needsAttention')]] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}
         </div>
-        <div className="view-switch"><button className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')} aria-label="Vista tarjetas"><Grid2X2 size={17} /></button><button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')} aria-label="Vista lista"><List size={17} /></button></div>
+        <div className="view-switch"><button className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')} aria-label={t('lots.grid')}><Grid2X2 size={17} /></button><button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')} aria-label={t('lots.list')}><List size={17} /></button></div>
       </div>
       <div className={view === 'grid' ? 'lots-overview-grid' : 'lots-overview-list'}>
         {filtered.map((lot) => <OverviewLotCard key={lot.id} lot={lot} onOpen={() => navigate(`/lots/${lot.id}`)} compact={view === 'list'} />)}
       </div>
-      {filtered.length === 0 && <div className="empty-state"><Search size={28} /><h3>No hay lotes que coincidan</h3><p>Prueba con otro término o elimina algún filtro.</p></div>}
+      {filtered.length === 0 && <div className="empty-state"><Search size={28} /><h3>{t('lots.emptyTitle')}</h3><p>{t('lots.emptyText')}</p></div>}
     </main>
   )
 }
 
 function OverviewLotCard({ lot, onOpen, compact }: { lot: WineLot; onOpen: () => void; compact: boolean }) {
+  const { t, d, locale } = useLanguage()
   return (
     <button className={`overview-lot ${compact ? 'compact' : ''}`} onClick={onOpen}>
       <span className="overview-lot-image" style={{ backgroundImage: `url(${lot.image})` }}><i className={`wine-band ${lot.type}`} /></span>
-      <span className="overview-lot-main"><small>{lot.id} · {wineLabel[lot.type]}</small><strong>{lot.name}</strong><i>{lot.varieties}</i><em><MapPin size={13} /> {lot.origin}</em></span>
-      <span className="overview-stage"><small>Etapa actual</small><strong>{lot.stage}</strong><span className="progress-track"><i style={{ width: `${lot.progress}%` }} /></span></span>
-      <span className="overview-volume"><strong>{formatVolume(lot.volume)}</strong><small>{lot.vessel}</small></span>
+      <span className="overview-lot-main"><small>{lot.id} · {t(wineLabelKey[lot.type])}</small><strong>{lot.name}</strong><i>{lot.varieties}</i><em><MapPin size={13} /> {lot.origin}</em></span>
+      <span className="overview-stage"><small>{t('lots.currentStage')}</small><strong>{d(lot.stage)}</strong><span className="progress-track"><i style={{ width: `${lot.progress}%` }} /></span></span>
+      <span className="overview-volume"><strong>{formatVolume(lot.volume, locale)}</strong><small>{lot.vessel}</small></span>
       <span className={`attention-or-arrow ${lot.attention}`}>{lot.attention !== 'normal' ? <Activity size={17} /> : <ChevronRight size={19} />}</span>
     </button>
   )
@@ -528,19 +549,20 @@ function OverviewLotCard({ lot, onOpen, compact }: { lot: WineLot; onOpen: () =>
 
 function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: Tank[]; lotId: string; onReading: (id: string) => void }) {
   const navigate = useNavigate()
+  const { t, d, locale } = useLanguage()
   const lot = lots.find((item) => item.id === lotId)
-  if (!lot) return <div className="empty-state"><Search size={28} /><h3>Lote no encontrado</h3><button className="secondary-button" onClick={() => navigate('/lots')}>Volver a lotes</button></div>
+  if (!lot) return <div className="empty-state"><Search size={28} /><h3>{t('detail.notFound')}</h3><button className="secondary-button" onClick={() => navigate('/lots')}>{t('detail.backLots')}</button></div>
   const isRed = lot.type === 'tinto'
   const isReception = lot.process[0]?.status === 'current'
   const vessel = tanks.find((tank) => tank.id === lot.vessel)
   const vesselCapacity = vessel?.capacity ?? 10000
   const stageDescription = isReception
     ? isRed
-      ? 'Uva recibida. Pendiente de completar selección, despalillado y encubado según la plantilla del lote.'
-      : 'Uva recibida. Pendiente de registrar prensado, fracciones y protección del mosto.'
+      ? t('detail.redReception')
+      : t('detail.whiteReception')
     : isRed
-      ? 'Fermentación activa con gestión suave del sombrero para preservar fruta y frescura.'
-      : 'Fermentación protegida a baja temperatura. Cinética estable y sin desviaciones.'
+      ? t('detail.redFermentation')
+      : t('detail.whiteFermentation')
   const stageActions = isReception
     ? isRed ? ['Selección', 'Pesaje', 'Encubado'] : ['Pesaje', 'Muestra', 'Prensado']
     : isRed ? ['Remontado', 'Bazuqueo', 'Adición', 'Muestra'] : ['Control temperatura', 'Muestra', 'Trasiego']
@@ -561,50 +583,50 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
   const whiteDetails = lot.productionDetails?.white
   return (
     <main className="lot-detail-page">
-      <button className="back-button" onClick={() => navigate('/lots')}><ArrowLeft size={17} /> Volver a lotes</button>
+      <button className="back-button" onClick={() => navigate('/lots')}><ArrowLeft size={17} /> {t('detail.backLots')}</button>
       <section className={`lot-hero lot-${lot.type}`} style={{ backgroundImage: `url(${lot.image})` }}>
         <div className="lot-hero-overlay" />
         <div className="lot-hero-content">
-          <div className="lot-hero-top"><span className="lot-type-chip glass">{typeIcon[lot.type]} {wineLabel[lot.type]}</span><span className="doca-chip"><ShieldCheck size={15} /> Elegibilidad pendiente de validación</span></div>
-          <div><span className="eyebrow light">{lot.id} · Vendimia {lot.vintage}</span><h1>{lot.name}</h1><p>{lot.varieties}</p><span className="hero-origin"><MapPin size={15} /> {lot.origin}</span></div>
+          <div className="lot-hero-top"><span className="lot-type-chip glass">{typeIcon[lot.type]} {t(wineLabelKey[lot.type])}</span><span className="doca-chip"><ShieldCheck size={15} /> {t('detail.eligibility')}</span></div>
+          <div><span className="eyebrow light">{lot.id} · {t('common.vintage')} {lot.vintage}</span><h1>{lot.name}</h1><p>{lot.varieties}</p><span className="hero-origin"><MapPin size={15} /> {lot.origin}</span></div>
         </div>
       </section>
 
       <section className="lot-status-grid">
         <div className="current-stage-card panel">
-          <div className="stage-label"><span className="pulse-dot" /><span><small>Etapa actual</small><strong>{lot.stage}</strong></span>{lot.day && <em>Día {lot.day}</em>}</div>
+          <div className="stage-label"><span className="pulse-dot" /><span><small>{t('detail.currentStage')}</small><strong>{d(lot.stage)}</strong></span>{lot.day && <em>{t('common.day')} {lot.day}</em>}</div>
           <p>{stageDescription}</p>
           <div className="stage-actions">
-            <button className="primary-button" onClick={() => onReading(lot.id)}><Plus size={18} /> Registrar lectura</button>
-            {stageActions.map((action) => <span className="context-action" key={action}>{action}</span>)}
+            <button className="primary-button" onClick={() => onReading(lot.id)}><Plus size={18} /> {t('detail.registerReading')}</button>
+            {stageActions.map((action) => <span className="context-action" key={action}>{d(action)}</span>)}
           </div>
         </div>
         <div className="vessel-card panel">
           <div className="vessel-graphic"><span className={`vessel-fill ${lot.type}`} style={{ height: `${Math.min(92, lot.volume / vesselCapacity * 100)}%` }} /><i>{lot.vessel}</i></div>
-          <div><span className="eyebrow">Recipiente</span><h3>Depósito {lot.vessel.replace('D-', '')}</h3><p>Acero inoxidable · {vesselCapacity.toLocaleString('es-ES')} L</p><div className="vessel-data"><span><strong>{formatVolume(lot.volume)}</strong><small>Volumen</small></span><span><strong>{Math.round(lot.volume / vesselCapacity * 100)}%</strong><small>Ocupación</small></span></div></div>
+          <div><span className="eyebrow">{t('detail.vessel')}</span><h3>{t('detail.tank', { id: lot.vessel.replace('D-', '') })}</h3><p>{t('detail.stainless', { capacity: vesselCapacity.toLocaleString(locale) })}</p><div className="vessel-data"><span><strong>{formatVolume(lot.volume, locale)}</strong><small>{t('common.volume')}</small></span><span><strong>{Math.round(lot.volume / vesselCapacity * 100)}%</strong><small>{t('common.occupancy')}</small></span></div></div>
         </div>
       </section>
 
       <section className="panel process-panel">
-        <SectionHeading title={`Proceso de elaboración · ${wineLabel[lot.type]}`} subtitle="La secuencia y las operaciones se adaptan al tipo de vino" compact />
+        <SectionHeading title={t('detail.process', { wine: t(wineLabelKey[lot.type]) })} subtitle={t('detail.processSubtitle')} compact />
         <ProcessTimeline lot={lot} />
       </section>
 
       <section className="detail-columns">
         <div className="panel readings-panel">
-          <SectionHeading title="Evolución" subtitle={lot.readings.length ? 'Últimas lecturas del lote' : 'Sin lecturas recientes'} compact />
-          {lot.readings.length ? <Suspense fallback={<ChartSkeleton />}><FermentationChart data={lot.readings} /></Suspense> : <div className="empty-chart"><Activity size={25} /><span>El seguimiento de esta etapa se mostrará aquí.</span></div>}
+          <SectionHeading title={t('detail.evolution')} subtitle={lot.readings.length ? t('detail.latestReadings') : t('detail.noReadings')} compact />
+          {lot.readings.length ? <Suspense fallback={<ChartSkeleton />}><FermentationChart data={lot.readings} /></Suspense> : <div className="empty-chart"><Activity size={25} /><span>{t('detail.trackingHere')}</span></div>}
           <div className="reading-kpis">
-            {lot.temperature && <span><i className="kpi-icon warm"><Thermometer /></i><small>Temperatura</small><strong>{lot.temperature.toFixed(1)} °C</strong><em>{isReception ? 'Lectura de recepción' : isRed ? '+0,6° desde las 08h' : 'Estable'}</em></span>}
-            {lot.density && <span><i className="kpi-icon blue"><Droplets /></i><small>Densidad</small><strong>{lot.density.toFixed(3)}</strong><em>{isReception ? 'Densidad inicial' : '-0,006 desde las 08h'}</em></span>}
-            {!isRed && <span><i className="kpi-icon stone"><Beaker /></i><small>{isReception ? 'Turbidez objetivo' : 'Turbidez inicial'}</small><strong>{isReception && whiteDetails ? whiteDetails.turbidityTarget : 82} NTU</strong><em>{isReception ? 'Para el desfangado' : 'Tras desfangado'}</em></span>}
+            {lot.temperature && <span><i className="kpi-icon warm"><Thermometer /></i><small>{t('common.temperature')}</small><strong>{lot.temperature.toFixed(1)} °C</strong><em>{isReception ? t('detail.receptionReading') : isRed ? t('detail.tempChange') : t('detail.stable')}</em></span>}
+            {lot.density && <span><i className="kpi-icon blue"><Droplets /></i><small>{t('common.density')}</small><strong>{lot.density.toFixed(3)}</strong><em>{isReception ? t('detail.initialDensity') : t('detail.densityChange')}</em></span>}
+            {!isRed && <span><i className="kpi-icon stone"><Beaker /></i><small>{isReception ? t('detail.turbidityTarget') : t('detail.initialTurbidity')}</small><strong>{isReception && whiteDetails ? whiteDetails.turbidityTarget : 82} NTU</strong><em>{isReception ? t('detail.forSettling') : t('detail.afterSettling')}</em></span>}
           </div>
         </div>
         <div className="panel activity-panel">
-          <SectionHeading title="Actividad reciente" subtitle="Registro firmado de operaciones" compact />
+          <SectionHeading title={t('detail.recentActivity')} subtitle={t('detail.signedLog')} compact />
           <div className="activity-list">
             {activityRows.map(([title, person, time, detail], index) => (
-              <div className="activity-row" key={`${title}-${time}-${index}`}><span className="activity-icon">{index === 1 ? <Droplets size={16} /> : <Check size={16} />}</span><span><strong>{title}</strong><small>{person} · {time}</small><em>{detail}</em></span></div>
+              <div className="activity-row" key={`${title}-${time}-${index}`}><span className="activity-icon">{index === 1 ? <Droplets size={16} /> : <Check size={16} />}</span><span><strong>{d(title)}</strong><small>{person} · {d(time)}</small><em>{d(detail)}</em></span></div>
             ))}
           </div>
         </div>
@@ -612,12 +634,12 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
 
       {!isRed && (
         <section className="white-specific panel">
-          <div><span className="eyebrow">Preparación del mosto</span><h2>Prensado y desfangado</h2><p>Información específica del proceso de blanco, visible sin abrir operaciones genéricas.</p></div>
+          <div><span className="eyebrow">{t('detail.mustPrep')}</span><h2>{t('detail.pressSettling')}</h2><p>{t('detail.whiteSpecific')}</p></div>
           <div className="white-specific-grid">
-            <span><i>01</i><small>Fracción seleccionada</small><strong>{whiteDetails?.pressFraction ?? 'Mosto yema'}</strong><em>{isReception ? 'Pendiente de confirmar' : 'Rendimiento 61%'}</em></span>
-            <span><i>02</i><small>Protección</small><strong>{whiteDetails?.protection ?? 'Inertizado'}</strong><em>Desde recepción</em></span>
-            <span><i>03</i><small>Desfangado</small><strong>{isReception ? 'Pendiente' : '18 horas'}</strong><em>{isReception ? 'Tras el prensado' : '10,2 °C'}</em></span>
-            <span><i>04</i><small>Turbidez</small><strong>{whiteDetails ? `${whiteDetails.turbidityTarget} NTU` : '82 NTU'}</strong><em>{isReception ? 'Objetivo configurado' : 'Objetivo alcanzado'}</em></span>
+            <span><i>01</i><small>{t('detail.selectedFraction')}</small><strong>{d(whiteDetails?.pressFraction ?? 'Mosto yema')}</strong><em>{isReception ? t('detail.confirmPending') : t('detail.yield')}</em></span>
+            <span><i>02</i><small>{t('detail.protection')}</small><strong>{d(whiteDetails?.protection ?? 'Inertizado')}</strong><em>{t('detail.sinceReception')}</em></span>
+            <span><i>03</i><small>{t('detail.settling')}</small><strong>{isReception ? t('common.pending') : '18 h'}</strong><em>{isReception ? t('detail.afterPress') : '10.2 °C'}</em></span>
+            <span><i>04</i><small>{t('detail.turbidityTarget')}</small><strong>{whiteDetails ? `${whiteDetails.turbidityTarget} NTU` : '82 NTU'}</strong><em>{isReception ? t('detail.targetConfigured') : t('detail.targetReached')}</em></span>
           </div>
         </section>
       )}
@@ -626,12 +648,13 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
 }
 
 function ProcessTimeline({ lot }: { lot: WineLot }) {
+  const { d } = useLanguage()
   return (
     <div className="process-timeline">
       {lot.process.map((stage, index) => (
         <div className={`process-stage ${stage.status}`} key={stage.id}>
           <span className="stage-node">{stage.status === 'complete' ? <Check size={15} /> : String(index + 1).padStart(2, '0')}</span>
-          <span><strong>{stage.shortLabel}</strong><small>{stage.label}</small></span>
+          <span><strong>{d(stage.shortLabel)}</strong><small>{d(stage.label)}</small></span>
         </div>
       ))}
     </div>
@@ -641,18 +664,19 @@ function ProcessTimeline({ lot }: { lot: WineLot }) {
 function CellarMap({ tanks }: { tanks: Tank[] }) {
   const [filter, setFilter] = useState<'all' | 'empty' | 'tinto' | 'blanco' | 'attention'>('all')
   const [selected, setSelected] = useState<Tank | null>(null)
+  const { t } = useLanguage()
   const visible = tanks.filter((tank) => filter === 'all' || (filter === 'empty' ? tank.volume === 0 : filter === 'attention' ? tank.attention !== 'normal' : tank.type === filter))
   return (
     <main>
-      <PageHeader eyebrow="Bodega ValdeIregua" title="Mapa de bodega" description="Una lectura visual de cada recipiente, lote y estado de atención." />
-      <div className="cellar-tabs"><span className="active">Nave de fermentación</span><span>Sala de conservación · Fase 2</span><span>Sala de barricas · Fase 2</span><span>Embotellado · Fase 2</span></div>
-      <div className="filter-bar cellar-filter"><div className="filter-chips">{([['all', 'Todos'], ['empty', 'Libres'], ['tinto', 'Tintos'], ['blanco', 'Blancos'], ['attention', 'Con atención']] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><span className="map-summary">{visible.length} depósitos visibles</span></div>
+      <PageHeader eyebrow={t('cellar.kicker')} title={t('cellar.title')} description={t('cellar.description')} />
+      <div className="cellar-tabs"><span className="active">{t('cellar.fermentationHall')}</span><span>{t('cellar.conservation')}</span><span>{t('cellar.barrels')}</span><span>{t('cellar.bottling')}</span></div>
+      <div className="filter-bar cellar-filter"><div className="filter-chips">{([['all', t('cellar.all')], ['empty', t('cellar.free')], ['tinto', t('cellar.red')], ['blanco', t('cellar.white')], ['attention', t('cellar.attention')]] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><span className="map-summary">{t('cellar.visible', { count: visible.length })}</span></div>
       <section className="cellar-map-shell">
-        <div className="cellar-map-header"><span>ENTRADA DE VENDIMIA</span><i /><span>ZONA DE TRABAJO</span></div>
+        <div className="cellar-map-header"><span>{t('cellar.harvestEntrance')}</span><i /><span>{t('cellar.workArea')}</span></div>
         <div className="tank-grid">
           {visible.map((tank) => <TankVisual key={tank.id} tank={tank} selected={selected?.id === tank.id} onSelect={() => setSelected(tank)} />)}
         </div>
-        <div className="cellar-map-footer"><span><Factory size={16} /> Prensa</span><span><Beaker size={16} /> Laboratorio</span><span><Warehouse size={16} /> Acceso a crianza</span></div>
+        <div className="cellar-map-footer"><span><Factory size={16} /> {t('cellar.press')}</span><span><Beaker size={16} /> {t('cellar.lab')}</span><span><Warehouse size={16} /> {t('cellar.ageingAccess')}</span></div>
       </section>
       {selected && <TankDrawer tank={selected} onClose={() => setSelected(null)} />}
     </main>
@@ -661,34 +685,37 @@ function CellarMap({ tanks }: { tanks: Tank[] }) {
 
 function TankVisual({ tank, selected, onSelect }: { tank: Tank; selected: boolean; onSelect: () => void }) {
   const level = Math.round((tank.volume / tank.capacity) * 100)
+  const { t, d, locale } = useLanguage()
   return (
     <button className={`tank-visual ${tank.type ?? 'empty'} ${tank.attention} ${selected ? 'selected' : ''}`} onClick={onSelect}>
       <span className="tank-body"><i style={{ height: `${level}%` }} /><strong>{tank.id}</strong>{tank.attention !== 'normal' && <Activity size={16} />}</span>
-      <span className="tank-info"><strong>{tank.lot ?? 'Disponible'}</strong><small>{tank.stage ?? `${new Intl.NumberFormat('es-ES').format(tank.capacity)} L`}</small><em>{tank.volume ? `${level}% · ${tank.temperature?.toFixed(1)} °C` : 'Libre'}</em></span>
+      <span className="tank-info"><strong>{tank.lot ?? t('common.available')}</strong><small>{tank.stage ? d(tank.stage) : `${new Intl.NumberFormat(locale).format(tank.capacity)} L`}</small><em>{tank.volume ? `${level}% · ${tank.temperature?.toFixed(1)} °C` : t('cellar.free')}</em></span>
     </button>
   )
 }
 
 function TankDrawer({ tank, onClose }: { tank: Tank; onClose: () => void }) {
   const navigate = useNavigate()
+  const { t, d, locale } = useLanguage()
   return (
     <aside className="tank-drawer">
-      <div className="drawer-head"><div><span className="eyebrow">Depósito</span><h2>{tank.id}</h2></div><button className="icon-button" onClick={onClose}><X size={20} /></button></div>
+      <div className="drawer-head"><div><span className="eyebrow">{t('detail.vessel')}</span><h2>{tank.id}</h2></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={20} /></button></div>
       {tank.volume ? <>
-        <div className={`drawer-wine-card ${tank.type}`}><span>{typeIcon[tank.type!]}</span><div><small>{wineLabel[tank.type!]}</small><strong>{tank.lot}</strong><em>{tank.stage}</em></div></div>
-        <div className="drawer-data"><span><small>Volumen</small><strong>{formatVolume(tank.volume)}</strong></span><span><small>Capacidad</small><strong>{new Intl.NumberFormat('es-ES').format(tank.capacity)} L</strong></span><span><small>Temperatura</small><strong>{tank.temperature?.toFixed(1)} °C</strong></span><span><small>Ocupación</small><strong>{Math.round(tank.volume / tank.capacity * 100)}%</strong></span></div>
-        {tank.attention !== 'normal' && <div className={`drawer-alert ${tank.attention}`}><Activity size={18} /><span><strong>Requiere atención</strong><small>{tank.attention === 'critical' ? 'Nivel próximo al límite operativo' : 'Revisar seguimiento del lote'}</small></span></div>}
-        <button className="primary-button full" onClick={() => tank.lot && navigate(`/lots/${tank.lot}`)}>Abrir lote <ArrowUpRight size={18} /></button>
-      </> : <div className="empty-tank-copy"><Warehouse size={30} /><h3>Depósito disponible</h3><p>{tank.capacity.toLocaleString('es-ES')} L limpios y preparados para asignación.</p><span className="available-label"><CheckCircle2 size={16} /> Disponible para asignación</span></div>}
+        <div className={`drawer-wine-card ${tank.type}`}><span>{typeIcon[tank.type!]}</span><div><small>{t(wineLabelKey[tank.type!])}</small><strong>{tank.lot}</strong><em>{d(tank.stage ?? '')}</em></div></div>
+        <div className="drawer-data"><span><small>{t('common.volume')}</small><strong>{formatVolume(tank.volume, locale)}</strong></span><span><small>{t('common.capacity')}</small><strong>{new Intl.NumberFormat(locale).format(tank.capacity)} L</strong></span><span><small>{t('common.temperature')}</small><strong>{tank.temperature?.toFixed(1)} °C</strong></span><span><small>{t('common.occupancy')}</small><strong>{Math.round(tank.volume / tank.capacity * 100)}%</strong></span></div>
+        {tank.attention !== 'normal' && <div className={`drawer-alert ${tank.attention}`}><Activity size={18} /><span><strong>{t('cellar.requiresAttention')}</strong><small>{tank.attention === 'critical' ? t('cellar.limit') : t('cellar.review')}</small></span></div>}
+        <button className="primary-button full" onClick={() => tank.lot && navigate(`/lots/${tank.lot}`)}>{t('cellar.openLot')} <ArrowUpRight size={18} /></button>
+      </> : <div className="empty-tank-copy"><Warehouse size={30} /><h3>{t('cellar.availableTank')}</h3><p>{t('cellar.cleanReady', { capacity: tank.capacity.toLocaleString(locale) })}</p><span className="available-label"><CheckCircle2 size={16} /> {t('cellar.availableAssignment')}</span></div>}
     </aside>
   )
 }
 
 function TasksPage({ lots, tasks, setTasks, onCreate }: { lots: WineLot[]; tasks: CellarTask[]; setTasks: React.Dispatch<React.SetStateAction<CellarTask[]>>; onCreate: (input: NewTaskInput) => void }) {
   const [creating, setCreating] = useState(false)
+  const { t } = useLanguage()
   return (
     <main>
-      <PageHeader eyebrow="Jueves, 31 de julio" title="Tareas de bodega" description="Operaciones ordenadas por prioridad y momento óptimo." action={<button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} /> Nueva tarea</button>} />
+      <PageHeader eyebrow={t('tasks.kicker')} title={t('tasks.title')} description={t('tasks.description')} action={<button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} /> {t('tasks.new')}</button>} />
       <section className="panel task-page-panel">
         {tasks.map((task) => <TaskRow key={task.id} task={task} onToggle={() => setTasks((current) => current.map((item) => item.id === task.id ? { ...item, complete: !item.complete } : item))} />)}
       </section>
@@ -698,23 +725,24 @@ function TasksPage({ lots, tasks, setTasks, onCreate }: { lots: WineLot[]; tasks
 }
 
 const previewData = {
-  laboratory: { eyebrow: 'Control enológico', title: 'Laboratorio', text: 'Analíticas, límites, muestras pendientes y evolución de cada parámetro.', image: images.whiteGrapes, icon: <FlaskConical /> },
-  ageing: { eyebrow: 'Tiempo y madera', title: 'Crianza', text: 'Barricas, rellenos, catas y elegibilidad de envejecimiento en una sola vista.', image: images.barrels, icon: <Wine /> },
-  bottling: { eyebrow: 'De lote a botella', title: 'Embotellado', text: 'Órdenes, materiales, rendimientos, lotes de expedición y contraetiquetas.', image: images.tanks, icon: <Package /> },
-  traceability: { eyebrow: 'Genealogía completa', title: 'Trazabilidad', text: 'De cualquier botella a cada depósito, operación, entrega de uva y parcela.', image: images.vineyard, icon: <Waypoints /> },
-  reports: { eyebrow: 'Decisiones con contexto', title: 'Informes', text: 'Rendimientos, capacidad, calidad y costes explicados sin hojas de cálculo.', image: images.cellar, icon: <BarChart3 /> },
-  settings: { eyebrow: 'Configuración', title: 'Tu bodega', text: 'Usuarios, roles, procesos, variedades, unidades y reglas de campaña.', image: images.vineyard, icon: <Settings2 /> },
-}
+  laboratory: { eyebrowKey: 'module.labKicker', titleKey: 'module.labTitle', textKey: 'module.labText', image: images.whiteGrapes, icon: <FlaskConical /> },
+  ageing: { eyebrowKey: 'module.ageingKicker', titleKey: 'module.ageingTitle', textKey: 'module.ageingText', image: images.barrels, icon: <Wine /> },
+  bottling: { eyebrowKey: 'module.bottlingKicker', titleKey: 'module.bottlingTitle', textKey: 'module.bottlingText', image: images.tanks, icon: <Package /> },
+  traceability: { eyebrowKey: 'module.traceKicker', titleKey: 'module.traceTitle', textKey: 'module.traceText', image: images.vineyard, icon: <Waypoints /> },
+  reports: { eyebrowKey: 'module.reportKicker', titleKey: 'module.reportTitle', textKey: 'module.reportText', image: images.cellar, icon: <BarChart3 /> },
+  settings: { eyebrowKey: 'module.settingsKicker', titleKey: 'module.settingsTitle', textKey: 'module.settingsText', image: images.vineyard, icon: <Settings2 /> },
+} as const
 
 function PreviewModule({ type, onResetData }: { type: keyof typeof previewData; onResetData?: () => void }) {
   const data = previewData[type]
+  const { t } = useLanguage()
   return (
     <main>
-      <PageHeader eyebrow={data.eyebrow} title={data.title} description={data.text} action={onResetData ? <button className="secondary-button" onClick={onResetData}><Undo2 size={17} /> Restablecer demo</button> : undefined} />
-      <section className="module-preview-hero" style={{ backgroundImage: `url(${data.image})` }}><div><span className="preview-icon">{data.icon}</span><span className="eyebrow light">Vista previa · Fase 2</span><h2>Diseñado alrededor del trabajo real de bodega.</h2><p>Esta área ya forma parte del sistema visual. Sus operaciones se conectarán al motor de procesos en el siguiente checkpoint.</p></div></section>
+      <PageHeader eyebrow={t(data.eyebrowKey)} title={t(data.titleKey)} description={t(data.textKey)} action={onResetData ? <button className="secondary-button" onClick={onResetData}><Undo2 size={17} /> {t('common.reset')}</button> : undefined} />
+      <section className="module-preview-hero" style={{ backgroundImage: `url(${data.image})` }}><div><span className="preview-icon">{data.icon}</span><span className="eyebrow light">{t('preview.preview')}</span><h2>{t('preview.headline')}</h2><p>{t('preview.text')}</p></div></section>
       <section className="preview-cards">
-        <div className="panel"><span className="eyebrow">Resumen</span><h3>Información que importa</h3><div className="preview-stat-row"><span><strong>24</strong><small>Registros</small></span><span><strong>3</strong><small>Pendientes</small></span><span><strong>98%</strong><small>Completitud</small></span></div></div>
-        <div className="panel preview-chart"><span className="eyebrow">Evolución</span><Suspense fallback={<ChartSkeleton compact />}><PreviewChart id={type} /></Suspense></div>
+        <div className="panel"><span className="eyebrow">{t('preview.summary')}</span><h3>{t('preview.important')}</h3><div className="preview-stat-row"><span><strong>24</strong><small>{t('preview.records')}</small></span><span><strong>3</strong><small>{t('preview.pending')}</small></span><span><strong>98%</strong><small>{t('preview.completeness')}</small></span></div></div>
+        <div className="panel preview-chart"><span className="eyebrow">{t('preview.evolution')}</span><Suspense fallback={<ChartSkeleton compact />}><PreviewChart id={type} /></Suspense></div>
       </section>
     </main>
   )
@@ -725,6 +753,7 @@ function ChartSkeleton({ compact = false }: { compact?: boolean }) {
 }
 
 function ReadingSheet({ lot, onClose, onSave }: { lot: WineLot; onClose: () => void; onSave: (lotId: string, reading: ReadingPoint, volume?: number) => void }) {
+  const { t, d } = useLanguage()
   const [temperature, setTemperature] = useState(String(lot.temperature ?? ''))
   const [density, setDensity] = useState(String(lot.density ?? ''))
   const [volume, setVolume] = useState(String(lot.volume))
@@ -735,20 +764,20 @@ function ReadingSheet({ lot, onClose, onSave }: { lot: WineLot; onClose: () => v
     onSave(lot.id, { time: 'Ahora', temperature: Number(temperature.replace(',', '.')), density: Number(density.replace(',', '.')), note: note.trim() || undefined }, Number(volume))
   }
   return (
-    <div className="sheet-layer" role="dialog" aria-modal="true" aria-label="Registrar lectura">
-      <button className="sheet-scrim" onClick={onClose} aria-label="Cerrar" />
+    <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={t('detail.registerReading')}>
+      <button className="sheet-scrim" onClick={onClose} aria-label={t('common.close')} />
       <form className="reading-sheet" onSubmit={submit}>
         <div className="sheet-handle" />
-        <div className="drawer-head"><div><span className="eyebrow">{lot.id} · {lot.vessel}</span><h2>Registrar lectura</h2><p>{lot.stage}</p></div><button className="icon-button" type="button" onClick={onClose}><X size={20} /></button></div>
-        <div className="previous-reading"><Clock3 size={17} /><span><small>Lectura anterior · {previousReading?.time ?? 'Sin registro'}</small><strong>{lot.temperature?.toFixed(1)} °C · {lot.density?.toFixed(3)}</strong></span></div>
+        <div className="drawer-head"><div><span className="eyebrow">{lot.id} · {lot.vessel}</span><h2>{t('detail.registerReading')}</h2><p>{d(lot.stage)}</p></div><button className="icon-button" type="button" onClick={onClose} aria-label={t('common.close')}><X size={20} /></button></div>
+        <div className="previous-reading"><Clock3 size={17} /><span><small>{t('reading.previous', { time: d(previousReading?.time ?? t('detail.noReadings')) })}</small><strong>{lot.temperature?.toFixed(1)} °C · {lot.density?.toFixed(3)}</strong></span></div>
         <div className="reading-fields">
-          <label><span><Thermometer size={17} /> Temperatura</span><div><input inputMode="decimal" required value={temperature} onChange={(event) => setTemperature(event.target.value)} /><i>°C</i></div></label>
-          <label><span><Droplets size={17} /> Densidad</span><div><input inputMode="decimal" required value={density} onChange={(event) => setDensity(event.target.value)} /><i>g/mL</i></div></label>
-          <label><span><Gauge size={17} /> Volumen</span><div><input inputMode="numeric" required value={volume} onChange={(event) => setVolume(event.target.value)} /><i>L</i></div></label>
+          <label><span><Thermometer size={17} /> {t('common.temperature')}</span><div><input inputMode="decimal" required value={temperature} onChange={(event) => setTemperature(event.target.value)} /><i>°C</i></div></label>
+          <label><span><Droplets size={17} /> {t('common.density')}</span><div><input inputMode="decimal" required value={density} onChange={(event) => setDensity(event.target.value)} /><i>g/mL</i></div></label>
+          <label><span><Gauge size={17} /> {t('common.volume')}</span><div><input inputMode="numeric" required value={volume} onChange={(event) => setVolume(event.target.value)} /><i>L</i></div></label>
         </div>
-        <label className="note-field"><span>Observación opcional</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Añade contexto para el siguiente turno…" /></label>
-        <div className="operator-row"><span className="avatar small-avatar">EM</span><span><small>Operadora</small><strong>Elena Martín · Ahora</strong></span><CheckCircle2 size={18} /></div>
-        <div className="sheet-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="submit" className="primary-button"><Save size={18} /> Guardar lectura</button></div>
+        <label className="note-field"><span>{t('reading.observation')}</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('reading.placeholder')} /></label>
+        <div className="operator-row"><span className="avatar small-avatar">EM</span><span><small>{t('reading.operator')}</small><strong>Elena Martín · {t('common.now')}</strong></span><CheckCircle2 size={18} /></div>
+        <div className="sheet-actions"><button type="button" className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button type="submit" className="primary-button"><Save size={18} /> {t('reading.save')}</button></div>
       </form>
     </div>
   )

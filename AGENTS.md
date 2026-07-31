@@ -25,6 +25,8 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 - TypeScript strict mode must remain enabled.
 - Keep data access behind service interfaces when Catalyst is connected.
+- Route interface copy through the lightweight i18n context; Spanish and English must remain at feature parity.
+- Do not translate grape varieties, winery names or Rioja place names when they are proper nouns.
 - Keep design values in CSS custom properties.
 - Mobile touch targets should normally be at least 44px.
 - Preserve responsive behavior at 390px, 768px, 1024px and 1440px.
@@ -33,4 +35,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 1B is a functional frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.
+Phase 1C is a bilingual functional frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.

@@ -1,0 +1,215 @@
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+
+export type Language = 'es' | 'en'
+
+const es = {
+  'language.label': 'Idioma', 'language.es': 'ES', 'language.en': 'EN', 'language.spanish': 'Español', 'language.english': 'English',
+  'common.cancel': 'Cancelar', 'common.save': 'Guardar', 'common.continue': 'Continuar', 'common.previous': 'Anterior', 'common.close': 'Cerrar', 'common.open': 'Abrir',
+  'common.now': 'Ahora', 'common.today': 'Hoy', 'common.tomorrow': 'Mañana', 'common.day': 'Día', 'common.available': 'Disponible', 'common.pending': 'Pendiente',
+  'common.volume': 'Volumen', 'common.temperature': 'Temperatura', 'common.density': 'Densidad', 'common.capacity': 'Capacidad', 'common.occupancy': 'Ocupación',
+  'common.vintage': 'Añada', 'common.origin': 'Origen', 'common.varieties': 'Variedades', 'common.attention': 'Atención', 'common.reset': 'Restablecer demo',
+  'nav.today': 'Hoy', 'nav.harvest': 'Vendimia', 'nav.production': 'Elaboración', 'nav.cellar': 'Bodega', 'nav.laboratory': 'Laboratorio', 'nav.ageing': 'Crianza',
+  'nav.bottling': 'Embotellado', 'nav.traceability': 'Trazabilidad', 'nav.reports': 'Informes', 'nav.settings': 'Configuración', 'nav.lots': 'Lotes', 'nav.tasks': 'Tareas',
+  'nav.primary': 'Navegación principal', 'nav.mobile': 'Navegación móvil',
+  'wine.red': 'Tinto', 'wine.white': 'Blanco', 'wine.rose': 'Rosado', 'wine.sparkling': 'Espumoso',
+  'welcome.kicker': 'Desde la viña hasta la botella', 'welcome.title': 'El vino marca el ritmo.\nAñada lo hace visible.', 'welcome.subtitle': 'Una forma más clara y natural de trabajar en bodega.',
+  'welcome.demo': 'Entorno de demostración', 'welcome.workspace': 'Tu espacio de trabajo', 'welcome.hello': 'Bienvenida, Elena', 'welcome.resume': 'Retoma la vendimia donde la dejaste.',
+  'welcome.enter': 'Entrar en bodega', 'welcome.demoData': 'Datos de demostración', 'welcome.winery': 'Bodega ValdeIregua',
+  'shell.harvest': 'Vendimia 2026', 'shell.role': 'Enóloga', 'shell.light': 'Modo claro', 'shell.cellar': 'Modo bodega', 'shell.notifications': 'Notificaciones',
+  'dashboard.date': 'Jueves, 31 de julio', 'dashboard.greeting': 'Buenos días, Elena', 'dashboard.description': 'La bodega está en marcha. Hay asuntos que necesitan tu atención.', 'dashboard.summary': 'Resumen de bodega',
+  'dashboard.new': 'Nueva elaboración', 'dashboard.activeLots': 'Lotes activos', 'dashboard.inFermentation': '{{count}} en fermentación', 'dashboard.capacityUsed': 'Capacidad ocupada',
+  'dashboard.capacityDetail': '{{used}} de {{total}}', 'dashboard.pendingTasks': 'Tareas pendientes', 'dashboard.beforeTime': '2 antes de las 17:00', 'dashboard.activeAlerts': 'Alertas activas',
+  'dashboard.alertDetail': '1 requiere revisión', 'dashboard.now': 'Ahora en bodega', 'dashboard.nowSubtitle': 'Lo que está evolucionando en este momento', 'dashboard.viewLots': 'Ver todos los lotes',
+  'dashboard.todayTasks': 'Tareas de hoy', 'dashboard.operationsPending': '{{count}} operaciones pendientes', 'dashboard.viewAgenda': 'Ver agenda', 'dashboard.occupancy': 'Ocupación',
+  'dashboard.fermentationHall': 'Nave de fermentación', 'dashboard.openMap': 'Abrir mapa', 'dashboard.used': 'ocupado', 'dashboard.free': 'Libre {{value}}%',
+  'lot.open': 'Abrir lote {{id}}', 'lot.openDetail': 'Abrir detalle', 'lot.next': 'Próximo', 'lot.temp': 'Temp.', 'lot.completeTask': 'Completar tarea', 'lot.reopenTask': 'Reabrir tarea',
+  'production.kicker': 'Vendimia 2026', 'production.title': 'Nueva elaboración', 'production.description': 'Elige el tipo de vino. Añada adaptará etapas, controles y operaciones al proceso real.',
+  'production.redDetail': 'Fermentación con hollejos, maceración, descube y maloláctica.', 'production.whiteDetail': 'Prensado, desfangado y fermentación protegida a baja temperatura.',
+  'production.roseDetail': 'Prensado directo, sangrado o maceración corta.', 'production.sparklingDetail': 'Vino base y método tradicional con crianza sobre lías.', 'production.soon': 'Próximamente',
+  'production.phase2': 'Fase 2', 'production.phase4': 'Fase 4', 'production.stages': '{{count}} etapas', 'production.template': 'Plantilla seleccionada',
+  'production.traditional': 'Elaboración de {{wine}} tradicional', 'production.adapt': 'Las etapas se pueden adaptar antes de crear el lote.', 'production.example': 'Ver ejemplo', 'production.configure': 'Configurar lote',
+  'lots.kicker': 'Elaboración', 'lots.title': 'Lotes en bodega', 'lots.description': '{{count}} lotes activos · Vendimias 2025–2026', 'lots.new': 'Nuevo lote',
+  'lots.search': 'Buscar lote, variedad u origen', 'lots.all': 'Todos', 'lots.red': 'Tintos', 'lots.white': 'Blancos', 'lots.needsAttention': 'Requieren atención',
+  'lots.grid': 'Vista tarjetas', 'lots.list': 'Vista lista', 'lots.currentStage': 'Etapa actual', 'lots.emptyTitle': 'No hay lotes que coincidan', 'lots.emptyText': 'Prueba con otro término o elimina algún filtro.',
+  'detail.notFound': 'Lote no encontrado', 'detail.backLots': 'Volver a lotes', 'detail.eligibility': 'Elegibilidad pendiente de validación', 'detail.currentStage': 'Etapa actual',
+  'detail.redReception': 'Uva recibida. Pendiente de completar selección, despalillado y encubado según la plantilla del lote.', 'detail.whiteReception': 'Uva recibida. Pendiente de registrar prensado, fracciones y protección del mosto.',
+  'detail.redFermentation': 'Fermentación activa con gestión suave del sombrero para preservar fruta y frescura.', 'detail.whiteFermentation': 'Fermentación protegida a baja temperatura. Cinética estable y sin desviaciones.',
+  'detail.registerReading': 'Registrar lectura', 'detail.vessel': 'Recipiente', 'detail.tank': 'Depósito {{id}}', 'detail.stainless': 'Acero inoxidable · {{capacity}} L',
+  'detail.process': 'Proceso de elaboración · {{wine}}', 'detail.processSubtitle': 'La secuencia y las operaciones se adaptan al tipo de vino', 'detail.evolution': 'Evolución',
+  'detail.latestReadings': 'Últimas lecturas del lote', 'detail.noReadings': 'Sin lecturas recientes', 'detail.trackingHere': 'El seguimiento de esta etapa se mostrará aquí.',
+  'detail.receptionReading': 'Lectura de recepción', 'detail.initialDensity': 'Densidad inicial', 'detail.stable': 'Estable', 'detail.tempChange': '+0,6° desde las 08:00', 'detail.densityChange': '-0,006 desde las 08:00', 'detail.turbidityTarget': 'Turbidez objetivo', 'detail.initialTurbidity': 'Turbidez inicial',
+  'detail.forSettling': 'Para el desfangado', 'detail.afterSettling': 'Tras desfangado', 'detail.recentActivity': 'Actividad reciente', 'detail.signedLog': 'Registro firmado de operaciones',
+  'detail.mustPrep': 'Preparación del mosto', 'detail.pressSettling': 'Prensado y desfangado', 'detail.whiteSpecific': 'Información específica del proceso de blanco, visible sin abrir operaciones genéricas.',
+  'detail.selectedFraction': 'Fracción seleccionada', 'detail.confirmPending': 'Pendiente de confirmar', 'detail.yield': 'Rendimiento 61%', 'detail.protection': 'Protección', 'detail.sinceReception': 'Desde recepción',
+  'detail.settling': 'Desfangado', 'detail.afterPress': 'Tras el prensado', 'detail.targetConfigured': 'Objetivo configurado', 'detail.targetReached': 'Objetivo alcanzado',
+  'cellar.kicker': 'Bodega ValdeIregua', 'cellar.title': 'Mapa de bodega', 'cellar.description': 'Una lectura visual de cada recipiente, lote y estado de atención.',
+  'cellar.fermentationHall': 'Nave de fermentación', 'cellar.conservation': 'Sala de conservación · Fase 2', 'cellar.barrels': 'Sala de barricas · Fase 2', 'cellar.bottling': 'Embotellado · Fase 2',
+  'cellar.all': 'Todos', 'cellar.free': 'Libres', 'cellar.red': 'Tintos', 'cellar.white': 'Blancos', 'cellar.attention': 'Con atención', 'cellar.visible': '{{count}} depósitos visibles',
+  'cellar.harvestEntrance': 'ENTRADA DE VENDIMIA', 'cellar.workArea': 'ZONA DE TRABAJO', 'cellar.press': 'Prensa', 'cellar.lab': 'Laboratorio', 'cellar.ageingAccess': 'Acceso a crianza',
+  'cellar.requiresAttention': 'Requiere atención', 'cellar.limit': 'Nivel próximo al límite operativo', 'cellar.review': 'Revisar seguimiento del lote', 'cellar.openLot': 'Abrir lote',
+  'cellar.availableTank': 'Depósito disponible', 'cellar.cleanReady': '{{capacity}} L limpios y preparados para asignación.', 'cellar.availableAssignment': 'Disponible para asignación',
+  'tasks.kicker': 'Jueves, 31 de julio', 'tasks.title': 'Tareas de bodega', 'tasks.description': 'Operaciones ordenadas por prioridad y momento óptimo.', 'tasks.new': 'Nueva tarea',
+  'module.labKicker': 'Control enológico', 'module.labTitle': 'Laboratorio', 'module.labText': 'Analíticas, límites, muestras pendientes y evolución de cada parámetro.',
+  'module.ageingKicker': 'Tiempo y madera', 'module.ageingTitle': 'Crianza', 'module.ageingText': 'Barricas, rellenos, catas y elegibilidad de envejecimiento en una sola vista.',
+  'module.bottlingKicker': 'De lote a botella', 'module.bottlingTitle': 'Embotellado', 'module.bottlingText': 'Órdenes, materiales, rendimientos, lotes de expedición y contraetiquetas.',
+  'module.traceKicker': 'Genealogía completa', 'module.traceTitle': 'Trazabilidad', 'module.traceText': 'De cualquier botella a cada depósito, operación, entrega de uva y parcela.',
+  'module.reportKicker': 'Decisiones con contexto', 'module.reportTitle': 'Informes', 'module.reportText': 'Rendimientos, capacidad, calidad y costes explicados sin hojas de cálculo.',
+  'module.settingsKicker': 'Configuración', 'module.settingsTitle': 'Tu bodega', 'module.settingsText': 'Usuarios, roles, procesos, variedades, unidades y reglas de campaña.',
+  'preview.preview': 'Vista previa · Fase 2', 'preview.headline': 'Diseñado alrededor del trabajo real de bodega.', 'preview.text': 'Esta área ya forma parte del sistema visual. Sus operaciones se conectarán al motor de procesos en el siguiente checkpoint.',
+  'preview.summary': 'Resumen', 'preview.important': 'Información que importa', 'preview.records': 'Registros', 'preview.pending': 'Pendientes', 'preview.completeness': 'Completitud', 'preview.evolution': 'Evolución',
+  'reading.previous': 'Lectura anterior · {{time}}', 'reading.observation': 'Observación opcional', 'reading.placeholder': 'Añade contexto para el siguiente turno…', 'reading.operator': 'Operadora', 'reading.save': 'Guardar lectura',
+  'chart.fermentation': 'Gráfico de temperatura y densidad',
+  'toast.alerts': '3 alertas activas · 1 requiere revisión', 'toast.readingSaved': 'Lectura guardada en {{id}}', 'toast.readingUndone': 'Última lectura de {{id}} deshecha', 'toast.undo': 'Deshacer',
+  'toast.lotCreated': '{{id}} creado y asignado a {{vessel}}', 'toast.taskCreated': 'Tarea creada para {{id}}', 'toast.reset': 'Datos locales restablecidos',
+  'flow.newProduction': 'Nueva elaboración', 'flow.identity': 'Identidad', 'flow.reception': 'Recepción', 'flow.review': 'Revisión', 'flow.step': 'Paso {{step}}', 'flow.progress': 'Paso {{step}} de 3',
+  'flow.identityTitle': 'Identidad y procedencia', 'flow.identityText': 'La información que acompañará al lote durante toda su trazabilidad.', 'flow.lotCode': 'Código de lote', 'flow.unique': 'Único',
+  'flow.lotName': 'Nombre del lote', 'flow.redName': 'Ej. Ladera de Alberite', 'flow.whiteName': 'Ej. Viura del Iregua', 'flow.receptionDate': 'Fecha de recepción',
+  'flow.receptionTitle': 'Recepción y encubado', 'flow.redReceptionText': 'Datos iniciales para comenzar la selección, el despalillado y la maceración.', 'flow.whiteReceptionText': 'Datos iniciales para controlar prensado, protección y desfangado.',
+  'flow.grapesReceived': 'Uva recibida', 'flow.estimatedVolume': 'Volumen estimado', 'flow.availableTank': 'Depósito disponible', 'flow.selectTank': 'Seleccionar depósito',
+  'flow.specificConfig': 'Configuración específica', 'flow.redConfig': 'Maceración y gestión del sombrero', 'flow.whiteConfig': 'Prensado y protección del mosto',
+  'flow.ready': 'Todo listo para recibir la uva', 'flow.reviewText': 'Revisa el lote antes de incorporarlo a la bodega.', 'flow.estimatedYield': 'Rendimiento estimado',
+  'flow.autoCreate': 'Se crearán automáticamente', 'flow.autoCreateText': 'El lote, su asignación al depósito, la lectura de recepción y la primera tarea del proceso.', 'flow.createLot': 'Crear lote',
+  'flow.errorIdentity': 'Completa la identidad y procedencia del lote.', 'flow.errorDuplicate': 'Ese código de lote ya existe.', 'flow.errorTank': 'Selecciona un depósito disponible.',
+  'flow.errorUnavailable': 'El depósito seleccionado ya no está disponible.', 'flow.errorPositive': 'El peso y el volumen deben ser superiores a cero.', 'flow.errorCapacity': 'El volumen supera la capacidad de {{id}}.',
+  'flow.errorDensity': 'Revisa la densidad inicial introducida.', 'flow.errorTemperature': 'Revisa la temperatura de recepción.',
+  'task.agenda': 'Agenda de bodega', 'task.new': 'Nueva tarea', 'task.assign': 'Asigna una operación a un lote activo.', 'task.pendingOperation': 'Operación pendiente', 'task.visible': 'Quedará visible en Hoy y Tareas',
+  'task.description': 'Descripción', 'task.placeholder': 'Ej. Revisar temperatura', 'task.lot': 'Lote', 'task.moment': 'Momento', 'task.responsible': 'Responsable', 'task.priority': 'Prioridad',
+  'task.normal': 'Normal', 'task.medium': 'Media', 'task.high': 'Alta', 'task.create': 'Crear tarea',
+} as const
+
+const en: Record<keyof typeof es, string> = {
+  'language.label': 'Language', 'language.es': 'ES', 'language.en': 'EN', 'language.spanish': 'Spanish', 'language.english': 'English',
+  'common.cancel': 'Cancel', 'common.save': 'Save', 'common.continue': 'Continue', 'common.previous': 'Previous', 'common.close': 'Close', 'common.open': 'Open',
+  'common.now': 'Now', 'common.today': 'Today', 'common.tomorrow': 'Tomorrow', 'common.day': 'Day', 'common.available': 'Available', 'common.pending': 'Pending',
+  'common.volume': 'Volume', 'common.temperature': 'Temperature', 'common.density': 'Density', 'common.capacity': 'Capacity', 'common.occupancy': 'Occupancy',
+  'common.vintage': 'Vintage', 'common.origin': 'Origin', 'common.varieties': 'Varieties', 'common.attention': 'Attention', 'common.reset': 'Reset demo',
+  'nav.today': 'Today', 'nav.harvest': 'Harvest', 'nav.production': 'Production', 'nav.cellar': 'Cellar', 'nav.laboratory': 'Laboratory', 'nav.ageing': 'Ageing',
+  'nav.bottling': 'Bottling', 'nav.traceability': 'Traceability', 'nav.reports': 'Reports', 'nav.settings': 'Settings', 'nav.lots': 'Lots', 'nav.tasks': 'Tasks',
+  'nav.primary': 'Primary navigation', 'nav.mobile': 'Mobile navigation',
+  'wine.red': 'Red', 'wine.white': 'White', 'wine.rose': 'Rosé', 'wine.sparkling': 'Sparkling',
+  'welcome.kicker': 'From vineyard to bottle', 'welcome.title': 'Wine sets the pace.\nAñada makes it visible.', 'welcome.subtitle': 'A clearer, more natural way to work in the cellar.',
+  'welcome.demo': 'Demo environment', 'welcome.workspace': 'Your workspace', 'welcome.hello': 'Welcome, Elena', 'welcome.resume': 'Continue the harvest where you left off.',
+  'welcome.enter': 'Enter the cellar', 'welcome.demoData': 'Demonstration data', 'welcome.winery': 'ValdeIregua Winery',
+  'shell.harvest': '2026 harvest', 'shell.role': 'Winemaker', 'shell.light': 'Light mode', 'shell.cellar': 'Cellar mode', 'shell.notifications': 'Notifications',
+  'dashboard.date': 'Thursday, 31 July', 'dashboard.greeting': 'Good morning, Elena', 'dashboard.description': 'The cellar is active. A few items need your attention.', 'dashboard.summary': 'Cellar summary',
+  'dashboard.new': 'New production', 'dashboard.activeLots': 'Active lots', 'dashboard.inFermentation': '{{count}} fermenting', 'dashboard.capacityUsed': 'Capacity used',
+  'dashboard.capacityDetail': '{{used}} of {{total}}', 'dashboard.pendingTasks': 'Pending tasks', 'dashboard.beforeTime': '2 before 17:00', 'dashboard.activeAlerts': 'Active alerts',
+  'dashboard.alertDetail': '1 requires review', 'dashboard.now': 'Now in the cellar', 'dashboard.nowSubtitle': 'What is evolving at this moment', 'dashboard.viewLots': 'View all lots',
+  'dashboard.todayTasks': "Today's tasks", 'dashboard.operationsPending': '{{count}} operations pending', 'dashboard.viewAgenda': 'View schedule', 'dashboard.occupancy': 'Occupancy',
+  'dashboard.fermentationHall': 'Fermentation hall', 'dashboard.openMap': 'Open map', 'dashboard.used': 'used', 'dashboard.free': '{{value}}% free',
+  'lot.open': 'Open lot {{id}}', 'lot.openDetail': 'Open details', 'lot.next': 'Next', 'lot.temp': 'Temp.', 'lot.completeTask': 'Complete task', 'lot.reopenTask': 'Reopen task',
+  'production.kicker': '2026 harvest', 'production.title': 'New production', 'production.description': 'Choose the wine type. Añada will adapt stages, controls and operations to the real process.',
+  'production.redDetail': 'Skin fermentation, maceration, devatting and malolactic fermentation.', 'production.whiteDetail': 'Pressing, settling and protected low-temperature fermentation.',
+  'production.roseDetail': 'Direct pressing, saignée or short maceration.', 'production.sparklingDetail': 'Base wine and traditional method with lees ageing.', 'production.soon': 'Coming soon',
+  'production.phase2': 'Phase 2', 'production.phase4': 'Phase 4', 'production.stages': '{{count}} stages', 'production.template': 'Selected template',
+  'production.traditional': 'Traditional {{wine}} production', 'production.adapt': 'Stages can be adapted before the lot is created.', 'production.example': 'View example', 'production.configure': 'Configure lot',
+  'lots.kicker': 'Production', 'lots.title': 'Lots in the cellar', 'lots.description': '{{count}} active lots · 2025–2026 vintages', 'lots.new': 'New lot',
+  'lots.search': 'Search lot, variety or origin', 'lots.all': 'All', 'lots.red': 'Reds', 'lots.white': 'Whites', 'lots.needsAttention': 'Need attention',
+  'lots.grid': 'Card view', 'lots.list': 'List view', 'lots.currentStage': 'Current stage', 'lots.emptyTitle': 'No matching lots', 'lots.emptyText': 'Try another term or remove a filter.',
+  'detail.notFound': 'Lot not found', 'detail.backLots': 'Back to lots', 'detail.eligibility': 'Eligibility pending validation', 'detail.currentStage': 'Current stage',
+  'detail.redReception': 'Grapes received. Selection, destemming and vatting remain to be completed under this lot template.', 'detail.whiteReception': 'Grapes received. Pressing, fractions and must protection remain to be recorded.',
+  'detail.redFermentation': 'Active fermentation with gentle cap management to preserve fruit and freshness.', 'detail.whiteFermentation': 'Protected low-temperature fermentation. Stable kinetics with no deviations.',
+  'detail.registerReading': 'Record reading', 'detail.vessel': 'Vessel', 'detail.tank': 'Tank {{id}}', 'detail.stainless': 'Stainless steel · {{capacity}} L',
+  'detail.process': '{{wine}} production process', 'detail.processSubtitle': 'The sequence and operations adapt to the wine type', 'detail.evolution': 'Evolution',
+  'detail.latestReadings': 'Latest lot readings', 'detail.noReadings': 'No recent readings', 'detail.trackingHere': 'Stage monitoring will appear here.',
+  'detail.receptionReading': 'Reception reading', 'detail.initialDensity': 'Initial density', 'detail.stable': 'Stable', 'detail.tempChange': '+0.6° since 08:00', 'detail.densityChange': '-0.006 since 08:00', 'detail.turbidityTarget': 'Turbidity target', 'detail.initialTurbidity': 'Initial turbidity',
+  'detail.forSettling': 'For settling', 'detail.afterSettling': 'After settling', 'detail.recentActivity': 'Recent activity', 'detail.signedLog': 'Signed operation log',
+  'detail.mustPrep': 'Must preparation', 'detail.pressSettling': 'Pressing and settling', 'detail.whiteSpecific': 'White-process information is visible without opening generic operations.',
+  'detail.selectedFraction': 'Selected fraction', 'detail.confirmPending': 'Confirmation pending', 'detail.yield': '61% yield', 'detail.protection': 'Protection', 'detail.sinceReception': 'From reception',
+  'detail.settling': 'Settling', 'detail.afterPress': 'After pressing', 'detail.targetConfigured': 'Target configured', 'detail.targetReached': 'Target reached',
+  'cellar.kicker': 'ValdeIregua Winery', 'cellar.title': 'Cellar map', 'cellar.description': 'A visual reading of every vessel, lot and attention state.',
+  'cellar.fermentationHall': 'Fermentation hall', 'cellar.conservation': 'Storage room · Phase 2', 'cellar.barrels': 'Barrel room · Phase 2', 'cellar.bottling': 'Bottling · Phase 2',
+  'cellar.all': 'All', 'cellar.free': 'Free', 'cellar.red': 'Reds', 'cellar.white': 'Whites', 'cellar.attention': 'Need attention', 'cellar.visible': '{{count}} tanks visible',
+  'cellar.harvestEntrance': 'HARVEST ENTRANCE', 'cellar.workArea': 'WORK AREA', 'cellar.press': 'Press', 'cellar.lab': 'Laboratory', 'cellar.ageingAccess': 'Ageing access',
+  'cellar.requiresAttention': 'Requires attention', 'cellar.limit': 'Level nearing operational limit', 'cellar.review': 'Review lot monitoring', 'cellar.openLot': 'Open lot',
+  'cellar.availableTank': 'Available tank', 'cellar.cleanReady': '{{capacity}} L clean and ready for assignment.', 'cellar.availableAssignment': 'Available for assignment',
+  'tasks.kicker': 'Thursday, 31 July', 'tasks.title': 'Cellar tasks', 'tasks.description': 'Operations ordered by priority and optimum time.', 'tasks.new': 'New task',
+  'module.labKicker': 'Oenological control', 'module.labTitle': 'Laboratory', 'module.labText': 'Analyses, limits, pending samples and the evolution of every parameter.',
+  'module.ageingKicker': 'Time and oak', 'module.ageingTitle': 'Ageing', 'module.ageingText': 'Barrels, topping up, tastings and ageing eligibility in one view.',
+  'module.bottlingKicker': 'From lot to bottle', 'module.bottlingTitle': 'Bottling', 'module.bottlingText': 'Orders, materials, yields, dispatch lots and back labels.',
+  'module.traceKicker': 'Complete genealogy', 'module.traceTitle': 'Traceability', 'module.traceText': 'From any bottle to every tank, operation, grape delivery and parcel.',
+  'module.reportKicker': 'Decisions with context', 'module.reportTitle': 'Reports', 'module.reportText': 'Yields, capacity, quality and costs explained without spreadsheets.',
+  'module.settingsKicker': 'Settings', 'module.settingsTitle': 'Your winery', 'module.settingsText': 'Users, roles, processes, varieties, units and campaign rules.',
+  'preview.preview': 'Preview · Phase 2', 'preview.headline': 'Designed around real cellar work.', 'preview.text': 'This area already belongs to the visual system. Its operations will connect to the process engine in the next checkpoint.',
+  'preview.summary': 'Summary', 'preview.important': 'Information that matters', 'preview.records': 'Records', 'preview.pending': 'Pending', 'preview.completeness': 'Completeness', 'preview.evolution': 'Evolution',
+  'reading.previous': 'Previous reading · {{time}}', 'reading.observation': 'Optional observation', 'reading.placeholder': 'Add context for the next shift…', 'reading.operator': 'Operator', 'reading.save': 'Save reading',
+  'chart.fermentation': 'Temperature and density chart',
+  'toast.alerts': '3 active alerts · 1 requires review', 'toast.readingSaved': 'Reading saved to {{id}}', 'toast.readingUndone': 'Last {{id}} reading undone', 'toast.undo': 'Undo',
+  'toast.lotCreated': '{{id}} created and assigned to {{vessel}}', 'toast.taskCreated': 'Task created for {{id}}', 'toast.reset': 'Local data reset',
+  'flow.newProduction': 'New production', 'flow.identity': 'Identity', 'flow.reception': 'Reception', 'flow.review': 'Review', 'flow.step': 'Step {{step}}', 'flow.progress': 'Step {{step}} of 3',
+  'flow.identityTitle': 'Identity and origin', 'flow.identityText': 'Information that will follow the lot throughout its traceability.', 'flow.lotCode': 'Lot code', 'flow.unique': 'Unique',
+  'flow.lotName': 'Lot name', 'flow.redName': 'E.g. Ladera de Alberite', 'flow.whiteName': 'E.g. Viura del Iregua', 'flow.receptionDate': 'Reception date',
+  'flow.receptionTitle': 'Reception and vatting', 'flow.redReceptionText': 'Initial data for selection, destemming and maceration.', 'flow.whiteReceptionText': 'Initial data for pressing, protection and settling control.',
+  'flow.grapesReceived': 'Grapes received', 'flow.estimatedVolume': 'Estimated volume', 'flow.availableTank': 'Available tank', 'flow.selectTank': 'Select tank',
+  'flow.specificConfig': 'Specific configuration', 'flow.redConfig': 'Maceration and cap management', 'flow.whiteConfig': 'Pressing and must protection',
+  'flow.ready': 'Ready to receive the grapes', 'flow.reviewText': 'Review the lot before adding it to the cellar.', 'flow.estimatedYield': 'Estimated yield',
+  'flow.autoCreate': 'Automatically created', 'flow.autoCreateText': 'The lot, tank assignment, reception reading and first process task.', 'flow.createLot': 'Create lot',
+  'flow.errorIdentity': 'Complete the lot identity and origin.', 'flow.errorDuplicate': 'That lot code already exists.', 'flow.errorTank': 'Select an available tank.',
+  'flow.errorUnavailable': 'The selected tank is no longer available.', 'flow.errorPositive': 'Weight and volume must be greater than zero.', 'flow.errorCapacity': 'Volume exceeds {{id}} capacity.',
+  'flow.errorDensity': 'Review the initial density.', 'flow.errorTemperature': 'Review the reception temperature.',
+  'task.agenda': 'Cellar schedule', 'task.new': 'New task', 'task.assign': 'Assign an operation to an active lot.', 'task.pendingOperation': 'Pending operation', 'task.visible': 'It will appear in Today and Tasks',
+  'task.description': 'Description', 'task.placeholder': 'E.g. Check temperature', 'task.lot': 'Lot', 'task.moment': 'Time', 'task.responsible': 'Assignee', 'task.priority': 'Priority',
+  'task.normal': 'Normal', 'task.medium': 'Medium', 'task.high': 'High', 'task.create': 'Create task',
+}
+
+const domainEnglish: Record<string, string> = {
+  'Vendimia y recepción': 'Harvest and reception', 'Recepción': 'Reception', 'Selección, despalillado y encubado': 'Selection, destemming and vatting', 'Encubado': 'Vatting',
+  'Fermentación alcohólica y maceración': 'Alcoholic fermentation and maceration', 'Fermentación': 'Fermentation', 'Descube y prensado': 'Devatting and pressing', 'Descube': 'Devatting',
+  'Fermentación maloláctica': 'Malolactic fermentation', 'Maloláctica': 'Malolactic', 'Ensamblaje y crianza': 'Blending and ageing', 'Crianza': 'Ageing',
+  'Estabilización y embotellado': 'Stabilisation and bottling', 'Embotellado': 'Bottling', 'Prensado y selección de fracciones': 'Pressing and fraction selection', 'Prensado': 'Pressing',
+  'Protección y desfangado': 'Protection and settling', 'Desfangado': 'Settling', 'Fermentación alcohólica en frío': 'Low-temperature alcoholic fermentation',
+  'Crianza sobre lías': 'Lees ageing', 'Lías': 'Lees', 'Estabilización tartárica': 'Tartaric stabilisation', 'Estabilización': 'Stabilisation', 'Filtración y embotellado': 'Filtration and bottling',
+  'Crianza en roble': 'Oak ageing', 'Maceración': 'Maceration', 'Fermentación en frío': 'Cold fermentation',
+  'Temperatura en ascenso': 'Temperature rising', 'Muestra pendiente': 'Sample pending', 'Registrar densidad': 'Record density', 'Analítica de málico': 'Malic acid analysis', 'Relleno de barricas': 'Top up barrels',
+  'Remontado suave': 'Gentle pump-over', 'Revisar temperatura': 'Check temperature', 'Toma de muestra maloláctica': 'Take malolactic sample', 'Rellenar barricas': 'Top up barrels',
+  'Completar selección y encubado': 'Complete selection and vatting', 'Registrar prensado y fracciones': 'Record pressing and fractions', 'Lectura de bodega': 'Cellar reading', 'Lote creado': 'Lot created',
+  'Lectura de densidad': 'Density reading', 'Adición de nutrientes': 'Nutrient addition', 'Remontado con aireación': 'Aerated pump-over', 'Control de temperatura': 'Temperature check',
+  'Inoculación': 'Inoculation', 'Trasiego de mosto limpio': 'Clean must racking', 'Levadura seleccionada': 'Selected yeast', 'Nutriente orgánico': 'Organic nutrient',
+  'Selección': 'Selection', 'Pesaje': 'Weighing', 'Muestra': 'Sample', 'Remontado': 'Pump-over', 'Bazuqueo': 'Punch-down', 'Adición': 'Addition', 'Control temperatura': 'Temperature check', 'Trasiego': 'Racking',
+  'Control de málico': 'Malic acid check', 'Control de turbidez': 'Turbidity check', 'Bâtonnage': 'Bâtonnage', 'Tradicional · 8–12 días': 'Traditional · 8–12 days',
+  'Maceración corta · 5–7 días': 'Short maceration · 5–7 days', 'Prefermentativa en frío': 'Cold pre-fermentation maceration', 'Mosto yema': 'Free-run juice',
+  'Primera prensada': 'First press', 'Mosto yema + primera prensada': 'Free-run juice + first press', 'Inertizado con CO₂': 'CO₂ inerting', 'Inertizado con N₂': 'N₂ inerting', 'Protección antioxidante': 'Antioxidant protection',
+  'Libre': 'Free', 'Disponible': 'Available', 'Ahora': 'Now', 'Hoy': 'Today', 'Mañana': 'Tomorrow', 'Día': 'Day',
+}
+
+type Variables = Record<string, string | number>
+interface LanguageContextValue {
+  language: Language
+  locale: 'es-ES' | 'en-GB'
+  setLanguage: (language: Language) => void
+  t: (key: keyof typeof es, variables?: Variables) => string
+  d: (value: string) => string
+}
+
+const LanguageContext = createContext<LanguageContextValue | null>(null)
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguage] = useState<Language>(() => localStorage.getItem('anada-language') === 'en' ? 'en' : 'es')
+  useEffect(() => {
+    localStorage.setItem('anada-language', language)
+    document.documentElement.lang = language
+  }, [language])
+  const value = useMemo<LanguageContextValue>(() => {
+    const dictionary = language === 'en' ? en : es
+    return {
+      language,
+      locale: language === 'en' ? 'en-GB' : 'es-ES',
+      setLanguage,
+      t: (key, variables = {}) => Object.entries(variables).reduce((text, [name, replacement]) => text.replaceAll(`{{${name}}}`, String(replacement)), dictionary[key]),
+      d: (text) => {
+        if (language === 'es') return text
+        const translated = domainEnglish[text] ?? Object.entries(domainEnglish).reduce((result, [source, replacement]) => result.replaceAll(source, replacement), text)
+        const withCommonTerms = [['kg recibidos', 'kg received'], ['Hoy', 'Today'], ['Ayer', 'Yesterday'], ['sept', 'Sep'], ['Sin incidencias', 'No issues'], ['Pendiente', 'Pending'], ['Estable', 'Stable'], ['Ahora', 'Now']]
+          .reduce((result, [source, replacement]) => result.replaceAll(source, replacement), translated)
+        return withCommonTerms.replace(/(\d),(\d)/g, '$1.$2')
+      },
+    }
+  }, [language])
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
+}
+
+export function useLanguage() {
+  const value = useContext(LanguageContext)
+  if (!value) throw new Error('useLanguage must be used inside LanguageProvider')
+  return value
+}

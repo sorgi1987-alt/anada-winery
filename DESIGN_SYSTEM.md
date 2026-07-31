@@ -46,6 +46,14 @@ Colours are exposed as CSS custom properties. Status must never rely on colour a
 - Confirm success immediately and offer undo where technically safe.
 - Cellar mode increases contrast and reduces bright surfaces in dim spaces.
 
+## Language
+
+- Spanish is the default interface language; English is an equal, complete option.
+- The language control stays visible on entry, desktop and mobile surfaces.
+- Remember the selection locally and update the document language for assistive technology.
+- Translate operational terminology while preserving grape varieties, winery names and Rioja place names.
+- Keep labels concise enough for cellar use and narrow mobile screens.
+
 ## Imagery
 
 - Photography must depict production: vineyard, grapes, tanks, press, barrels or bottling.

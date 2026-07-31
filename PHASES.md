@@ -29,6 +29,18 @@ Status: completed.
 
 This checkpoint intentionally contains no authentication or shared backend writes.
 
+## Phase 1C — Bilingual interface
+
+Status: completed.
+
+- Persistent Spanish/English selector
+- Immediate language switching without reloading
+- Translated navigation, dashboards, forms and preview modules
+- English red and white process terminology
+- Locale-aware dates and number formatting
+
+Wine names, grape varieties, winery names and Rioja place names remain unchanged where they are proper nouns.
+
 ## Phase 2 — Complete frontend modules
 
 - Harvest planning and intake
