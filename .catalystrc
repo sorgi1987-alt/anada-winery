@@ -1,0 +1,30 @@
+{
+  "defaults": {
+    "project": 1,
+    "env": 1
+  },
+  "actives": {
+    "project": 1,
+    "env": 1
+  },
+  "projects": [
+    {
+      "idx": 1,
+      "id": "11922000000094785",
+      "name": "Anada-Winery",
+      "domain": {
+        "id": "30042580954",
+        "name": "anada-winery-20117369913.development"
+      },
+      "timezone": "Europe/Madrid",
+      "env": [
+        {
+          "idx": 1,
+          "id": "20117369913",
+          "name": "Development",
+          "type": 3
+        }
+      ]
+    }
+  ]
+}
