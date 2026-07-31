@@ -9,11 +9,12 @@ import {
 } from 'lucide-react'
 import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { images, lots as seedLots } from './data'
-import { assignLotToTank, createLot as buildLot, createOpeningTask, createTask } from './domain'
+import { assignLotToTank, createLot as buildLot, createOpeningTask, createTask, receiveGrapeDelivery } from './domain'
+import { HarvestPage, IntakeSheet } from './Harvest'
 import { useLanguage, type Language } from './i18n'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { browserWineryRepository } from './store'
-import type { CellarTask, NewLotInput, NewTaskInput, ReadingPoint, Tank, WineLot, WineType } from './types'
+import type { CellarTask, GrapeDelivery, NewGrapeIntakeInput, NewLotInput, NewTaskInput, ReadingPoint, Tank, VineyardParcel, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -33,7 +34,7 @@ const typeIcon: Record<WineType, ReactNode> = {
 
 const navItems = [
   { labelKey: 'nav.today' as const, path: '/dashboard', icon: Home },
-  { labelKey: 'nav.harvest' as const, path: '/production', icon: Sprout },
+  { labelKey: 'nav.harvest' as const, path: '/harvest', icon: Sprout },
   { labelKey: 'nav.production' as const, path: '/lots', icon: Grape },
   { labelKey: 'nav.cellar' as const, path: '/cellar', icon: Warehouse },
   { labelKey: 'nav.laboratory' as const, path: '/laboratory', icon: FlaskConical },
@@ -51,16 +52,19 @@ function App() {
   const [demoLots, setDemoLots] = useState<WineLot[]>(initialState.lots)
   const [tasks, setTasks] = useState<CellarTask[]>(initialState.tasks)
   const [demoTanks, setDemoTanks] = useState<Tank[]>(initialState.tanks)
+  const [parcels, setParcels] = useState<VineyardParcel[]>(initialState.parcels)
+  const [deliveries, setDeliveries] = useState<GrapeDelivery[]>(initialState.deliveries)
   const [cellarMode, setCellarMode] = useState(() => localStorage.getItem('anada-theme') === 'cellar')
   const [menuOpen, setMenuOpen] = useState(false)
   const [readingLotId, setReadingLotId] = useState<string | null>(null)
   const [newLotType, setNewLotType] = useState<NewLotInput['type'] | null>(null)
+  const [intakeFlow, setIntakeFlow] = useState<{ open: boolean; deliveryId?: string }>({ open: false })
   const [toast, setToast] = useState<string | null>(null)
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 1, lots: demoLots, tasks, tanks: demoTanks })
-  }, [demoLots, tasks, demoTanks])
+    browserWineryRepository.save({ schemaVersion: 2, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries })
+  }, [demoLots, tasks, demoTanks, parcels, deliveries])
 
   const toggleCellarMode = () => {
     setCellarMode((current) => {
@@ -130,11 +134,22 @@ function App() {
     window.setTimeout(() => setToast(null), 3200)
   }
 
+  const registerIntake = (input: NewGrapeIntakeInput) => {
+    const result = receiveGrapeDelivery(deliveries, parcels, input)
+    setDeliveries(result.deliveries)
+    setParcels(result.parcels)
+    setIntakeFlow({ open: false })
+    setToast(t('toast.intakeRegistered', { code: result.delivery.code }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
   const resetDemoData = () => {
     const reset = browserWineryRepository.clear()
     setDemoLots(reset.lots)
     setTasks(reset.tasks)
     setDemoTanks(reset.tanks)
+    setParcels(reset.parcels)
+    setDeliveries(reset.deliveries)
     setUndoLot(null)
     setToast(t('toast.reset'))
     window.setTimeout(() => setToast(null), 3200)
@@ -147,6 +162,7 @@ function App() {
 
   let currentPage: ReactNode
   if (pathname === '/dashboard') currentPage = <Dashboard lots={demoLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
+  else if (pathname === '/harvest') currentPage = <HarvestPage parcels={parcels} deliveries={deliveries} onOpenIntake={(deliveryId) => setIntakeFlow({ open: true, deliveryId })} />
   else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={demoLots} />
   else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} />
@@ -178,6 +194,7 @@ function App() {
 
       {readingLot && <ReadingSheet lot={readingLot} onClose={() => setReadingLotId(null)} onSave={saveReading} />}
       {newLotType && <CreateLotSheet type={newLotType} lots={demoLots} tanks={demoTanks} onClose={() => setNewLotType(null)} onCreate={createNewLot} />}
+      {intakeFlow.open && <IntakeSheet deliveries={deliveries} parcels={parcels} initialDeliveryId={intakeFlow.deliveryId} onClose={() => setIntakeFlow({ open: false })} onSave={registerIntake} />}
       {toast && (
         <div className="toast" role="status">
           <CheckCircle2 size={19} />
@@ -219,7 +236,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.3</span>
+          <span>Añada 0.4</span>
         </div>
       </section>
     </main>
@@ -313,7 +330,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
 
       <nav className="mobile-nav" aria-label={t('nav.mobile')}>
         <MobileNavItem to="/dashboard" icon={<Home />} label={t('nav.today')} />
-        <MobileNavItem to="/lots" icon={<Grape />} label={t('nav.lots')} />
+        <MobileNavItem to="/harvest" icon={<Sprout />} label={t('nav.harvest')} />
         <button className="mobile-quick" onClick={onQuickReading} aria-label={t('detail.registerReading')}><Plus /></button>
         <MobileNavItem to="/cellar" icon={<Warehouse />} label={t('nav.cellar')} />
         <MobileNavItem to="/tasks" icon={<ClipboardCheck />} label={t('nav.tasks')} />

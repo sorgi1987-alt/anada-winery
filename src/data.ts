@@ -1,4 +1,4 @@
-import type { CellarTask, ProcessStage, Tank, WineLot } from './types'
+import type { CellarTask, GrapeDelivery, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -93,4 +93,56 @@ export const tanks: Tank[] = [
   { id: 'D-12', capacity: 10000, volume: 7850, lot: 'T-26-017', type: 'tinto', stage: 'Fermentación', temperature: 24.8, attention: 'warning' },
   { id: 'D-13', capacity: 10000, volume: 9800, lot: 'T-26-019', type: 'tinto', stage: 'Encubado', temperature: 20.7, attention: 'critical' },
   { id: 'D-18', capacity: 12000, volume: 9100, lot: 'T-25-012', type: 'tinto', stage: 'Maloláctica', temperature: 19.1, attention: 'warning' },
+]
+
+export const parcels: VineyardParcel[] = [
+  {
+    id: 'PAR-ALB-014', name: 'La Rad de Arriba', grower: 'Viñedos Iregua', municipality: 'Alberite', zone: 'Rioja Oriental',
+    varieties: 'Tempranillo · Graciano', hectares: 4.8, estimatedKg: 28600, harvestWindow: '18–20 sept', readiness: 'ready', image: images.vineyard,
+    sample: { sampledAt: '2026-09-17', potentialAlcohol: 13.4, ph: 3.48, totalAcidity: 5.2, health: 96 },
+  },
+  {
+    id: 'PAR-NAL-006', name: 'Valle de San Marcos', grower: 'Hermanos Sáenz', municipality: 'Nalda', zone: 'Rioja Oriental',
+    varieties: 'Viura', hectares: 3.1, estimatedKg: 19200, harvestWindow: '19–21 sept', readiness: 'scheduled', image: images.whiteGrapes,
+    sample: { sampledAt: '2026-09-18', potentialAlcohol: 12.1, ph: 3.21, totalAcidity: 6.4, health: 98 },
+  },
+  {
+    id: 'PAR-VIL-021', name: 'Los Cerrillos', grower: 'Bodegas ValdeIregua', municipality: 'Villamediana de Iregua', zone: 'Rioja Oriental',
+    varieties: 'Tempranillo', hectares: 6.2, estimatedKg: 37100, harvestWindow: '21–24 sept', readiness: 'sampling', image: images.vineyard,
+    sample: { sampledAt: '2026-09-18', potentialAlcohol: 12.7, ph: 3.39, totalAcidity: 5.7, health: 94 },
+  },
+  {
+    id: 'PAR-ALB-031', name: 'El Soto', grower: 'Familia Ruiz', municipality: 'Alberite', zone: 'Rioja Oriental',
+    varieties: 'Mazuelo', hectares: 2.4, estimatedKg: 13100, harvestWindow: '25–27 sept', readiness: 'sampling', image: images.vineyard,
+    sample: { sampledAt: '2026-09-17', potentialAlcohol: 11.9, ph: 3.17, totalAcidity: 7.1, health: 97 },
+  },
+  {
+    id: 'PAR-ENT-009', name: 'Camino de Moncalvillo', grower: 'Cooperativa del Iregua', municipality: 'Entrena', zone: 'Rioja Alta',
+    varieties: 'Garnacha', hectares: 3.7, estimatedKg: 22400, harvestWindow: '16–18 sept', readiness: 'harvested', image: images.cellar,
+    sample: { sampledAt: '2026-09-16', potentialAlcohol: 13.1, ph: 3.44, totalAcidity: 5.5, health: 95 },
+  },
+]
+
+export const deliveries: GrapeDelivery[] = [
+  {
+    id: 'delivery-001', code: 'ENT-26-041', parcelId: 'PAR-NAL-006', grower: 'Hermanos Sáenz', varieties: 'Viura', origin: 'Nalda · Rioja Oriental',
+    scheduledDate: '2026-09-19', scheduledTime: '08:30', expectedKg: 6400, status: 'at_gate', vehicle: 'LO-2841-AJ', processingDestination: 'Prensa 1',
+  },
+  {
+    id: 'delivery-002', code: 'ENT-26-042', parcelId: 'PAR-ALB-014', grower: 'Viñedos Iregua', varieties: 'Tempranillo · Graciano', origin: 'Alberite · Rioja Oriental',
+    scheduledDate: '2026-09-19', scheduledTime: '10:15', expectedKg: 7800, status: 'en_route', vehicle: 'LO-7712-AG', processingDestination: 'Mesa de selección',
+  },
+  {
+    id: 'delivery-003', code: 'ENT-26-043', parcelId: 'PAR-ALB-014', grower: 'Viñedos Iregua', varieties: 'Tempranillo · Graciano', origin: 'Alberite · Rioja Oriental',
+    scheduledDate: '2026-09-19', scheduledTime: '12:45', expectedKg: 7200, status: 'planned', vehicle: 'LO-6380-AC', processingDestination: 'Mesa de selección',
+  },
+  {
+    id: 'delivery-004', code: 'ENT-26-040', parcelId: 'PAR-ENT-009', grower: 'Cooperativa del Iregua', varieties: 'Garnacha', origin: 'Entrena · Rioja Alta',
+    scheduledDate: '2026-09-19', scheduledTime: '07:10', expectedKg: 5900, status: 'received', vehicle: 'LO-1495-Z', processingDestination: 'Tolva 1',
+    receivedAt: '2026-09-19T07:24:00+02:00', grossKg: 9340, tareKg: 3510, netKg: 5830, temperature: 17.8, potentialAlcohol: 13.1, condition: 'excellent', notes: 'Uva sana y fresca.',
+  },
+  {
+    id: 'delivery-005', code: 'ENT-26-044', parcelId: 'PAR-VIL-021', grower: 'Bodegas ValdeIregua', varieties: 'Tempranillo', origin: 'Villamediana de Iregua · Rioja Oriental',
+    scheduledDate: '2026-09-20', scheduledTime: '09:00', expectedKg: 8100, status: 'planned', vehicle: 'LO-9024-AF', processingDestination: 'Mesa de selección',
+  },
 ]

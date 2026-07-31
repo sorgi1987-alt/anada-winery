@@ -1,5 +1,5 @@
 import { images, redProcess, whiteProcess } from './data'
-import type { CellarTask, LotActivity, NewLotInput, NewTaskInput, ProcessStage, Tank, WineLot } from './types'
+import type { CellarTask, GrapeDelivery, LotActivity, NewGrapeIntakeInput, NewLotInput, NewTaskInput, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -101,3 +101,45 @@ export const assignLotToTank = (tanks: Tank[], lot: WineLot) => tanks.map((tank)
       attention: 'normal' as const,
     }
   : tank)
+
+export const receiveGrapeDelivery = (
+  deliveries: GrapeDelivery[],
+  parcels: VineyardParcel[],
+  input: NewGrapeIntakeInput,
+) => {
+  const parcel = parcels.find((item) => item.id === input.parcelId)
+  if (!parcel) throw new Error('Parcel not found')
+  const netKg = input.grossKg - input.tareKg
+  const recordedAt = new Date().toISOString()
+  const existing = deliveries.find((delivery) => delivery.id === input.deliveryId)
+  const delivery: GrapeDelivery = {
+    id: existing?.id ?? nowId('delivery'),
+    code: existing?.code ?? `ENT-${String(new Date().getFullYear()).slice(-2)}-${String(deliveries.length + 41).padStart(3, '0')}`,
+    parcelId: parcel.id,
+    grower: parcel.grower,
+    varieties: parcel.varieties,
+    origin: `${parcel.municipality} · ${parcel.zone}`,
+    scheduledDate: input.scheduledDate,
+    scheduledTime: input.scheduledTime,
+    expectedKg: input.expectedKg,
+    status: 'received',
+    vehicle: input.vehicle.trim().toUpperCase(),
+    processingDestination: input.processingDestination,
+    receivedAt: recordedAt,
+    grossKg: input.grossKg,
+    tareKg: input.tareKg,
+    netKg,
+    temperature: input.temperature,
+    potentialAlcohol: input.potentialAlcohol,
+    condition: input.condition,
+    notes: input.notes.trim(),
+  }
+  const parcelHasPendingDeliveries = deliveries.some((item) => item.parcelId === parcel.id && item.id !== delivery.id && item.status !== 'received')
+  return {
+    delivery,
+    deliveries: existing
+      ? deliveries.map((item) => item.id === existing.id ? delivery : item)
+      : [delivery, ...deliveries],
+    parcels: parcels.map((item) => item.id === parcel.id ? { ...item, readiness: parcelHasPendingDeliveries ? 'scheduled' as const : 'harvested' as const } : item),
+  }
+}

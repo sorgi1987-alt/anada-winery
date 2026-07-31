@@ -43,7 +43,22 @@ Wine names, grape varieties, winery names and Rioja place names remain unchanged
 
 ## Phase 2 — Complete frontend modules
 
-- Harvest planning and intake
+Status: in progress.
+
+### Phase 2A — Harvest planning and intake
+
+Status: completed.
+
+- Visual campaign progress and variety plan
+- Parcel readiness and maturity samples
+- Delivery schedule with operational arrival states
+- Guided weighbridge and quality-control intake
+- Processing-destination assignment
+- Persistent parcel-to-intake traceability
+- Schema migration preserving Phase 1 browser data
+
+Remaining Phase 2 modules:
+
 - Laboratory and sample workflow
 - Barrel inventory and ageing
 - Blending workspace
@@ -72,7 +87,7 @@ Wine names, grape varieties, winery names and Rioja place names remain unchanged
 
 ## Phase 5 — Harvest and traceability
 
-- Growers, parcels and grape deliveries
+- Server-backed growers, parcels and grape deliveries
 - Weights, quality checks and grape lots
 - Full wine genealogy
 - Bottling lots and stock movements

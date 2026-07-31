@@ -87,11 +87,63 @@ export interface Tank {
   attention: AttentionLevel
 }
 
+export type ParcelReadiness = 'sampling' | 'ready' | 'scheduled' | 'harvested'
+export type DeliveryStatus = 'planned' | 'en_route' | 'at_gate' | 'received'
+export type GrapeCondition = 'excellent' | 'good' | 'review'
+
+export interface VineyardSample {
+  sampledAt: string
+  potentialAlcohol: number
+  ph: number
+  totalAcidity: number
+  health: number
+}
+
+export interface VineyardParcel {
+  id: string
+  name: string
+  grower: string
+  municipality: string
+  zone: string
+  varieties: string
+  hectares: number
+  estimatedKg: number
+  harvestWindow: string
+  readiness: ParcelReadiness
+  sample: VineyardSample
+  image: string
+}
+
+export interface GrapeDelivery {
+  id: string
+  code: string
+  parcelId: string
+  grower: string
+  varieties: string
+  origin: string
+  scheduledDate: string
+  scheduledTime: string
+  expectedKg: number
+  status: DeliveryStatus
+  vehicle: string
+  processingDestination: string
+  receivedAt?: string
+  grossKg?: number
+  tareKg?: number
+  netKg?: number
+  temperature?: number
+  potentialAlcohol?: number
+  condition?: GrapeCondition
+  notes?: string
+}
+
 export interface WineryState {
-  schemaVersion: 1
+  schemaVersion: 2
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
+  parcels: VineyardParcel[]
+  deliveries: GrapeDelivery[]
 }
 
 export interface NewLotInput {
@@ -119,4 +171,20 @@ export interface NewTaskInput {
   time: string
   assignee: string
   priority: CellarTask['priority']
+}
+
+export interface NewGrapeIntakeInput {
+  deliveryId: string
+  parcelId: string
+  scheduledDate: string
+  scheduledTime: string
+  expectedKg: number
+  vehicle: string
+  grossKg: number
+  tareKg: number
+  temperature: number
+  potentialAlcohol: number
+  condition: GrapeCondition
+  processingDestination: string
+  notes: string
 }
