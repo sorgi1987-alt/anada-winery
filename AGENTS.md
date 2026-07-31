@@ -33,4 +33,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 1 is a high-fidelity frontend prototype with typed mock data. See `PHASES.md`.
+Phase 1B is a functional frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.

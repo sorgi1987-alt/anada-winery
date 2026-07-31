@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type FormEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import {
   Activity, ArrowLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
@@ -7,9 +7,12 @@ import {
   Sparkles, Sprout, Sun, Thermometer, Undo2, Warehouse,
   Waypoints, Wine, X,
 } from 'lucide-react'
-import { images, initialTasks, lots as seedLots, tanks } from './data'
+import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
+import { images, lots as seedLots } from './data'
+import { assignLotToTank, createLot as buildLot, createOpeningTask, createTask } from './domain'
 import { NavLink, useHashLocation, useNavigate } from './router'
-import type { CellarTask, ReadingPoint, Tank, WineLot, WineType } from './types'
+import { browserWineryRepository } from './store'
+import type { CellarTask, NewLotInput, NewTaskInput, ReadingPoint, Tank, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number) => `${new Intl.NumberFormat('es-ES').format(volume)} L`
 
@@ -44,13 +47,21 @@ const navItems = [
 
 function App() {
   const { pathname } = useHashLocation()
-  const [demoLots, setDemoLots] = useState<WineLot[]>(seedLots)
-  const [tasks, setTasks] = useState<CellarTask[]>(initialTasks)
+  const navigate = useNavigate()
+  const [initialState] = useState(() => browserWineryRepository.load())
+  const [demoLots, setDemoLots] = useState<WineLot[]>(initialState.lots)
+  const [tasks, setTasks] = useState<CellarTask[]>(initialState.tasks)
+  const [demoTanks, setDemoTanks] = useState<Tank[]>(initialState.tanks)
   const [cellarMode, setCellarMode] = useState(() => localStorage.getItem('anada-theme') === 'cellar')
   const [menuOpen, setMenuOpen] = useState(false)
   const [readingLotId, setReadingLotId] = useState<string | null>(null)
+  const [newLotType, setNewLotType] = useState<NewLotInput['type'] | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
+
+  useEffect(() => {
+    browserWineryRepository.save({ schemaVersion: 1, lots: demoLots, tasks, tanks: demoTanks })
+  }, [demoLots, tasks, demoTanks])
 
   const toggleCellarMode = () => {
     setCellarMode((current) => {
@@ -62,15 +73,28 @@ function App() {
 
   const saveReading = (lotId: string, reading: ReadingPoint, volume?: number) => {
     setUndoLot(demoLots.find((lot) => lot.id === lotId) ?? null)
+    const nextVolume = volume ?? demoLots.find((lot) => lot.id === lotId)?.volume
+    const recordedAt = new Date().toISOString()
     setDemoLots((current) => current.map((lot) => lot.id === lotId
       ? {
           ...lot,
           temperature: reading.temperature,
           density: reading.density,
           volume: volume ?? lot.volume,
-          readings: [...lot.readings, reading],
+          readings: [...lot.readings, { ...reading, volume: nextVolume, recordedAt }],
+          activities: [{
+            id: `activity-${Date.now()}`,
+            title: 'Lectura de bodega',
+            person: 'Elena Martín',
+            time: 'Ahora',
+            detail: `${reading.density.toFixed(3)} · ${reading.temperature.toFixed(1)} °C${reading.note ? ` · ${reading.note}` : ''}`,
+            recordedAt,
+          }, ...(lot.activities ?? [])],
         }
       : lot))
+    setDemoTanks((current) => current.map((tank) => tank.lot === lotId
+      ? { ...tank, temperature: reading.temperature, volume: nextVolume ?? tank.volume }
+      : tank))
     setReadingLotId(null)
     setToast(`Lectura guardada en ${lotId}`)
     window.setTimeout(() => setToast(null), 4200)
@@ -79,9 +103,43 @@ function App() {
   const undoReading = () => {
     if (!undoLot) return
     setDemoLots((current) => current.map((lot) => lot.id === undoLot.id ? undoLot : lot))
+    setDemoTanks((current) => current.map((tank) => tank.lot === undoLot.id
+      ? { ...tank, temperature: undoLot.temperature, volume: undoLot.volume }
+      : tank))
     setToast(`Última lectura de ${undoLot.id} deshecha`)
     setUndoLot(null)
     window.setTimeout(() => setToast(null), 3200)
+  }
+
+  const createNewLot = (input: NewLotInput) => {
+    const lot = buildLot(input)
+    setDemoLots((current) => [lot, ...current])
+    setTasks((current) => [createOpeningTask(lot), ...current])
+    setDemoTanks((current) => assignLotToTank(current, lot))
+    setNewLotType(null)
+    setUndoLot(null)
+    setToast(`${lot.id} creado y asignado a ${lot.vessel}`)
+    window.setTimeout(() => setToast(null), 4200)
+    navigate(`/lots/${lot.id}`)
+  }
+
+  const addTask = (input: NewTaskInput) => {
+    const task = createTask(input)
+    setTasks((current) => [task, ...current])
+    setUndoLot(null)
+    setToast(`Tarea creada para ${task.lot}`)
+    window.setTimeout(() => setToast(null), 3200)
+  }
+
+  const resetDemoData = () => {
+    const reset = browserWineryRepository.clear()
+    setDemoLots(reset.lots)
+    setTasks(reset.tasks)
+    setDemoTanks(reset.tanks)
+    setUndoLot(null)
+    setToast('Datos locales restablecidos')
+    window.setTimeout(() => setToast(null), 3200)
+    navigate('/dashboard')
   }
 
   const readingLot = demoLots.find((lot) => lot.id === readingLotId)
@@ -89,19 +147,19 @@ function App() {
   if (pathname === '/welcome') return <div className={cellarMode ? 'app cellar-theme' : 'app'}><Welcome /></div>
 
   let currentPage: ReactNode
-  if (pathname === '/dashboard') currentPage = <Dashboard lots={demoLots} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
-  else if (pathname === '/production') currentPage = <Production />
+  if (pathname === '/dashboard') currentPage = <Dashboard lots={demoLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
+  else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={demoLots} />
-  else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} />
-  else if (pathname === '/cellar') currentPage = <CellarMap />
-  else if (pathname === '/tasks') currentPage = <TasksPage tasks={tasks} setTasks={setTasks} />
+  else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} />
+  else if (pathname === '/cellar') currentPage = <CellarMap tanks={demoTanks} />
+  else if (pathname === '/tasks') currentPage = <TasksPage lots={demoLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} />
   else if (pathname === '/laboratory') currentPage = <PreviewModule type="laboratory" />
   else if (pathname === '/ageing') currentPage = <PreviewModule type="ageing" />
   else if (pathname === '/bottling') currentPage = <PreviewModule type="bottling" />
   else if (pathname === '/traceability') currentPage = <PreviewModule type="traceability" />
   else if (pathname === '/reports') currentPage = <PreviewModule type="reports" />
-  else if (pathname === '/settings') currentPage = <PreviewModule type="settings" />
-  else currentPage = <Dashboard lots={demoLots} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
+  else if (pathname === '/settings') currentPage = <PreviewModule type="settings" onResetData={resetDemoData} />
+  else currentPage = <Dashboard lots={demoLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
 
   return (
     <div className={cellarMode ? 'app cellar-theme' : 'app'}>
@@ -120,6 +178,7 @@ function App() {
       </Shell>
 
       {readingLot && <ReadingSheet lot={readingLot} onClose={() => setReadingLotId(null)} onSave={saveReading} />}
+      {newLotType && <CreateLotSheet type={newLotType} lots={demoLots} tanks={demoTanks} onClose={() => setNewLotType(null)} onCreate={createNewLot} />}
       {toast && (
         <div className="toast" role="status">
           <CheckCircle2 size={19} />
@@ -160,7 +219,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> Datos de demostración</span>
-          <span>Añada 0.1</span>
+          <span>Añada 0.2</span>
         </div>
       </section>
     </main>
@@ -255,15 +314,20 @@ function MobileNavItem({ to, icon, label }: { to: string; icon: ReactNode; label
 
 interface DashboardProps {
   lots: WineLot[]
+  tanks: Tank[]
   tasks: CellarTask[]
   setTasks: React.Dispatch<React.SetStateAction<CellarTask[]>>
   onReading: (lotId: string) => void
 }
 
-function Dashboard({ lots, tasks, setTasks, onReading }: DashboardProps) {
+function Dashboard({ lots, tanks, tasks, setTasks, onReading }: DashboardProps) {
   const navigate = useNavigate()
   const pending = tasks.filter((task) => !task.complete)
   const occupied = tanks.filter((tank) => tank.volume > 0)
+  const totalCapacity = tanks.reduce((total, tank) => total + tank.capacity, 0)
+  const occupiedVolume = tanks.reduce((total, tank) => total + tank.volume, 0)
+  const occupiedPercentage = totalCapacity ? Math.round(occupiedVolume / totalCapacity * 100) : 0
+  const activeFermentations = lots.filter((lot) => lot.stage.toLowerCase().includes('fermentación')).length
   return (
     <main>
       <PageHeader
@@ -274,8 +338,8 @@ function Dashboard({ lots, tasks, setTasks, onReading }: DashboardProps) {
       />
 
       <section className="metrics-grid" aria-label="Resumen de bodega">
-        <MetricCard label="Lotes activos" value="12" detail="4 en fermentación" icon={<Grape />} accent="wine" />
-        <MetricCard label="Capacidad ocupada" value="71%" detail="64.550 de 91.000 L" icon={<Gauge />} accent="stone" />
+        <MetricCard label="Lotes activos" value={String(lots.length)} detail={`${activeFermentations} en fermentación`} icon={<Grape />} accent="wine" />
+        <MetricCard label="Capacidad ocupada" value={`${occupiedPercentage}%`} detail={`${formatVolume(occupiedVolume)} de ${formatVolume(totalCapacity)}`} icon={<Gauge />} accent="stone" />
         <MetricCard label="Tareas pendientes" value={String(pending.length)} detail="2 antes de las 17:00" icon={<ClipboardCheck />} accent="gold" />
         <MetricCard label="Alertas activas" value="3" detail="1 requiere revisión" icon={<Activity />} accent="red" />
       </section>
@@ -299,12 +363,12 @@ function Dashboard({ lots, tasks, setTasks, onReading }: DashboardProps) {
         <div className="occupancy-panel panel">
           <SectionHeading title="Ocupación" subtitle="Nave de fermentación" link="Abrir mapa" onLink={() => navigate('/cellar')} compact />
           <div className="occupancy-visual">
-            <ProgressRing value={71} />
+            <ProgressRing value={occupiedPercentage} />
             <div className="mini-tanks">
               {occupied.slice(0, 6).map((tank) => <MiniTank key={tank.id} tank={tank} />)}
             </div>
           </div>
-          <div className="occupancy-legend"><span><i className="dot wine" /> Tinto 48%</span><span><i className="dot white" /> Blanco 23%</span><span><i className="dot empty" /> Libre 29%</span></div>
+          <div className="occupancy-legend"><span><i className="dot wine" /> Tinto</span><span><i className="dot white" /> Blanco</span><span><i className="dot empty" /> Libre {100 - occupiedPercentage}%</span></div>
         </div>
       </section>
     </main>
@@ -381,7 +445,7 @@ function MiniTank({ tank }: { tank: Tank }) {
   return <div className={`mini-tank ${tank.type ?? 'empty'} ${tank.attention !== 'normal' ? 'attention' : ''}`} title={`${tank.id}: ${level}%`}><i style={{ height: `${level}%` }} /><span>{tank.id}</span></div>
 }
 
-function Production() {
+function Production({ onStartCreate }: { onStartCreate: (type: NewLotInput['type']) => void }) {
   const [selected, setSelected] = useState<WineType | null>(null)
   const navigate = useNavigate()
   const options = [
@@ -411,7 +475,7 @@ function Production() {
       </div>
       {selected && selectedLot && (
         <section className={`process-preview preview-${selected}`}>
-          <div className="process-preview-head"><div><span className="eyebrow">Plantilla seleccionada</span><h2>Elaboración de {wineLabel[selected].toLowerCase()} tradicional</h2><p>Las etapas se pueden adaptar antes de crear el lote.</p></div><button className="primary-button" onClick={() => navigate(`/lots/${selectedLot.id}`)}>Previsualizar lote <ArrowUpRight size={18} /></button></div>
+          <div className="process-preview-head"><div><span className="eyebrow">Plantilla seleccionada</span><h2>Elaboración de {wineLabel[selected].toLowerCase()} tradicional</h2><p>Las etapas se pueden adaptar antes de crear el lote.</p></div><div className="process-preview-actions"><button className="secondary-button" onClick={() => navigate(`/lots/${selectedLot.id}`)}>Ver ejemplo</button><button className="primary-button" onClick={() => onStartCreate(selected as NewLotInput['type'])}>Configurar lote <ArrowUpRight size={18} /></button></div></div>
           <ProcessTimeline lot={selectedLot} />
           <div className="context-operation-row">
             {(selected === 'tinto' ? ['Remontado', 'Bazuqueo', 'Descube', 'Control de málico'] : ['Prensado', 'Desfangado', 'Control de turbidez', 'Bâtonnage']).map((operation) => <span key={operation}><CheckCircle2 size={15} /> {operation}</span>)}
@@ -462,11 +526,39 @@ function OverviewLotCard({ lot, onOpen, compact }: { lot: WineLot; onOpen: () =>
   )
 }
 
-function LotDetail({ lots, lotId, onReading }: { lots: WineLot[]; lotId: string; onReading: (id: string) => void }) {
+function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: Tank[]; lotId: string; onReading: (id: string) => void }) {
   const navigate = useNavigate()
   const lot = lots.find((item) => item.id === lotId)
   if (!lot) return <div className="empty-state"><Search size={28} /><h3>Lote no encontrado</h3><button className="secondary-button" onClick={() => navigate('/lots')}>Volver a lotes</button></div>
   const isRed = lot.type === 'tinto'
+  const isReception = lot.process[0]?.status === 'current'
+  const vessel = tanks.find((tank) => tank.id === lot.vessel)
+  const vesselCapacity = vessel?.capacity ?? 10000
+  const stageDescription = isReception
+    ? isRed
+      ? 'Uva recibida. Pendiente de completar selección, despalillado y encubado según la plantilla del lote.'
+      : 'Uva recibida. Pendiente de registrar prensado, fracciones y protección del mosto.'
+    : isRed
+      ? 'Fermentación activa con gestión suave del sombrero para preservar fruta y frescura.'
+      : 'Fermentación protegida a baja temperatura. Cinética estable y sin desviaciones.'
+  const stageActions = isReception
+    ? isRed ? ['Selección', 'Pesaje', 'Encubado'] : ['Pesaje', 'Muestra', 'Prensado']
+    : isRed ? ['Remontado', 'Bazuqueo', 'Adición', 'Muestra'] : ['Control temperatura', 'Muestra', 'Trasiego']
+  const fallbackActivities = isRed ? [
+    ['Remontado suave', 'Martín Ruiz', 'Hoy · 12:10', '15 min · Sin incidencias'],
+    ['Lectura de densidad', 'Elena Martín', 'Hoy · 08:04', '1.052 · 24,2 °C'],
+    ['Adición de nutrientes', 'Elena Martín', 'Ayer · 18:42', '12 kg · Nutriente orgánico'],
+    ['Remontado con aireación', 'Martín Ruiz', 'Ayer · 17:15', '20 min'],
+  ] : [
+    ['Control de temperatura', 'Elena Martín', 'Hoy · 09:12', '15,2 °C · Estable'],
+    ['Lectura de densidad', 'Lucía Sáenz', 'Ayer · 17:30', '1.026 · 15,1 °C'],
+    ['Inoculación', 'Elena Martín', '25 sept · 11:20', 'Levadura seleccionada'],
+    ['Trasiego de mosto limpio', 'Martín Ruiz', '25 sept · 08:40', '5.240 L'],
+  ]
+  const activityRows = lot.activities?.length
+    ? lot.activities.map((activity) => [activity.title, activity.person, activity.time, activity.detail])
+    : fallbackActivities
+  const whiteDetails = lot.productionDetails?.white
   return (
     <main className="lot-detail-page">
       <button className="back-button" onClick={() => navigate('/lots')}><ArrowLeft size={17} /> Volver a lotes</button>
@@ -481,15 +573,15 @@ function LotDetail({ lots, lotId, onReading }: { lots: WineLot[]; lotId: string;
       <section className="lot-status-grid">
         <div className="current-stage-card panel">
           <div className="stage-label"><span className="pulse-dot" /><span><small>Etapa actual</small><strong>{lot.stage}</strong></span>{lot.day && <em>Día {lot.day}</em>}</div>
-          <p>{isRed ? 'Fermentación activa con gestión suave del sombrero para preservar fruta y frescura.' : 'Fermentación protegida a baja temperatura. Cinética estable y sin desviaciones.'}</p>
+          <p>{stageDescription}</p>
           <div className="stage-actions">
             <button className="primary-button" onClick={() => onReading(lot.id)}><Plus size={18} /> Registrar lectura</button>
-            {(isRed ? ['Remontado', 'Bazuqueo', 'Adición', 'Muestra'] : ['Control temperatura', 'Muestra', 'Trasiego']).map((action) => <span className="context-action" key={action}>{action}</span>)}
+            {stageActions.map((action) => <span className="context-action" key={action}>{action}</span>)}
           </div>
         </div>
         <div className="vessel-card panel">
-          <div className="vessel-graphic"><span className={`vessel-fill ${lot.type}`} style={{ height: `${Math.min(92, lot.volume / 100)}%` }} /><i>{lot.vessel}</i></div>
-          <div><span className="eyebrow">Recipiente</span><h3>Depósito {lot.vessel.replace('D-', '')}</h3><p>Acero inoxidable · 10.000 L</p><div className="vessel-data"><span><strong>{formatVolume(lot.volume)}</strong><small>Volumen</small></span><span><strong>{Math.round(lot.volume / 100)}%</strong><small>Ocupación</small></span></div></div>
+          <div className="vessel-graphic"><span className={`vessel-fill ${lot.type}`} style={{ height: `${Math.min(92, lot.volume / vesselCapacity * 100)}%` }} /><i>{lot.vessel}</i></div>
+          <div><span className="eyebrow">Recipiente</span><h3>Depósito {lot.vessel.replace('D-', '')}</h3><p>Acero inoxidable · {vesselCapacity.toLocaleString('es-ES')} L</p><div className="vessel-data"><span><strong>{formatVolume(lot.volume)}</strong><small>Volumen</small></span><span><strong>{Math.round(lot.volume / vesselCapacity * 100)}%</strong><small>Ocupación</small></span></div></div>
         </div>
       </section>
 
@@ -503,26 +595,16 @@ function LotDetail({ lots, lotId, onReading }: { lots: WineLot[]; lotId: string;
           <SectionHeading title="Evolución" subtitle={lot.readings.length ? 'Últimas lecturas del lote' : 'Sin lecturas recientes'} compact />
           {lot.readings.length ? <Suspense fallback={<ChartSkeleton />}><FermentationChart data={lot.readings} /></Suspense> : <div className="empty-chart"><Activity size={25} /><span>El seguimiento de esta etapa se mostrará aquí.</span></div>}
           <div className="reading-kpis">
-            {lot.temperature && <span><i className="kpi-icon warm"><Thermometer /></i><small>Temperatura</small><strong>{lot.temperature.toFixed(1)} °C</strong><em>{isRed ? '+0,6° desde las 08h' : 'Estable'}</em></span>}
-            {lot.density && <span><i className="kpi-icon blue"><Droplets /></i><small>Densidad</small><strong>{lot.density.toFixed(3)}</strong><em>-0,006 desde las 08h</em></span>}
-            {!isRed && <span><i className="kpi-icon stone"><Beaker /></i><small>Turbidez inicial</small><strong>82 NTU</strong><em>Tras desfangado</em></span>}
+            {lot.temperature && <span><i className="kpi-icon warm"><Thermometer /></i><small>Temperatura</small><strong>{lot.temperature.toFixed(1)} °C</strong><em>{isReception ? 'Lectura de recepción' : isRed ? '+0,6° desde las 08h' : 'Estable'}</em></span>}
+            {lot.density && <span><i className="kpi-icon blue"><Droplets /></i><small>Densidad</small><strong>{lot.density.toFixed(3)}</strong><em>{isReception ? 'Densidad inicial' : '-0,006 desde las 08h'}</em></span>}
+            {!isRed && <span><i className="kpi-icon stone"><Beaker /></i><small>{isReception ? 'Turbidez objetivo' : 'Turbidez inicial'}</small><strong>{isReception && whiteDetails ? whiteDetails.turbidityTarget : 82} NTU</strong><em>{isReception ? 'Para el desfangado' : 'Tras desfangado'}</em></span>}
           </div>
         </div>
         <div className="panel activity-panel">
           <SectionHeading title="Actividad reciente" subtitle="Registro firmado de operaciones" compact />
           <div className="activity-list">
-            {(isRed ? [
-              ['Remontado suave', 'Martín Ruiz', 'Hoy · 12:10', '15 min · Sin incidencias'],
-              ['Lectura de densidad', 'Elena Martín', 'Hoy · 08:04', '1.052 · 24,2 °C'],
-              ['Adición de nutrientes', 'Elena Martín', 'Ayer · 18:42', '12 kg · Nutriente orgánico'],
-              ['Remontado con aireación', 'Martín Ruiz', 'Ayer · 17:15', '20 min'],
-            ] : [
-              ['Control de temperatura', 'Elena Martín', 'Hoy · 09:12', '15,2 °C · Estable'],
-              ['Lectura de densidad', 'Lucía Sáenz', 'Ayer · 17:30', '1.026 · 15,1 °C'],
-              ['Inoculación', 'Elena Martín', '25 sept · 11:20', 'Levadura seleccionada'],
-              ['Trasiego de mosto limpio', 'Martín Ruiz', '25 sept · 08:40', '5.240 L'],
-            ]).map(([title, person, time, detail], index) => (
-              <div className="activity-row" key={title}><span className="activity-icon">{index === 1 ? <Droplets size={16} /> : <Check size={16} />}</span><span><strong>{title}</strong><small>{person} · {time}</small><em>{detail}</em></span></div>
+            {activityRows.map(([title, person, time, detail], index) => (
+              <div className="activity-row" key={`${title}-${time}-${index}`}><span className="activity-icon">{index === 1 ? <Droplets size={16} /> : <Check size={16} />}</span><span><strong>{title}</strong><small>{person} · {time}</small><em>{detail}</em></span></div>
             ))}
           </div>
         </div>
@@ -532,10 +614,10 @@ function LotDetail({ lots, lotId, onReading }: { lots: WineLot[]; lotId: string;
         <section className="white-specific panel">
           <div><span className="eyebrow">Preparación del mosto</span><h2>Prensado y desfangado</h2><p>Información específica del proceso de blanco, visible sin abrir operaciones genéricas.</p></div>
           <div className="white-specific-grid">
-            <span><i>01</i><small>Fracción seleccionada</small><strong>Mosto yema</strong><em>Rendimiento 61%</em></span>
-            <span><i>02</i><small>Protección</small><strong>Inertizado</strong><em>Desde recepción</em></span>
-            <span><i>03</i><small>Desfangado</small><strong>18 horas</strong><em>10,2 °C</em></span>
-            <span><i>04</i><small>Turbidez</small><strong>82 NTU</strong><em>Objetivo alcanzado</em></span>
+            <span><i>01</i><small>Fracción seleccionada</small><strong>{whiteDetails?.pressFraction ?? 'Mosto yema'}</strong><em>{isReception ? 'Pendiente de confirmar' : 'Rendimiento 61%'}</em></span>
+            <span><i>02</i><small>Protección</small><strong>{whiteDetails?.protection ?? 'Inertizado'}</strong><em>Desde recepción</em></span>
+            <span><i>03</i><small>Desfangado</small><strong>{isReception ? 'Pendiente' : '18 horas'}</strong><em>{isReception ? 'Tras el prensado' : '10,2 °C'}</em></span>
+            <span><i>04</i><small>Turbidez</small><strong>{whiteDetails ? `${whiteDetails.turbidityTarget} NTU` : '82 NTU'}</strong><em>{isReception ? 'Objetivo configurado' : 'Objetivo alcanzado'}</em></span>
           </div>
         </section>
       )}
@@ -556,7 +638,7 @@ function ProcessTimeline({ lot }: { lot: WineLot }) {
   )
 }
 
-function CellarMap() {
+function CellarMap({ tanks }: { tanks: Tank[] }) {
   const [filter, setFilter] = useState<'all' | 'empty' | 'tinto' | 'blanco' | 'attention'>('all')
   const [selected, setSelected] = useState<Tank | null>(null)
   const visible = tanks.filter((tank) => filter === 'all' || (filter === 'empty' ? tank.volume === 0 : filter === 'attention' ? tank.attention !== 'normal' : tank.type === filter))
@@ -597,18 +679,20 @@ function TankDrawer({ tank, onClose }: { tank: Tank; onClose: () => void }) {
         <div className="drawer-data"><span><small>Volumen</small><strong>{formatVolume(tank.volume)}</strong></span><span><small>Capacidad</small><strong>{new Intl.NumberFormat('es-ES').format(tank.capacity)} L</strong></span><span><small>Temperatura</small><strong>{tank.temperature?.toFixed(1)} °C</strong></span><span><small>Ocupación</small><strong>{Math.round(tank.volume / tank.capacity * 100)}%</strong></span></div>
         {tank.attention !== 'normal' && <div className={`drawer-alert ${tank.attention}`}><Activity size={18} /><span><strong>Requiere atención</strong><small>{tank.attention === 'critical' ? 'Nivel próximo al límite operativo' : 'Revisar seguimiento del lote'}</small></span></div>}
         <button className="primary-button full" onClick={() => tank.lot && navigate(`/lots/${tank.lot}`)}>Abrir lote <ArrowUpRight size={18} /></button>
-      </> : <div className="empty-tank-copy"><Warehouse size={30} /><h3>Depósito disponible</h3><p>10.000 L limpios y preparados para asignación.</p><span className="available-label"><CheckCircle2 size={16} /> Disponible para asignación</span></div>}
+      </> : <div className="empty-tank-copy"><Warehouse size={30} /><h3>Depósito disponible</h3><p>{tank.capacity.toLocaleString('es-ES')} L limpios y preparados para asignación.</p><span className="available-label"><CheckCircle2 size={16} /> Disponible para asignación</span></div>}
     </aside>
   )
 }
 
-function TasksPage({ tasks, setTasks }: { tasks: CellarTask[]; setTasks: React.Dispatch<React.SetStateAction<CellarTask[]>> }) {
+function TasksPage({ lots, tasks, setTasks, onCreate }: { lots: WineLot[]; tasks: CellarTask[]; setTasks: React.Dispatch<React.SetStateAction<CellarTask[]>>; onCreate: (input: NewTaskInput) => void }) {
+  const [creating, setCreating] = useState(false)
   return (
     <main>
-      <PageHeader eyebrow="Jueves, 31 de julio" title="Tareas de bodega" description="Operaciones ordenadas por prioridad y momento óptimo." />
+      <PageHeader eyebrow="Jueves, 31 de julio" title="Tareas de bodega" description="Operaciones ordenadas por prioridad y momento óptimo." action={<button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} /> Nueva tarea</button>} />
       <section className="panel task-page-panel">
         {tasks.map((task) => <TaskRow key={task.id} task={task} onToggle={() => setTasks((current) => current.map((item) => item.id === task.id ? { ...item, complete: !item.complete } : item))} />)}
       </section>
+      {creating && <NewTaskSheet lots={lots} onClose={() => setCreating(false)} onCreate={(input) => { onCreate(input); setCreating(false) }} />}
     </main>
   )
 }
@@ -622,11 +706,11 @@ const previewData = {
   settings: { eyebrow: 'Configuración', title: 'Tu bodega', text: 'Usuarios, roles, procesos, variedades, unidades y reglas de campaña.', image: images.vineyard, icon: <Settings2 /> },
 }
 
-function PreviewModule({ type }: { type: keyof typeof previewData }) {
+function PreviewModule({ type, onResetData }: { type: keyof typeof previewData; onResetData?: () => void }) {
   const data = previewData[type]
   return (
     <main>
-      <PageHeader eyebrow={data.eyebrow} title={data.title} description={data.text} />
+      <PageHeader eyebrow={data.eyebrow} title={data.title} description={data.text} action={onResetData ? <button className="secondary-button" onClick={onResetData}><Undo2 size={17} /> Restablecer demo</button> : undefined} />
       <section className="module-preview-hero" style={{ backgroundImage: `url(${data.image})` }}><div><span className="preview-icon">{data.icon}</span><span className="eyebrow light">Vista previa · Fase 2</span><h2>Diseñado alrededor del trabajo real de bodega.</h2><p>Esta área ya forma parte del sistema visual. Sus operaciones se conectarán al motor de procesos en el siguiente checkpoint.</p></div></section>
       <section className="preview-cards">
         <div className="panel"><span className="eyebrow">Resumen</span><h3>Información que importa</h3><div className="preview-stat-row"><span><strong>24</strong><small>Registros</small></span><span><strong>3</strong><small>Pendientes</small></span><span><strong>98%</strong><small>Completitud</small></span></div></div>
@@ -645,9 +729,10 @@ function ReadingSheet({ lot, onClose, onSave }: { lot: WineLot; onClose: () => v
   const [density, setDensity] = useState(String(lot.density ?? ''))
   const [volume, setVolume] = useState(String(lot.volume))
   const [note, setNote] = useState('')
+  const previousReading = lot.readings.at(-1)
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    onSave(lot.id, { time: 'Ahora', temperature: Number(temperature), density: Number(density) }, Number(volume))
+    onSave(lot.id, { time: 'Ahora', temperature: Number(temperature.replace(',', '.')), density: Number(density.replace(',', '.')), note: note.trim() || undefined }, Number(volume))
   }
   return (
     <div className="sheet-layer" role="dialog" aria-modal="true" aria-label="Registrar lectura">
@@ -655,7 +740,7 @@ function ReadingSheet({ lot, onClose, onSave }: { lot: WineLot; onClose: () => v
       <form className="reading-sheet" onSubmit={submit}>
         <div className="sheet-handle" />
         <div className="drawer-head"><div><span className="eyebrow">{lot.id} · {lot.vessel}</span><h2>Registrar lectura</h2><p>{lot.stage}</p></div><button className="icon-button" type="button" onClick={onClose}><X size={20} /></button></div>
-        <div className="previous-reading"><Clock3 size={17} /><span><small>Lectura anterior · Hoy 12:00</small><strong>{lot.temperature?.toFixed(1)} °C · {lot.density?.toFixed(3)}</strong></span></div>
+        <div className="previous-reading"><Clock3 size={17} /><span><small>Lectura anterior · {previousReading?.time ?? 'Sin registro'}</small><strong>{lot.temperature?.toFixed(1)} °C · {lot.density?.toFixed(3)}</strong></span></div>
         <div className="reading-fields">
           <label><span><Thermometer size={17} /> Temperatura</span><div><input inputMode="decimal" required value={temperature} onChange={(event) => setTemperature(event.target.value)} /><i>°C</i></div></label>
           <label><span><Droplets size={17} /> Densidad</span><div><input inputMode="decimal" required value={density} onChange={(event) => setDensity(event.target.value)} /><i>g/mL</i></div></label>

@@ -5,6 +5,33 @@ export interface ReadingPoint {
   time: string
   temperature: number
   density: number
+  volume?: number
+  note?: string
+  recordedAt?: string
+}
+
+export interface LotActivity {
+  id: string
+  title: string
+  person: string
+  time: string
+  detail: string
+  recordedAt: string
+}
+
+export interface ProductionDetails {
+  receivedKg: number
+  receptionDate: string
+  initialDensity: number
+  receptionTemperature: number
+  red?: {
+    macerationPlan: string
+  }
+  white?: {
+    pressFraction: string
+    turbidityTarget: number
+    protection: string
+  }
 }
 
 export interface ProcessStage {
@@ -35,6 +62,8 @@ export interface WineLot {
   image: string
   process: ProcessStage[]
   readings: ReadingPoint[]
+  activities?: LotActivity[]
+  productionDetails?: ProductionDetails
 }
 
 export interface CellarTask {
@@ -56,4 +85,38 @@ export interface Tank {
   stage?: string
   temperature?: number
   attention: AttentionLevel
+}
+
+export interface WineryState {
+  schemaVersion: 1
+  lots: WineLot[]
+  tasks: CellarTask[]
+  tanks: Tank[]
+}
+
+export interface NewLotInput {
+  type: Extract<WineType, 'tinto' | 'blanco'>
+  id: string
+  name: string
+  vintage: number
+  varieties: string
+  origin: string
+  receptionDate: string
+  receivedKg: number
+  volume: number
+  vessel: string
+  temperature: number
+  density: number
+  macerationPlan?: string
+  pressFraction?: string
+  turbidityTarget?: number
+  protection?: string
+}
+
+export interface NewTaskInput {
+  title: string
+  lot: string
+  time: string
+  assignee: string
+  priority: CellarTask['priority']
 }

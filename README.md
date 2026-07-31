@@ -4,19 +4,23 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 1 is a production-fidelity frontend prototype. All operational data is currently mocked; there is no production persistence, authentication or regulatory certification.
+Phase 1B is a production-fidelity functional frontend. Operational data starts from realistic Rioja seed data and is persisted in the current browser. There is no shared server persistence, authentication or regulatory certification yet.
 
 Implemented views:
 
 - Visual entry experience
 - Today dashboard
 - Red/white process selection
+- Guided red and white lot creation
+- Capacity-aware vessel assignment
 - Lot search and filters
 - Separate red and white lot-detail experiences
 - Process-specific contextual operations
 - Responsive visual cellar map
-- Quick reading entry with local mock updates
+- Persistent quick readings and activity history
+- Persistent task creation and completion
 - Cellar-friendly dark theme
+- Local demonstration-data reset
 - Preview states for later modules
 
 ## Local development
@@ -48,7 +52,7 @@ Target Catalyst project:
 
 The Vite production output is written to `dist/`. Catalyst client configuration should be generated through the Catalyst CLI or console rather than being guessed manually. Once the project has been initialised with the CLI, preserve its generated `catalyst.json` and client structure.
 
-No Catalyst services are connected in Phase 1. Later phases will replace the mock service boundary with authenticated Catalyst functions and Data Store access.
+Slate hosts the frontend in the development environment. Catalyst Data Store and Functions are not connected yet. The versioned browser repository deliberately sits behind a small interface so it can later be replaced with authenticated Catalyst access without redesigning the screens.
 
 ## Mobile direction
 

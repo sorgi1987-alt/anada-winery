@@ -4,7 +4,7 @@ Each phase is an independently reviewable checkpoint. Do not begin the next phas
 
 ## Phase 1 — Visual frontend prototype
 
-Status: in progress.
+Status: completed.
 
 - Premium responsive application shell
 - Today dashboard
@@ -14,6 +14,20 @@ Status: in progress.
 - Visual cellar map
 - Quick reading interaction
 - Mock service boundary and Rioja seed data
+
+## Phase 1B — Functional frontend core
+
+Status: completed.
+
+- Versioned browser persistence behind a repository interface
+- Guided red and white lot creation
+- Reception readings and process-specific configuration
+- Capacity-aware vessel assignment and live occupancy
+- Persistent readings, activities and task completion
+- New task creation
+- Demonstration-data reset
+
+This checkpoint intentionally contains no authentication or shared backend writes.
 
 ## Phase 2 — Complete frontend modules
 
