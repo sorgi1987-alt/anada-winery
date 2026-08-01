@@ -1,4 +1,4 @@
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, RecallSimulation, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, RecallSimulation, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -7,6 +7,14 @@ export const images = {
   barrels: 'https://images.unsplash.com/photo-1561906814-23da9a8bfee0?auto=format&fit=crop&w=1800&q=82',
   whiteGrapes: 'https://images.unsplash.com/photo-1686359532306-f95743030ad5?auto=format&fit=crop&w=1800&q=82',
   laboratory: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1800&q=82',
+}
+
+export const winerySettings: WinerySettings = {
+  wineryName: 'Bodega ValdeIregua', legalName: 'Bodegas ValdeIregua, S.L.', wineryCode: 'RE-26-LO-184',
+  municipality: 'Alberite', province: 'La Rioja', designation: 'DOCa Rioja', timezone: 'Europe/Madrid',
+  campaignYear: 2026, campaignStart: '2026-08-20', campaignEnd: '2026-11-15', targetHarvestKg: 120400,
+  cellarTemperatureTarget: 16, cellarHumidityTarget: 72, taskReminderHours: 2, lowStockThreshold: 15,
+  labReviewHours: 4, showOfficialDisclaimer: true, updatedAt: '2026-07-31T16:30:00+02:00', updatedBy: 'Elena Martín',
 }
 
 export const redProcess: ProcessStage[] = [

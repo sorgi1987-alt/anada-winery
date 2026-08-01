@@ -138,7 +138,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 7
+  schemaVersion: 8
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -154,6 +154,29 @@ export interface WineryState {
   traceabilityEntities: TraceabilityEntity[]
   traceabilityLinks: TraceabilityLink[]
   recallSimulations: RecallSimulation[]
+  settings: WinerySettings
+}
+
+export interface WinerySettings {
+  wineryName: string
+  legalName: string
+  wineryCode: string
+  municipality: string
+  province: string
+  designation: string
+  timezone: string
+  campaignYear: number
+  campaignStart: string
+  campaignEnd: string
+  targetHarvestKg: number
+  cellarTemperatureTarget: number
+  cellarHumidityTarget: number
+  taskReminderHours: number
+  lowStockThreshold: number
+  labReviewHours: number
+  showOfficialDisclaimer: boolean
+  updatedAt: string
+  updatedBy: string
 }
 
 export interface NewLotInput {

@@ -29,6 +29,10 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - Traceability links are directional evidence records; entity relationships must not be inferred only from display order or shared names.
 - Backward traces identify origin and inputs; forward traces identify every affected downstream entity and finished-product lot.
 - Recall simulations are exercises and must not change stock, release status or official regulatory state.
+- Reports must be derived from operational records and must state when an indicator is an internal management measure.
+- Exported figures must respect the active campaign and wine-type filters.
+- Administration screens must never imply that authentication, Catalyst persistence or external integrations are active before they are actually connected.
+- Resetting demonstration data requires an explicit confirmation and restores winery settings together with operational records.
 - Internal Rioja controls never imply official wine qualification, label authorisation or regulatory approval.
 - Regulatory eligibility is indicative until it has been validated against the relevant DOCa rules and vintage.
 - All future mutations require an audit trail and user attribution.
@@ -47,4 +51,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 2F is a bilingual traceability-and-recall frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.
+Phase 2G is a bilingual reports-and-administration frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.

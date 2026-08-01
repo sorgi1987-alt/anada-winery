@@ -17,7 +17,7 @@ import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { browserWineryRepository } from './store'
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ReadingPoint, RecallSimulation, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WineLot, WineType } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ReadingPoint, RecallSimulation, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -26,9 +26,10 @@ const wineLabelKey: Record<WineType, 'wine.red' | 'wine.white' | 'wine.rose' | '
 }
 
 const FermentationChart = lazy(() => import('./Charts').then((module) => ({ default: module.FermentationChart })))
-const PreviewChart = lazy(() => import('./Charts').then((module) => ({ default: module.PreviewChart })))
 const BottlingPage = lazy(() => import('./Bottling').then((module) => ({ default: module.BottlingPage })))
 const TraceabilityPage = lazy(() => import('./Traceability').then((module) => ({ default: module.TraceabilityPage })))
+const ReportsPage = lazy(() => import('./Reports').then((module) => ({ default: module.ReportsPage })))
+const AdministrationPage = lazy(() => import('./Administration').then((module) => ({ default: module.AdministrationPage })))
 
 const typeIcon: Record<WineType, ReactNode> = {
   tinto: <Wine size={18} />,
@@ -70,6 +71,7 @@ function App() {
   const [traceabilityEntities, setTraceabilityEntities] = useState<TraceabilityEntity[]>(initialState.traceabilityEntities)
   const [traceabilityLinks, setTraceabilityLinks] = useState<TraceabilityLink[]>(initialState.traceabilityLinks)
   const [recallSimulations, setRecallSimulations] = useState<RecallSimulation[]>(initialState.recallSimulations)
+  const [settings, setSettings] = useState<WinerySettings>(initialState.settings)
   const [cellarMode, setCellarMode] = useState(() => localStorage.getItem('anada-theme') === 'cellar')
   const [menuOpen, setMenuOpen] = useState(false)
   const [readingLotId, setReadingLotId] = useState<string | null>(null)
@@ -79,8 +81,8 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 7, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations })
-  }, [demoLots, tasks, demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations])
+    browserWineryRepository.save({ schemaVersion: 8, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
+  }, [demoLots, tasks, demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings])
 
   const toggleCellarMode = () => {
     setCellarMode((current) => {
@@ -246,6 +248,12 @@ function App() {
     window.setTimeout(() => setToast(null), 4200)
   }
 
+  const saveWinerySettings = (nextSettings: WinerySettings) => {
+    setSettings(nextSettings)
+    setToast(t('toast.settingsSaved'))
+    window.setTimeout(() => setToast(null), 3200)
+  }
+
   const resetDemoData = () => {
     const reset = browserWineryRepository.clear()
     setDemoLots(reset.lots)
@@ -263,6 +271,7 @@ function App() {
     setTraceabilityEntities(reset.traceabilityEntities)
     setTraceabilityLinks(reset.traceabilityLinks)
     setRecallSimulations(reset.recallSimulations)
+    setSettings(reset.settings)
     setUndoLot(null)
     setToast(t('toast.reset'))
     window.setTimeout(() => setToast(null), 3200)
@@ -270,6 +279,7 @@ function App() {
   }
 
   const readingLot = demoLots.find((lot) => lot.id === readingLotId)
+  const operationalRecordCount = demoLots.length + tasks.length + demoTanks.length + parcels.length + deliveries.length + samples.length + barrels.length + barrelOperations.length + blendTrials.length + packagingMaterials.length + bottlingOrders.length + traceabilityEntities.length + traceabilityLinks.length + recallSimulations.length
 
   if (pathname === '/welcome') return <div className={cellarMode ? 'app cellar-theme' : 'app'}><Welcome /></div>
 
@@ -286,8 +296,8 @@ function App() {
   else if (pathname === '/blending') currentPage = <BlendingPage candidates={blendCandidates} trials={blendTrials} onCreateTrial={addBlendTrial} onRecordTasting={saveBlendTasting} onApproveTrial={approveBlend} />
   else if (pathname === '/bottling') currentPage = <BottlingPage orders={bottlingOrders} materials={packagingMaterials} trials={blendTrials} onCreateOrder={addBottlingOrder} onToggleGate={updateBottlingGate} onStartOrder={startBottling} onCompleteOrder={finishBottling} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
-  else if (pathname === '/reports') currentPage = <PreviewModule type="reports" />
-  else if (pathname === '/settings') currentPage = <PreviewModule type="settings" onResetData={resetDemoData} />
+  else if (pathname === '/reports') currentPage = <ReportsPage lots={demoLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
+  else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} onSave={saveWinerySettings} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={demoLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
 
   return (
@@ -302,6 +312,7 @@ function App() {
           setToast(t('toast.alerts'))
           window.setTimeout(() => setToast(null), 3200)
         }}
+        settings={settings}
       >
         <Suspense fallback={<div className="module-loading"><Package size={24} /><span>{t('common.loading')}</span></div>}>{currentPage}</Suspense>
       </Shell>
@@ -350,7 +361,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.9</span>
+          <span>Añada 0.10</span>
         </div>
       </section>
     </main>
@@ -384,13 +395,15 @@ interface ShellProps {
   setMenuOpen: (open: boolean) => void
   onQuickReading: () => void
   onNotifications: () => void
+  settings: WinerySettings
 }
 
-function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onQuickReading, onNotifications }: ShellProps) {
+function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onQuickReading, onNotifications, settings }: ShellProps) {
   const location = useHashLocation()
   const { t } = useLanguage()
   const pageItem = navItems.find((item) => location.pathname.startsWith(item.path))
   const page = pageItem ? t(pageItem.labelKey) : 'Añada'
+  const wineryInitials = settings.wineryName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
   return (
     <div className="shell">
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
@@ -399,8 +412,8 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
           <button className="icon-button sidebar-close" onClick={() => setMenuOpen(false)} aria-label={t('common.close')}><X size={20} /></button>
         </div>
         <div className="winery-mini">
-          <span className="winery-mark small">VI</span>
-          <span><strong>ValdeIregua</strong><small>{t('shell.harvest')}</small></span>
+          <span className="winery-mark small">{wineryInitials || 'VI'}</span>
+          <span><strong>{settings.wineryName}</strong><small>{t('admin.campaignLabel', { year: settings.campaignYear })}</small></span>
           <ChevronDown size={15} />
         </div>
         <nav className="primary-nav" aria-label={t('nav.primary')}>
@@ -851,30 +864,6 @@ function TasksPage({ lots, tasks, setTasks, onCreate }: { lots: WineLot[]; tasks
         {tasks.map((task) => <TaskRow key={task.id} task={task} onToggle={() => setTasks((current) => current.map((item) => item.id === task.id ? { ...item, complete: !item.complete } : item))} />)}
       </section>
       {creating && <NewTaskSheet lots={lots} onClose={() => setCreating(false)} onCreate={(input) => { onCreate(input); setCreating(false) }} />}
-    </main>
-  )
-}
-
-const previewData = {
-  laboratory: { eyebrowKey: 'module.labKicker', titleKey: 'module.labTitle', textKey: 'module.labText', image: images.whiteGrapes, icon: <FlaskConical /> },
-  ageing: { eyebrowKey: 'module.ageingKicker', titleKey: 'module.ageingTitle', textKey: 'module.ageingText', image: images.barrels, icon: <Wine /> },
-  bottling: { eyebrowKey: 'module.bottlingKicker', titleKey: 'module.bottlingTitle', textKey: 'module.bottlingText', image: images.tanks, icon: <Package /> },
-  traceability: { eyebrowKey: 'module.traceKicker', titleKey: 'module.traceTitle', textKey: 'module.traceText', image: images.vineyard, icon: <Waypoints /> },
-  reports: { eyebrowKey: 'module.reportKicker', titleKey: 'module.reportTitle', textKey: 'module.reportText', image: images.cellar, icon: <BarChart3 /> },
-  settings: { eyebrowKey: 'module.settingsKicker', titleKey: 'module.settingsTitle', textKey: 'module.settingsText', image: images.vineyard, icon: <Settings2 /> },
-} as const
-
-function PreviewModule({ type, onResetData }: { type: keyof typeof previewData; onResetData?: () => void }) {
-  const data = previewData[type]
-  const { t } = useLanguage()
-  return (
-    <main>
-      <PageHeader eyebrow={t(data.eyebrowKey)} title={t(data.titleKey)} description={t(data.textKey)} action={onResetData ? <button className="secondary-button" onClick={onResetData}><Undo2 size={17} /> {t('common.reset')}</button> : undefined} />
-      <section className="module-preview-hero" style={{ backgroundImage: `url(${data.image})` }}><div><span className="preview-icon">{data.icon}</span><span className="eyebrow light">{t('preview.preview')}</span><h2>{t('preview.headline')}</h2><p>{t('preview.text')}</p></div></section>
-      <section className="preview-cards">
-        <div className="panel"><span className="eyebrow">{t('preview.summary')}</span><h3>{t('preview.important')}</h3><div className="preview-stat-row"><span><strong>24</strong><small>{t('preview.records')}</small></span><span><strong>3</strong><small>{t('preview.pending')}</small></span><span><strong>98%</strong><small>{t('preview.completeness')}</small></span></div></div>
-        <div className="panel preview-chart"><span className="eyebrow">{t('preview.evolution')}</span><Suspense fallback={<ChartSkeleton compact />}><PreviewChart id={type} /></Suspense></div>
-      </section>
     </main>
   )
 }

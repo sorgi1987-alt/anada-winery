@@ -4,7 +4,7 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 2F is a production-fidelity bilingual functional frontend. Operational data starts from realistic Rioja seed data and is persisted in the current browser. There is no shared server persistence, authentication or regulatory certification yet.
+Phase 2G is a production-fidelity bilingual functional frontend. Operational data starts from realistic Rioja seed data and is persisted in the current browser. There is no shared server persistence, authentication or regulatory certification yet.
 
 Implemented views:
 
@@ -57,6 +57,12 @@ Implemented views:
 - Evidence links with quantities, source documents and verification state
 - Persistent recall simulations with impacted finished lots, bottling orders and source parcels
 - Seed examples for wine-lot, finished-product and packaging-material investigations
+- Visual reports for harvest, production, cellar capacity, laboratory, bottling and traceability
+- Campaign and wine-type filters backed by current operational records
+- Printable management views and client-side CSV export
+- Persistent winery identity, campaign dates, harvest target and operational thresholds
+- Transparent system status distinguishing local storage from deferred Catalyst, authentication and external integrations
+- Confirmed demonstration-data reset with destructive-action protection
 - Desktop typography calibrated for comfortable 1440p use
 - Preview states for later modules
 

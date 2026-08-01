@@ -1,0 +1,91 @@
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import {
+  BellRing, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CloudOff,
+  Database, FlaskConical, Gauge, Grape, HardDrive, Info, LockKeyhole, RefreshCw,
+  Save, ShieldCheck, SlidersHorizontal, Thermometer, Trash2, Users, Warehouse,
+} from 'lucide-react'
+import { images } from './data'
+import { useLanguage } from './i18n'
+import type { WinerySettings } from './types'
+
+type AdministrationView = 'winery' | 'campaign' | 'operations' | 'system'
+
+interface AdministrationPageProps {
+  settings: WinerySettings
+  recordCount: number
+  onSave: (settings: WinerySettings) => void
+  onResetData: () => void
+}
+
+export function AdministrationPage({ settings, recordCount, onSave, onResetData }: AdministrationPageProps) {
+  const { t, locale } = useLanguage()
+  const [view, setView] = useState<AdministrationView>('winery')
+  const [draft, setDraft] = useState(settings)
+  const [error, setError] = useState('')
+  const [resetOpen, setResetOpen] = useState(false)
+  useEffect(() => setDraft(settings), [settings])
+  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings])
+  const initials = draft.wineryName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
+  const campaignDate = (value: string, withYear = false) => {
+    const date = new Date(`${value}T12:00:00`)
+    return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: withYear ? 'numeric' : undefined }).format(date)
+  }
+  const update = <K extends keyof WinerySettings>(key: K, value: WinerySettings[K]) => setDraft((current) => ({ ...current, [key]: value }))
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (!draft.wineryName.trim() || !draft.legalName.trim() || !draft.wineryCode.trim() || !draft.municipality.trim()) return setError(t('admin.errorIdentity'))
+    if (draft.campaignYear < 2020 || draft.targetHarvestKg <= 0 || !draft.campaignStart || !draft.campaignEnd || draft.campaignStart > draft.campaignEnd) return setError(t('admin.errorCampaign'))
+    if (draft.cellarTemperatureTarget < 5 || draft.cellarTemperatureTarget > 25 || draft.cellarHumidityTarget < 40 || draft.cellarHumidityTarget > 95) return setError(t('admin.errorOperations'))
+    setError(''); onSave({ ...draft, updatedAt: new Date().toISOString(), updatedBy: 'Elena Martín' })
+  }
+
+  return <main className="admin-page">
+    <header className="page-header"><div><span className="eyebrow">{t('admin.kicker')}</span><h1>{t('admin.title')}</h1><p>{t('admin.description')}</p></div><div className="page-header-action"><button className="primary-button" form="admin-settings-form" disabled={!dirty}><Save size={16} /> {dirty ? t('admin.saveChanges') : t('admin.saved')}</button></div></header>
+
+    <section className="admin-hero" style={{ backgroundImage: `url(${images.vineyard})` }}><div className="admin-hero-overlay" /><div className="admin-hero-copy"><span className="admin-season"><Building2 size={15} /> {t('admin.singleWinery')}</span><h2>{draft.wineryName}</h2><p>{draft.municipality} · {draft.province} · {draft.designation}</p><div className="admin-hero-badges"><span><ShieldCheck size={15} /> {t('admin.localCheckpoint')}</span><span><CloudOff size={15} /> {t('admin.backendDeferred')}</span></div></div><div className="winery-identity-card"><span className="winery-large-mark">{initials || 'VI'}</span><span><small>{t('admin.registry')}</small><strong>{draft.wineryCode}</strong><em>{t('admin.campaignLabel', { year: draft.campaignYear })}</em></span></div></section>
+
+    <section className="admin-status-grid"><AdminStatus icon={<HardDrive />} label={t('admin.storage')} value={t('admin.browserLocal')} detail={t('admin.localRecords', { count: recordCount })} tone="wine" /><AdminStatus icon={<Users />} label={t('admin.access')} value={t('admin.demoOperator')} detail={t('admin.authPending')} tone="gold" /><AdminStatus icon={<Database />} label={t('admin.dataService')} value={t('admin.notConnected')} detail={t('admin.catalystPhase3')} tone="blue" /><AdminStatus icon={<CheckCircle2 />} label={t('admin.configuration')} value={dirty ? t('admin.unsaved') : t('admin.upToDate')} detail={t('admin.lastSavedBy', { name: settings.updatedBy })} tone={dirty ? 'warning' : 'success'} /></section>
+
+    <div className="admin-workspace"><aside className="admin-section-nav">{([
+      ['winery', <Building2 />, 'admin.wineryProfile', 'admin.wineryProfileText'],
+      ['campaign', <CalendarDays />, 'admin.campaign', 'admin.campaignText'],
+      ['operations', <SlidersHorizontal />, 'admin.operations', 'admin.operationsText'],
+      ['system', <Database />, 'admin.systemData', 'admin.systemDataText'],
+    ] as const).map(([key, icon, label, text]) => <button key={key} className={view === key ? 'active' : ''} onClick={() => setView(key)}><span>{icon}</span><span><strong>{t(label)}</strong><small>{t(text)}</small></span><ChevronRight /></button>)}</aside>
+
+      <form id="admin-settings-form" className="admin-form-panel" onSubmit={submit}>
+        {view === 'winery' && <AdminSection icon={<Building2 />} title={t('admin.wineryProfile')} text={t('admin.profileIntro')}>
+          <div className="admin-form-grid"><AdminField label={t('admin.displayName')} wide><input value={draft.wineryName} onChange={(event) => update('wineryName', event.target.value)} /></AdminField><AdminField label={t('admin.legalName')} wide><input value={draft.legalName} onChange={(event) => update('legalName', event.target.value)} /></AdminField><AdminField label={t('admin.registryCode')}><input value={draft.wineryCode} onChange={(event) => update('wineryCode', event.target.value)} /></AdminField><AdminField label={t('admin.designation')}><input value={draft.designation} onChange={(event) => update('designation', event.target.value)} /></AdminField><AdminField label={t('admin.municipality')}><input value={draft.municipality} onChange={(event) => update('municipality', event.target.value)} /></AdminField><AdminField label={t('admin.province')}><input value={draft.province} onChange={(event) => update('province', event.target.value)} /></AdminField><AdminField label={t('admin.timezone')} wide><select value={draft.timezone} onChange={(event) => update('timezone', event.target.value)}><option value="Europe/Madrid">Europe/Madrid</option><option value="Europe/London">Europe/London</option><option value="Europe/Paris">Europe/Paris</option></select></AdminField></div>
+          <div className="admin-context-note"><Info /><span><strong>{t('admin.identityNote')}</strong><small>{t('admin.identityNoteText')}</small></span></div>
+        </AdminSection>}
+
+        {view === 'campaign' && <AdminSection icon={<CalendarDays />} title={t('admin.campaign')} text={t('admin.campaignIntro')}>
+          <div className="admin-form-grid"><AdminField label={t('admin.campaignYear')}><input type="number" min="2020" max="2100" value={draft.campaignYear} onChange={(event) => update('campaignYear', Number(event.target.value))} /></AdminField><AdminField label={t('admin.targetHarvest')}><div className="admin-unit-input"><input type="number" min="1" value={draft.targetHarvestKg} onChange={(event) => update('targetHarvestKg', Number(event.target.value))} /><i>kg</i></div></AdminField><AdminField label={t('admin.campaignStart')}><input type="date" value={draft.campaignStart} onChange={(event) => update('campaignStart', event.target.value)} /></AdminField><AdminField label={t('admin.campaignEnd')}><input type="date" value={draft.campaignEnd} onChange={(event) => update('campaignEnd', event.target.value)} /></AdminField></div>
+          <div className="campaign-window-card"><span className="campaign-window-icon"><Grape /></span><span><small>{t('admin.activeWindow')}</small><strong>{campaignDate(draft.campaignStart)} — {campaignDate(draft.campaignEnd, true)}</strong><em>{new Intl.NumberFormat(locale).format(draft.targetHarvestKg)} kg · {draft.designation}</em></span></div>
+          <div className="admin-context-note"><Info /><span><strong>{t('admin.campaignRuleNote')}</strong><small>{t('admin.campaignRuleNoteText')}</small></span></div>
+        </AdminSection>}
+
+        {view === 'operations' && <AdminSection icon={<SlidersHorizontal />} title={t('admin.operations')} text={t('admin.operationsIntro')}>
+          <div className="admin-threshold-grid"><ThresholdField icon={<Thermometer />} label={t('admin.cellarTemperature')} value={draft.cellarTemperatureTarget} unit="°C" min={5} max={25} onChange={(value) => update('cellarTemperatureTarget', value)} /><ThresholdField icon={<Gauge />} label={t('admin.cellarHumidity')} value={draft.cellarHumidityTarget} unit="%" min={40} max={95} onChange={(value) => update('cellarHumidityTarget', value)} /><ThresholdField icon={<BellRing />} label={t('admin.taskReminder')} value={draft.taskReminderHours} unit="h" min={1} max={24} onChange={(value) => update('taskReminderHours', value)} /><ThresholdField icon={<Warehouse />} label={t('admin.lowStock')} value={draft.lowStockThreshold} unit="%" min={1} max={50} onChange={(value) => update('lowStockThreshold', value)} /><ThresholdField icon={<FlaskConical />} label={t('admin.labReview')} value={draft.labReviewHours} unit="h" min={1} max={48} onChange={(value) => update('labReviewHours', value)} /></div>
+          <label className="admin-toggle"><span className="admin-toggle-icon"><ShieldCheck /></span><span><strong>{t('admin.officialDisclaimer')}</strong><small>{t('admin.officialDisclaimerText')}</small></span><input type="checkbox" checked={draft.showOfficialDisclaimer} onChange={(event) => update('showOfficialDisclaimer', event.target.checked)} /><i><Check /></i></label>
+        </AdminSection>}
+
+        {view === 'system' && <AdminSection icon={<Database />} title={t('admin.systemData')} text={t('admin.systemIntro')}>
+          <div className="integration-cards"><IntegrationCard icon={<HardDrive />} title={t('admin.browserRepository')} status={t('admin.active')} detail={t('admin.browserRepositoryText')} tone="success" /><IntegrationCard icon={<Database />} title={t('admin.catalystDataStore')} status={t('admin.planned')} detail={t('admin.catalystDataStoreText')} tone="pending" /><IntegrationCard icon={<LockKeyhole />} title={t('admin.authentication')} status={t('admin.deferred')} detail={t('admin.authenticationText')} tone="pending" /><IntegrationCard icon={<RefreshCw />} title={t('admin.externalSystems')} status={t('admin.notConfigured')} detail={t('admin.externalSystemsText')} tone="neutral" /></div>
+          <div className="admin-team-card"><header><span><Users /><strong>{t('admin.demoTeam')}</strong></span><em>{t('admin.notUserManagement')}</em></header><div>{[['EM', 'Elena Martín', t('admin.roleWinemaker')], ['MS', 'Martín Sáenz', t('admin.roleCellar')], ['LS', 'Lucía Sáenz', t('admin.roleLaboratory')]].map(([initial, name, role]) => <article key={name}><span>{initial}</span><span><strong>{name}</strong><small>{role}</small></span><LockKeyhole /></article>)}</div></div>
+          <div className="danger-zone"><span><Trash2 /><span><strong>{t('admin.demoData')}</strong><small>{t('admin.demoDataText')}</small></span></span><button type="button" className="danger-button" onClick={() => setResetOpen(true)}>{t('common.reset')}</button></div>
+        </AdminSection>}
+        {error && <div className="form-error admin-form-error">{error}</div>}
+        {view !== 'system' && <footer className="admin-form-actions"><span>{dirty ? t('admin.unsavedChanges') : t('admin.noPendingChanges')}</span><button className="primary-button" disabled={!dirty}><Save size={16} /> {t('admin.saveChanges')}</button></footer>}
+      </form>
+    </div>
+
+    {resetOpen && <div className="sheet-layer" role="dialog" aria-modal="true"><button className="sheet-scrim" onClick={() => setResetOpen(false)} aria-label={t('common.close')} /><section className="reset-confirm"><span className="reset-confirm-icon"><Trash2 /></span><h2>{t('admin.resetTitle')}</h2><p>{t('admin.resetText')}</p><div><button className="secondary-button" onClick={() => setResetOpen(false)}>{t('common.cancel')}</button><button className="danger-button" onClick={() => { onResetData(); setResetOpen(false) }}>{t('admin.resetConfirm')}</button></div></section></div>}
+  </main>
+}
+
+function AdminStatus({ icon, label, value, detail, tone }: { icon: ReactNode; label: string; value: string; detail: string; tone: string }) { return <article className="admin-status"><span className={`admin-status-icon ${tone}`}>{icon}</span><span><small>{label}</small><strong>{value}</strong><em>{detail}</em></span></article> }
+function AdminSection({ icon, title, text, children }: { icon: ReactNode; title: string; text: string; children: ReactNode }) { return <section className="admin-section"><header><span>{icon}</span><div><h2>{title}</h2><p>{text}</p></div></header>{children}</section> }
+function AdminField({ label, wide = false, children }: { label: string; wide?: boolean; children: ReactNode }) { return <label className={`admin-field ${wide ? 'wide' : ''}`}><span>{label}</span><div>{children}</div></label> }
+function ThresholdField({ icon, label, value, unit, min, max, onChange }: { icon: ReactNode; label: string; value: number; unit: string; min: number; max: number; onChange: (value: number) => void }) { return <label className="threshold-field"><span className="threshold-icon">{icon}</span><span><small>{label}</small><strong>{value} {unit}</strong></span><input type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label> }
+function IntegrationCard({ icon, title, status, detail, tone }: { icon: ReactNode; title: string; status: string; detail: string; tone: string }) { return <article className="integration-card"><span className={`integration-icon ${tone}`}>{icon}</span><span><strong>{title}</strong><small>{detail}</small></span><em className={tone}>{status}</em></article> }

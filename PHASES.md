@@ -124,9 +124,22 @@ Status: completed.
 - Persistent simulation history without changing operational or regulatory state
 - Schema migration preserving Phase 2E browser data
 
+### Phase 2G — Reports and administration
+
+Status: completed.
+
+- Campaign and wine-type reporting filters
+- Harvest, production, vessel, laboratory, bottling and traceability indicators
+- Visual intake, volume, stage, quality and documentary-coverage reporting
+- Operational attention board derived from current records
+- Client-side CSV export and printable management view
+- Persistent winery identity, campaign and operational-threshold configuration
+- Honest integration status for browser storage, Catalyst, authentication and external systems
+- Protected demonstration-data reset
+- Schema migration preserving Phase 2F browser data
+
 Remaining Phase 2 modules:
 
-- Reports and administration
 - Rosé/clarete frontend process
 
 ## Phase 3 — Catalyst foundation
