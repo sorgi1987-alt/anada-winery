@@ -365,7 +365,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.12</span>
+          <span>Añada 0.13</span>
         </div>
       </section>
     </main>

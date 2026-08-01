@@ -18,7 +18,7 @@ Catalyst also manages `ROWID`, `CREATORID`, `CREATEDTIME` and `MODIFIEDTIME` on 
 
 ## Safety boundary
 
-- Browser persistence remains authoritative during Phase 3A.
+- Browser persistence remains authoritative during Phase 3B.1.
 - No browser bundle contains Catalyst credentials.
 - No operational Data Store rows are publicly readable.
 - No server or browser mutation endpoint exists.
@@ -27,4 +27,6 @@ Catalyst also manages `ROWID`, `CREATORID`, `CREATEDTIME` and `MODIFIEDTIME` on 
 
 ## Next integration gate
 
-Deploy and protect the `anada_data_api` health route, enable the Slate-origin connection check, then add authenticated membership before exposing operational reads. Remote writes only follow after audit attribution and conflict policy are implemented.
+The authorized CORS hostname is `anada-winery-web-ucfcgorv.onslate.eu` (configuration ID `11922000000096932`); CORS is enabled and iframe access is disabled. API Gateway remains disabled.
+
+Deploy the `anada_data_api` health route using the CLI-generated function configuration and verify the Slate-origin connection check. Authenticated membership is still required before exposing operational reads. Remote writes only follow after audit attribution and conflict policy are implemented.

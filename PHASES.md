@@ -164,10 +164,21 @@ Status: completed.
 - Browser repository retained as the only operational authority
 - No public operational reads, remote writes, authentication or user data
 
-### Phase 3B — Protected read integration
+### Phase 3B.1 — Health connectivity
 
-- CLI-generated Catalyst function configuration
-- Protected Advanced I/O deployment and verified Slate origin policy
+Status: deployment prepared.
+
+- Exact Slate hostname authorized for CORS; iframe disabled
+- API Gateway retained in its disabled state
+- Direct Advanced I/O schema-health route package
+- Strict browser validation of schema version, table count and write lock
+- Automatic bilingual connection diagnostics in Administration
+- No operational records, seed data, authentication or mutations
+
+Completion gate: deploy the CLI-generated `anada_data_api` function and verify a ready response from Slate.
+
+### Phase 3B.2 — Protected read integration
+
 - Authentication and winery membership
 - Roles and permissions
 - Idempotent seed/migration strategy

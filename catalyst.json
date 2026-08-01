@@ -4,5 +4,12 @@
       "name": "anada-winery-web",
       "source": "/Users/sergiocastanaresgarcia/Documents/anada-winery"
     }
-  ]
+  ],
+  "functions": {
+    "targets": [
+      "anada_data_api"
+    ],
+    "ignore": [],
+    "source": "functions"
+  }
 }

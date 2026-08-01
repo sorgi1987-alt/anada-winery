@@ -18,5 +18,10 @@ test('health remains degraded until every table is available', () => {
 
 test('health reports ready only when all tables are available', () => {
   const checks = TABLES.map((table) => ({ name: table.name, available: true }))
-  assert.equal(healthPayload(checks).status, 'ready')
+  const payload = healthPayload(checks)
+  assert.equal(payload.status, 'ready')
+  assert.equal(payload.mode, 'schema-health-only')
+  assert.equal(payload.schemaVersion, 1)
+  assert.equal(payload.tableCount, 7)
+  assert.equal(payload.remoteWritesEnabled, false)
 })

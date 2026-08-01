@@ -4,7 +4,7 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 3A establishes the Catalyst data foundation without changing operational authority. Seven normalized development tables are provisioned and represented by a typed frontend contract and a deny-by-default health-function scaffold. Operational data still starts from realistic Rioja seed data and is persisted in the current browser. There is no shared server persistence, authentication or regulatory certification yet.
+Phase 3B.1 prepares the first live Catalyst connectivity checkpoint without changing operational authority. Seven normalized development tables are provisioned, the exact Slate hostname is authorized for CORS, and a health-only Advanced I/O function is ready for CLI deployment. Operational data still starts from realistic Rioja seed data and is persisted in the current browser. There is no shared server persistence, authentication or regulatory certification yet.
 
 Implemented views:
 
@@ -72,6 +72,9 @@ Implemented views:
 - Visual Catalyst foundation status in Administration with explicit browser-authority and remote-operation locks
 - Typed frontend connection diagnostics that remain inactive until a protected read-health URL is configured
 - Advanced I/O health-function scaffold with no operational reads or mutations
+- Direct health endpoint contract with automatic bilingual connection diagnostics
+- Exact Slate-origin CORS authorization with iframe access disabled
+- API Gateway deliberately left disabled
 
 ## Local development
 
@@ -102,7 +105,7 @@ Target Catalyst project:
 
 The Vite production output is written to `dist/`. Catalyst client configuration should be generated through the Catalyst CLI or console rather than being guessed manually. Once the project has been initialised with the CLI, preserve its generated `catalyst.json` and client structure.
 
-Slate hosts the frontend in the development environment. The Phase 3A Data Store schema is provisioned but empty. Its health-function source is staged in `backend/anada_data_api` and is not enabled in the browser build. The versioned browser repository remains authoritative and deliberately sits behind a small interface so it can later be replaced with authenticated Catalyst access without redesigning the screens.
+Slate hosts the frontend in the development environment. The Data Store schema is provisioned but empty. The browser targets the health-only function URL and checks it automatically when System and data opens; until the function is deployed, it honestly reports the bridge as unavailable. The versioned browser repository remains authoritative and deliberately sits behind a small interface so it can later be replaced with authenticated Catalyst access without redesigning the screens.
 
 Do not add an operational public API merely to avoid implementing authentication. Generate Catalyst function configuration through the CLI, deploy the schema-health route behind an explicitly reviewed route/origin policy, and only then set `VITE_CATALYST_READ_API_URL`.
 
@@ -116,4 +119,5 @@ The responsive frontend is PWA-ready. Capacitor packaging, native permissions, o
 - `PHASES.md` — gated implementation roadmap
 - `ATTRIBUTIONS.md` — demonstration imagery
 - `CATALYST_SCHEMA.md` — provisioned development schema and safety boundary
+- `CATALYST_DEPLOYMENT.md` — one-time Phase 3B.1 function deployment procedure
 - `AGENTS.md` — durable engineering and domain rules

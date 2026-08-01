@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   BellRing, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CloudOff,
   Database, FlaskConical, Gauge, Grape, HardDrive, Info, LockKeyhole, RefreshCw, Server,
@@ -28,6 +28,7 @@ export function AdministrationPage({ settings, recordCount, onSave, onResetData 
   const [catalystConnection, setCatalystConnection] = useState<CatalystConnectionResult>({
     state: catalystFoundation.readApiUrl ? 'not-checked' : 'not-configured',
   })
+  const autoCheckStarted = useRef(false)
   useEffect(() => setDraft(settings), [settings])
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings])
   const initials = draft.wineryName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
@@ -55,6 +56,25 @@ export function AdministrationPage({ settings, recordCount, onSave, onResetData 
     unavailable: ['admin.unavailable', 'warning'],
   } as const
   const activeConnectionCopy = connectionCopy[catalystConnection.state]
+  const failureCopy = catalystConnection.failure ? {
+    http: t('admin.connectionHttp', { status: catalystConnection.httpStatus ?? '—' }),
+    'invalid-response': t('admin.connectionInvalid'),
+    timeout: t('admin.connectionTimeout'),
+    network: t('admin.connectionNetwork'),
+  }[catalystConnection.failure] : ''
+  const connectionDetail = failureCopy || (catalystConnection.checkedAt
+    ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(catalystConnection.checkedAt))
+    : t('admin.endpointReady'))
+
+  useEffect(() => {
+    if (view !== 'system' || catalystConnection.state !== 'not-checked' || autoCheckStarted.current) return
+    autoCheckStarted.current = true
+    setCheckingCatalyst(true)
+    void checkCatalystReadService().then((result) => {
+      setCatalystConnection(result)
+      setCheckingCatalyst(false)
+    })
+  }, [view, catalystConnection.state])
 
   return <main className="admin-page">
     <header className="page-header"><div><span className="eyebrow">{t('admin.kicker')}</span><h1>{t('admin.title')}</h1><p>{t('admin.description')}</p></div><div className="page-header-action"><button className="primary-button" form="admin-settings-form" disabled={!dirty}><Save size={16} /> {dirty ? t('admin.saveChanges') : t('admin.saved')}</button></div></header>
@@ -98,7 +118,7 @@ export function AdministrationPage({ settings, recordCount, onSave, onResetData 
             </div>
             <div className="catalyst-table-cloud">{catalystFoundation.tables.map((table) => <span key={table.id}><CheckCircle2 /> {table.name.replace('Anada_', '')}</span>)}</div>
             <footer><span><ShieldCheck /><span><strong>{t('admin.browserAuthority')}</strong><small>{t('admin.browserAuthorityText')}</small></span></span><button type="button" className="secondary-button" disabled={!catalystFoundation.readApiUrl || checkingCatalyst} onClick={checkCatalyst}><RefreshCw className={checkingCatalyst ? 'spin' : ''} /> {checkingCatalyst ? t('admin.checking') : t('admin.checkConnection')}</button></footer>
-            <div className={`catalyst-connection-note ${activeConnectionCopy[1]}`}><span>{t(activeConnectionCopy[0])}</span><small>{catalystConnection.message ?? (catalystConnection.checkedAt ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(catalystConnection.checkedAt)) : t('admin.endpointNotConfigured'))}</small></div>
+            <div className={`catalyst-connection-note ${activeConnectionCopy[1]}`}><span>{t(activeConnectionCopy[0])}</span><small>{connectionDetail}</small></div>
           </section>
           <div className="admin-team-card"><header><span><Users /><strong>{t('admin.demoTeam')}</strong></span><em>{t('admin.notUserManagement')}</em></header><div>{[['EM', 'Elena Martín', t('admin.roleWinemaker')], ['MS', 'Martín Sáenz', t('admin.roleCellar')], ['LS', 'Lucía Sáenz', t('admin.roleLaboratory')]].map(([initial, name, role]) => <article key={name}><span>{initial}</span><span><strong>{name}</strong><small>{role}</small></span><LockKeyhole /></article>)}</div></div>
           <div className="danger-zone"><span><Trash2 /><span><strong>{t('admin.demoData')}</strong><small>{t('admin.demoDataText')}</small></span></span><button type="button" className="danger-button" onClick={() => setResetOpen(true)}>{t('common.reset')}</button></div>
