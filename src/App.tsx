@@ -11,13 +11,13 @@ import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
 import { BlendingPage } from './Blending'
 import { images, lots as seedLots } from './data'
-import { approveBlendTrial, assignLotToTank, completeBottlingOrder, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createTask, receiveGrapeDelivery, recordBarrelOperation, recordBlendTasting, recordLabResults, setBottlingGate, startBottlingOrder } from './domain'
+import { approveBlendTrial, assignLotToTank, completeBottlingOrder, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createRecallSimulation, createTask, receiveGrapeDelivery, recordBarrelOperation, recordBlendTasting, recordLabResults, setBottlingGate, startBottlingOrder } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
 import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { browserWineryRepository } from './store'
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, PackagingMaterial, ReadingPoint, Tank, VineyardParcel, WineLot, WineType } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ReadingPoint, RecallSimulation, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -28,6 +28,7 @@ const wineLabelKey: Record<WineType, 'wine.red' | 'wine.white' | 'wine.rose' | '
 const FermentationChart = lazy(() => import('./Charts').then((module) => ({ default: module.FermentationChart })))
 const PreviewChart = lazy(() => import('./Charts').then((module) => ({ default: module.PreviewChart })))
 const BottlingPage = lazy(() => import('./Bottling').then((module) => ({ default: module.BottlingPage })))
+const TraceabilityPage = lazy(() => import('./Traceability').then((module) => ({ default: module.TraceabilityPage })))
 
 const typeIcon: Record<WineType, ReactNode> = {
   tinto: <Wine size={18} />,
@@ -66,6 +67,9 @@ function App() {
   const [blendTrials, setBlendTrials] = useState<BlendTrial[]>(initialState.blendTrials)
   const [packagingMaterials, setPackagingMaterials] = useState<PackagingMaterial[]>(initialState.packagingMaterials)
   const [bottlingOrders, setBottlingOrders] = useState<BottlingOrder[]>(initialState.bottlingOrders)
+  const [traceabilityEntities, setTraceabilityEntities] = useState<TraceabilityEntity[]>(initialState.traceabilityEntities)
+  const [traceabilityLinks, setTraceabilityLinks] = useState<TraceabilityLink[]>(initialState.traceabilityLinks)
+  const [recallSimulations, setRecallSimulations] = useState<RecallSimulation[]>(initialState.recallSimulations)
   const [cellarMode, setCellarMode] = useState(() => localStorage.getItem('anada-theme') === 'cellar')
   const [menuOpen, setMenuOpen] = useState(false)
   const [readingLotId, setReadingLotId] = useState<string | null>(null)
@@ -75,8 +79,8 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 6, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders })
-  }, [demoLots, tasks, demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders])
+    browserWineryRepository.save({ schemaVersion: 7, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations })
+  }, [demoLots, tasks, demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations])
 
   const toggleCellarMode = () => {
     setCellarMode((current) => {
@@ -235,6 +239,13 @@ function App() {
     window.setTimeout(() => setToast(null), 4200)
   }
 
+  const runRecallSimulation = (input: NewRecallSimulationInput) => {
+    const result = createRecallSimulation(input, traceabilityEntities, traceabilityLinks, recallSimulations)
+    setRecallSimulations(result.simulations)
+    setToast(t('toast.recallCompleted', { code: result.simulation.code, count: result.simulation.affectedEntityIds.length }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
   const resetDemoData = () => {
     const reset = browserWineryRepository.clear()
     setDemoLots(reset.lots)
@@ -249,6 +260,9 @@ function App() {
     setBlendTrials(reset.blendTrials)
     setPackagingMaterials(reset.packagingMaterials)
     setBottlingOrders(reset.bottlingOrders)
+    setTraceabilityEntities(reset.traceabilityEntities)
+    setTraceabilityLinks(reset.traceabilityLinks)
+    setRecallSimulations(reset.recallSimulations)
     setUndoLot(null)
     setToast(t('toast.reset'))
     window.setTimeout(() => setToast(null), 3200)
@@ -271,7 +285,7 @@ function App() {
   else if (pathname === '/ageing') currentPage = <AgeingPage barrels={barrels} operations={barrelOperations} lots={demoLots} onCreateBarrel={addBarrel} onRecordOperation={saveBarrelOperation} />
   else if (pathname === '/blending') currentPage = <BlendingPage candidates={blendCandidates} trials={blendTrials} onCreateTrial={addBlendTrial} onRecordTasting={saveBlendTasting} onApproveTrial={approveBlend} />
   else if (pathname === '/bottling') currentPage = <BottlingPage orders={bottlingOrders} materials={packagingMaterials} trials={blendTrials} onCreateOrder={addBottlingOrder} onToggleGate={updateBottlingGate} onStartOrder={startBottling} onCompleteOrder={finishBottling} />
-  else if (pathname === '/traceability') currentPage = <PreviewModule type="traceability" />
+  else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
   else if (pathname === '/reports') currentPage = <PreviewModule type="reports" />
   else if (pathname === '/settings') currentPage = <PreviewModule type="settings" onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={demoLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
@@ -289,7 +303,7 @@ function App() {
           window.setTimeout(() => setToast(null), 3200)
         }}
       >
-        <Suspense fallback={<div className="module-loading"><Package size={24} /><span>{t('bottling.loading')}</span></div>}>{currentPage}</Suspense>
+        <Suspense fallback={<div className="module-loading"><Package size={24} /><span>{t('common.loading')}</span></div>}>{currentPage}</Suspense>
       </Shell>
 
       {readingLot && <ReadingSheet lot={readingLot} onClose={() => setReadingLotId(null)} onSave={saveReading} />}
@@ -336,7 +350,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.8</span>
+          <span>Añada 0.9</span>
         </div>
       </section>
     </main>

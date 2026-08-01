@@ -138,7 +138,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 6
+  schemaVersion: 7
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -151,6 +151,9 @@ export interface WineryState {
   blendTrials: BlendTrial[]
   packagingMaterials: PackagingMaterial[]
   bottlingOrders: BottlingOrder[]
+  traceabilityEntities: TraceabilityEntity[]
+  traceabilityLinks: TraceabilityLink[]
+  recallSimulations: RecallSimulation[]
 }
 
 export interface NewLotInput {
@@ -486,5 +489,61 @@ export interface CompleteBottlingOrderInput {
   actualVolume: number
   finishedProductLot: string
   backLabelFrom: number
+  notes: string
+}
+
+export type TraceabilityEntityType = 'parcel' | 'grape_delivery' | 'wine_lot' | 'barrel_group' | 'blend' | 'bottling_order' | 'finished_lot' | 'packaging_lot'
+export type TraceabilityEntityStatus = 'verified' | 'pending' | 'attention'
+export type TraceabilityRelation = 'harvested_into' | 'processed_as' | 'aged_in' | 'component_of' | 'bottled_as' | 'produced_as' | 'packaged_with'
+export type TraceabilityDirection = 'backward' | 'forward' | 'both'
+
+export interface TraceabilityEntity {
+  id: string
+  type: TraceabilityEntityType
+  code: string
+  name: string
+  subtitle: string
+  occurredAt: string
+  status: TraceabilityEntityStatus
+  quantity?: number
+  unit?: 'kg' | 'L' | 'bottles' | 'units'
+  image?: string
+  metadata: Record<string, string>
+}
+
+export interface TraceabilityLink {
+  id: string
+  sourceId: string
+  targetId: string
+  relation: TraceabilityRelation
+  quantity?: number
+  unit?: 'kg' | 'L' | 'bottles' | 'units'
+  occurredAt: string
+  evidence: string
+  status: 'verified' | 'pending'
+  verifiedBy?: string
+}
+
+export type RecallReason = 'quality' | 'packaging' | 'labelling' | 'trace_test'
+
+export interface RecallSimulation {
+  id: string
+  code: string
+  targetEntityId: string
+  targetCode: string
+  reason: RecallReason
+  notes: string
+  affectedEntityIds: string[]
+  affectedFinishedLotIds: string[]
+  affectedBottlingOrderIds: string[]
+  sourceParcelIds: string[]
+  createdAt: string
+  createdBy: string
+  status: 'completed'
+}
+
+export interface NewRecallSimulationInput {
+  targetEntityId: string
+  reason: RecallReason
   notes: string
 }

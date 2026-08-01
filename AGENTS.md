@@ -26,6 +26,9 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - A bottling order may only be created from an approved blend and may start only after every release gate is verified.
 - Packaging reservations include the configured operating allowance and must never exceed unreserved supplier-lot stock.
 - Completing a bottling run must reconcile good bottles, rejects, actual wine volume, finished-product lot and controlled back-label range.
+- Traceability links are directional evidence records; entity relationships must not be inferred only from display order or shared names.
+- Backward traces identify origin and inputs; forward traces identify every affected downstream entity and finished-product lot.
+- Recall simulations are exercises and must not change stock, release status or official regulatory state.
 - Internal Rioja controls never imply official wine qualification, label authorisation or regulatory approval.
 - Regulatory eligibility is indicative until it has been validated against the relevant DOCa rules and vintage.
 - All future mutations require an audit trail and user attribution.
@@ -44,4 +47,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 2E is a bilingual bottling-and-packaging frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.
+Phase 2F is a bilingual traceability-and-recall frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.

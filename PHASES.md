@@ -111,9 +111,21 @@ Status: completed.
 - Internal regulatory checks clearly separated from official authorisation
 - Schema migration preserving Phase 2D browser data
 
+### Phase 2F — Traceability explorer and recall simulations
+
+Status: completed.
+
+- Visual genealogy across vineyard, intake, wine, ageing, blend, bottling and packaging
+- Searchable entity registry with Rioja and internal identifiers
+- Evidence links with quantities, document references and verification state
+- Backward origin tracing and forward affected-product tracing
+- Guided recall simulations for wine and packaging-material investigations
+- Impact summaries for finished lots, bottling orders and source parcels
+- Persistent simulation history without changing operational or regulatory state
+- Schema migration preserving Phase 2E browser data
+
 Remaining Phase 2 modules:
 
-- Traceability explorer
 - Reports and administration
 - Rosé/clarete frontend process
 

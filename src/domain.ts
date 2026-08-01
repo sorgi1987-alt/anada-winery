@@ -1,5 +1,5 @@
 import { images, redProcess, whiteProcess } from './data'
-import type { Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, PackagingMaterial, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ProcessStage, RecallSimulation, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WineLot } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -433,4 +433,48 @@ export const completeBottlingOrder = (orders: BottlingOrder[], materials: Packag
     },
   }
   return { order: updated, orders: orders.map((item) => item.id === updated.id ? updated : item), materials: nextMaterials }
+}
+
+export const traceEntityScope = (entityId: string, entities: TraceabilityEntity[], links: TraceabilityLink[], direction: TraceabilityDirection = 'both') => {
+  if (!entities.some((entity) => entity.id === entityId)) return []
+  const visited = new Set([entityId])
+  const queue = [entityId]
+  while (queue.length) {
+    const current = queue.shift()!
+    links.forEach((link) => {
+      const related: string[] = []
+      if ((direction === 'forward' || direction === 'both') && link.sourceId === current) related.push(link.targetId)
+      if ((direction === 'backward' || direction === 'both') && link.targetId === current) related.push(link.sourceId)
+      related.forEach((id) => {
+        if (!visited.has(id)) {
+          visited.add(id)
+          queue.push(id)
+        }
+      })
+    })
+  }
+  return entities.filter((entity) => visited.has(entity.id))
+}
+
+export const nextRecallCode = (simulations: RecallSimulation[]) => {
+  const highest = simulations.reduce((maximum, simulation) => {
+    const match = simulation.code.match(/^SIM-\d{2}-(\d+)$/)
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0)
+  return `SIM-${String(new Date().getFullYear()).slice(-2)}-${String(highest + 1).padStart(3, '0')}`
+}
+
+export const createRecallSimulation = (input: NewRecallSimulationInput, entities: TraceabilityEntity[], links: TraceabilityLink[], simulations: RecallSimulation[]) => {
+  const target = entities.find((entity) => entity.id === input.targetEntityId)
+  if (!target || !input.notes.trim()) throw new Error('Recall simulation requires a target and notes')
+  const scope = traceEntityScope(target.id, entities, links, 'both')
+  const simulation: RecallSimulation = {
+    id: nowId('recall-sim'), code: nextRecallCode(simulations), targetEntityId: target.id, targetCode: target.code, reason: input.reason, notes: input.notes.trim(),
+    affectedEntityIds: scope.map((entity) => entity.id),
+    affectedFinishedLotIds: scope.filter((entity) => entity.type === 'finished_lot').map((entity) => entity.id),
+    affectedBottlingOrderIds: scope.filter((entity) => entity.type === 'bottling_order').map((entity) => entity.id),
+    sourceParcelIds: scope.filter((entity) => entity.type === 'parcel').map((entity) => entity.id),
+    createdAt: new Date().toISOString(), createdBy: 'Elena Martín', status: 'completed',
+  }
+  return { simulation, simulations: [simulation, ...simulations] }
 }
