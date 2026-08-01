@@ -99,9 +99,11 @@ function App() {
   }
 
   const saveReading = (lotId: string, reading: ReadingPoint, volume?: number) => {
-    setUndoLot(demoLots.find((lot) => lot.id === lotId) ?? null)
-    const nextVolume = volume ?? demoLots.find((lot) => lot.id === lotId)?.volume
+    const targetLot = demoLots.find((lot) => lot.id === lotId)
+    setUndoLot(targetLot ?? null)
+    const nextVolume = volume ?? targetLot?.volume
     const recordedAt = new Date().toISOString()
+    const activityId = `activity-${Date.now()}`
     setDemoLots((current) => current.map((lot) => lot.id === lotId
       ? {
           ...lot,
@@ -110,7 +112,7 @@ function App() {
           volume: volume ?? lot.volume,
           readings: [...lot.readings, { ...reading, volume: nextVolume, recordedAt }],
           activities: [{
-            id: `activity-${Date.now()}`,
+            id: activityId,
             title: 'Lectura de bodega',
             person: 'Elena Martín',
             time: 'Ahora',
@@ -119,6 +121,29 @@ function App() {
           }, ...(lot.activities ?? [])],
         }
       : lot))
+    const stage = targetLot?.process.find((item) => item.status === 'current')
+    if (targetLot?.type === 'tinto' && stage) {
+      const event: ProductionEvent = {
+        id: activityId,
+        lotId,
+        wineType: 'tinto',
+        kind: 'operation',
+        stageId: stage.id,
+        operationType: 'density_check',
+        performedAt: recordedAt,
+        recordedAt,
+        operator: 'Elena Martín',
+        notes: reading.note ?? '',
+        metrics: {
+          temperature: reading.temperature,
+          density: reading.density,
+          volumeBefore: targetLot.volume,
+          volumeAfter: nextVolume ?? targetLot.volume,
+        },
+        storageMode: 'browser-local',
+      }
+      setProductionEvents((current) => [event, ...current])
+    }
     setDemoTanks((current) => current.map((tank) => tank.lot === lotId
       ? { ...tank, temperature: reading.temperature, volume: nextVolume ?? tank.volume }
       : tank))
@@ -954,15 +979,25 @@ function ReadingSheet({ lot, onClose, onSave }: { lot: WineLot; onClose: () => v
   const [density, setDensity] = useState(String(lot.density ?? ''))
   const [volume, setVolume] = useState(String(lot.volume))
   const [note, setNote] = useState('')
+  const [error, setError] = useState(false)
   const previousReading = lot.readings.at(-1)
+  const parseNumber = (value: string) => Number(value.trim().replace(',', '.'))
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    onSave(lot.id, { time: 'Ahora', temperature: Number(temperature.replace(',', '.')), density: Number(density.replace(',', '.')), note: note.trim() || undefined }, Number(volume))
+    const nextTemperature = parseNumber(temperature)
+    const nextDensity = parseNumber(density)
+    const nextVolume = parseNumber(volume)
+    if (!Number.isFinite(nextTemperature) || nextTemperature < 0 || nextTemperature > 40 || !Number.isFinite(nextDensity) || nextDensity < 0.97 || nextDensity > 1.2 || !Number.isFinite(nextVolume) || nextVolume <= 0) {
+      setError(true)
+      return
+    }
+    setError(false)
+    onSave(lot.id, { time: 'Ahora', temperature: nextTemperature, density: nextDensity, note: note.trim() || undefined }, nextVolume)
   }
   return (
     <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={t('detail.registerReading')}>
       <button className="sheet-scrim" onClick={onClose} aria-label={t('common.close')} />
-      <form className="reading-sheet" onSubmit={submit}>
+      <form className="reading-sheet" onSubmit={submit} noValidate>
         <div className="sheet-handle" />
         <div className="drawer-head"><div><span className="eyebrow">{lot.id} · {lot.vessel}</span><h2>{t('detail.registerReading')}</h2><p>{d(lot.stage)}</p></div><button className="icon-button" type="button" onClick={onClose} aria-label={t('common.close')}><X size={20} /></button></div>
         <div className="previous-reading"><Clock3 size={17} /><span><small>{t('reading.previous', { time: d(previousReading?.time ?? t('detail.noReadings')) })}</small><strong>{lot.temperature?.toFixed(1)} °C · {lot.density?.toFixed(3)}</strong></span></div>
@@ -972,6 +1007,7 @@ function ReadingSheet({ lot, onClose, onSave }: { lot: WineLot; onClose: () => v
           <label><span><Gauge size={17} /> {t('common.volume')}</span><div><input inputMode="numeric" required value={volume} onChange={(event) => setVolume(event.target.value)} /><i>L</i></div></label>
         </div>
         <label className="note-field"><span>{t('reading.observation')}</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('reading.placeholder')} /></label>
+        {error && <p className="form-error reading-error">{t('reading.error')}</p>}
         <div className="operator-row"><span className="avatar small-avatar">EM</span><span><small>{t('reading.operator')}</small><strong>Elena Martín · {t('common.now')}</strong></span><CheckCircle2 size={18} /></div>
         <div className="sheet-actions"><button type="button" className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button type="submit" className="primary-button"><Save size={18} /> {t('reading.save')}</button></div>
       </form>

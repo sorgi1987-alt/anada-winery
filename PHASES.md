@@ -199,6 +199,7 @@ Status: deployment prepared.
 - Malic-acid gate before moving from malolactic fermentation
 - Guarded, sequential stage transitions and automatic next tasks
 - Operator-attributed local audit history with explicit non-authenticated status
+- Quick cellar readings mirrored into the red process history and transition gate
 - Cellar-friendly operation sheet and bilingual process controls
 
 Completion gate: deploy the frontend and execute a density control followed by a guarded transition on the demonstration red lot.

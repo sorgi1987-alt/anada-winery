@@ -30,7 +30,7 @@ const operationIcon = (type: RedOperationType): ReactNode => {
   return <Wine />
 }
 
-const numeric = (value: string) => value.trim() === '' ? undefined : Number(value)
+const numeric = (value: string) => value.trim() === '' ? undefined : Number(value.trim().replace(',', '.'))
 
 interface RedProcessControlProps {
   lot: WineLot
@@ -173,7 +173,7 @@ function RedOperationSheet({ lot, type, onClose, onSave }: { lot: WineLot; type:
   const temperatureOperation = durationOperation || type === 'temperature_check' || type === 'density_check'
   return (
     <div className="red-operation-layer" role="dialog" aria-modal="true" aria-label={t('redEngine.formTitle')}>
-      <form className="red-operation-sheet" onSubmit={submit}>
+      <form className="red-operation-sheet" onSubmit={submit} noValidate>
         <header><span className="red-sheet-icon">{operationIcon(type)}</span><div><small>{lot.id} · {t('redEngine.formTitle')}</small><h2>{t(operationLabelKeys[type] as Parameters<typeof t>[0])}</h2><p>{t('redEngine.formText')}</p></div><button type="button" className="icon-button" onClick={onClose} aria-label={t('common.close')}><X /></button></header>
         <div className="red-sheet-body">
           <div className="red-sheet-context"><span><small>{t('detail.currentStage')}</small><strong>{d(lot.stage)}</strong></span><span><small>{t('redEngine.volumeBefore')}</small><strong>{new Intl.NumberFormat(locale).format(lot.volume)} L</strong></span></div>
@@ -181,8 +181,8 @@ function RedOperationSheet({ lot, type, onClose, onSave }: { lot: WineLot; type:
             <label><span>{t('redEngine.performedAt')}</span><input type="datetime-local" value={performedAt} onChange={(event) => setPerformedAt(event.target.value)} required /></label>
             <label><span>{t('redEngine.operator')}</span><input value={operator} onChange={(event) => setOperator(event.target.value)} required /></label>
             {durationOperation && <label><span>{t('redEngine.duration')}</span><div className="unit-input"><input type="number" min="1" max="180" value={duration} onChange={(event) => setDuration(event.target.value)} required /><em>min</em></div></label>}
-            {temperatureOperation && <label><span>{t('common.temperature')}</span><div className="unit-input"><input type="number" min="0" max="40" step="0.1" value={temperature} onChange={(event) => setTemperature(event.target.value)} required={type === 'temperature_check'} /><em>°C</em></div></label>}
-            {type === 'density_check' && <label><span>{t('common.density')}</span><input type="number" min="0.970" max="1.200" step="0.001" value={density} onChange={(event) => setDensity(event.target.value)} required /></label>}
+            {temperatureOperation && <label><span>{t('common.temperature')}</span><div className="unit-input"><input inputMode="decimal" value={temperature} onChange={(event) => setTemperature(event.target.value)} required={type === 'temperature_check'} /><em>°C</em></div></label>}
+            {type === 'density_check' && <label><span>{t('common.density')}</span><input inputMode="decimal" value={density} onChange={(event) => setDensity(event.target.value)} required /></label>}
             {type === 'addition' && <><label className="wide"><span>{t('redEngine.product')}</span><input value={product} onChange={(event) => setProduct(event.target.value)} required /></label><label><span>{t('redEngine.amount')}</span><input type="number" min="0.001" step="0.001" value={amount} onChange={(event) => setAmount(event.target.value)} required /></label><label><span>{t('common.volume')}</span><select value={unit} onChange={(event) => setUnit(event.target.value as typeof unit)}><option>kg</option><option>g</option><option>L</option><option>mL</option></select></label></>}
             {type === 'devatting_pressing' && <><label><span>{t('redEngine.freeRun')}</span><div className="unit-input"><input type="number" min="0" max={lot.volume} step="1" value={freeRun} onChange={(event) => setFreeRun(event.target.value)} required /><em>L</em></div></label><label><span>{t('redEngine.pressVolume')}</span><div className="unit-input"><input type="number" min="0" max={lot.volume} step="1" value={pressVolume} onChange={(event) => setPressVolume(event.target.value)} required /><em>L</em></div></label></>}
             {type === 'racking' && <label><span>{t('redEngine.reconciledVolume')}</span><div className="unit-input"><input type="number" min="1" max={lot.volume} step="1" value={volumeAfter} onChange={(event) => setVolumeAfter(event.target.value)} required /><em>L</em></div></label>}
