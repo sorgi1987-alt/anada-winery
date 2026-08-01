@@ -1,13 +1,20 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   ArrowLeft, ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardCheck,
-  Droplets, Grape, Leaf, MapPin, Save, Scale, Thermometer, Warehouse, X,
+  Droplets, Grape, Leaf, MapPin, Save, Scale, Sparkles, Thermometer, Warehouse, X,
 } from 'lucide-react'
-import { nextLotCode } from './domain'
+import { nextLotCode, roseEligibilityIssues } from './domain'
 import { useLanguage } from './i18n'
-import type { NewLotInput, NewTaskInput, Tank, WineLot } from './types'
+import type { NewLotInput, NewTaskInput, RoseMethod, Tank, WineLot } from './types'
 
 const numberValue = (value: string) => Number(value.replace(',', '.'))
+const roseMethodLabelKey: Record<RoseMethod, 'rose.method.direct_press' | 'rose.method.short_maceration' | 'rose.method.saignee' | 'rose.method.cofermentation'> = {
+  direct_press: 'rose.method.direct_press', short_maceration: 'rose.method.short_maceration', saignee: 'rose.method.saignee', cofermentation: 'rose.method.cofermentation',
+}
+const roseIssueTranslation = {
+  red_percentage: 'rose.error.red_percentage', blend_after_weighing: 'rose.error.blend_after_weighing', color_intensity: 'rose.error.color_intensity',
+  yield: 'rose.error.yield', clarete_method: 'rose.error.clarete_method', maceration_hours: 'rose.error.maceration_hours',
+} as const
 
 interface CreateLotSheetProps {
   type: NewLotInput['type']
@@ -21,7 +28,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
   const { t, d, locale } = useLanguage()
   const vintage = 2026
   const freeTanks = useMemo(() => tanks.filter((tank) => tank.volume === 0), [tanks])
-  const initialVolume = type === 'tinto' ? 6500 : 4800
+  const initialVolume = type === 'tinto' ? 6500 : type === 'rosado' ? 4500 : 4800
   const initialTank = freeTanks.find((tank) => tank.capacity >= initialVolume)?.id ?? freeTanks[0]?.id ?? ''
   const [step, setStep] = useState(0)
   const [error, setError] = useState('')
@@ -30,18 +37,24 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
     id: nextLotCode(type, vintage, lots),
     name: '',
     vintage,
-    varieties: type === 'tinto' ? '100% Tempranillo' : '100% Viura',
+    varieties: type === 'tinto' ? '100% Tempranillo' : type === 'rosado' ? '60% Viura · 40% Garnacha Tinta' : '100% Viura',
     origin: 'Alberite · Rioja Oriental',
     receptionDate: new Date().toISOString().slice(0, 10),
-    receivedKg: type === 'tinto' ? 9000 : 7200,
+    receivedKg: type === 'tinto' ? 9000 : type === 'rosado' ? 6500 : 7200,
     volume: initialVolume,
     vessel: initialTank,
-    temperature: type === 'tinto' ? 18 : 12,
+    temperature: type === 'tinto' ? 18 : type === 'rosado' ? 14 : 12,
     density: 1.09,
     macerationPlan: type === 'tinto' ? 'Tradicional · 8–12 días' : undefined,
-    pressFraction: type === 'blanco' ? 'Mosto yema' : undefined,
-    turbidityTarget: type === 'blanco' ? 100 : undefined,
-    protection: type === 'blanco' ? 'Inertizado con CO₂' : undefined,
+    pressFraction: type !== 'tinto' ? 'Mosto yema + primera prensada' : undefined,
+    turbidityTarget: type !== 'tinto' ? 100 : undefined,
+    protection: type !== 'tinto' ? 'Inertizado con CO₂' : undefined,
+    roseStyle: type === 'rosado' ? 'clarete' : undefined,
+    roseMethod: type === 'rosado' ? 'cofermentation' : undefined,
+    redGrapePercentage: type === 'rosado' ? 40 : undefined,
+    blendAfterWeighing: type === 'rosado' ? true : undefined,
+    macerationHours: type === 'rosado' ? 18 : undefined,
+    targetColorIntensity: type === 'rosado' ? 0.8 : undefined,
   })
 
   const update = <K extends keyof NewLotInput>(key: K, value: NewLotInput[K]) => {
@@ -62,6 +75,10 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
       if (draft.volume > selectedTank.capacity) return t('flow.errorCapacity', { id: selectedTank.id })
       if (draft.density < 0.98 || draft.density > 1.2) return t('flow.errorDensity')
       if (draft.temperature < 0 || draft.temperature > 40) return t('flow.errorTemperature')
+      if (type === 'rosado') {
+        const issue = roseEligibilityIssues(draft)[0]
+        if (issue) return t(roseIssueTranslation[issue as keyof typeof roseIssueTranslation])
+      }
     }
     return ''
   }
@@ -78,7 +95,10 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
   }
 
   const isRed = type === 'tinto'
+  const isRose = type === 'rosado'
   const yieldPercentage = draft.receivedKg > 0 ? Math.round(draft.volume / draft.receivedKg * 100) : 0
+  const typeLabel = isRed ? t('wine.red') : isRose ? t('wine.roseClarete') : t('wine.white')
+  const TypeIcon = isRed ? Grape : isRose ? Sparkles : Leaf
 
   return (
     <div className="sheet-layer lot-flow-layer" role="dialog" aria-modal="true" aria-label={t('flow.createLot')}>
@@ -86,8 +106,8 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
       <form className="lot-flow" onSubmit={submit}>
         <div className="lot-flow-head">
           <div>
-            <span className={`flow-type-icon ${type}`}>{isRed ? <Grape /> : <Leaf />}</span>
-            <span><small>{t('flow.newProduction')}</small><strong>{isRed ? t('wine.red') : t('wine.white')}</strong></span>
+            <span className={`flow-type-icon ${type}`}><TypeIcon /></span>
+            <span><small>{t('flow.newProduction')}</small><strong>{typeLabel}</strong></span>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label={t('common.close')}><X size={20} /></button>
         </div>
@@ -112,7 +132,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
                   <input type="number" min="2020" max="2035" required value={draft.vintage} onChange={(event) => update('vintage', Number(event.target.value))} />
                 </FlowField>
                 <FlowField label={t('flow.lotName')} wide>
-                  <input autoFocus required value={draft.name} onChange={(event) => update('name', event.target.value)} placeholder={isRed ? t('flow.redName') : t('flow.whiteName')} />
+                  <input autoFocus required value={draft.name} onChange={(event) => update('name', event.target.value)} placeholder={isRed ? t('flow.redName') : isRose ? t('rose.namePlaceholder') : t('flow.whiteName')} />
                 </FlowField>
                 <FlowField label={t('common.varieties')} icon={<Grape size={16} />} wide>
                   <input required value={draft.varieties} onChange={(event) => update('varieties', event.target.value)} />
@@ -129,7 +149,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
 
           {step === 1 && (
             <section className="flow-section">
-              <div className="flow-title"><span className="eyebrow">{t('flow.step', { step: 2 })}</span><h2>{t('flow.receptionTitle')}</h2><p>{isRed ? t('flow.redReceptionText') : t('flow.whiteReceptionText')}</p></div>
+              <div className="flow-title"><span className="eyebrow">{t('flow.step', { step: 2 })}</span><h2>{t('flow.receptionTitle')}</h2><p>{isRed ? t('flow.redReceptionText') : isRose ? t('rose.receptionText') : t('flow.whiteReceptionText')}</p></div>
               <div className="form-grid">
                 <FlowField label={t('flow.grapesReceived')} suffix="kg" icon={<Scale size={16} />}>
                   <input type="number" min="1" step="1" required value={draft.receivedKg} onChange={(event) => update('receivedKg', Number(event.target.value))} />
@@ -151,12 +171,32 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
                 </FlowField>
               </div>
               <div className={`specific-process-card ${type}`}>
-                <span className="flow-type-icon">{isRed ? <Grape /> : <Leaf />}</span>
-                <div><small>{t('flow.specificConfig')}</small><strong>{isRed ? t('flow.redConfig') : t('flow.whiteConfig')}</strong></div>
+                <span className="flow-type-icon"><TypeIcon /></span>
+                <div><small>{t('flow.specificConfig')}</small><strong>{isRed ? t('flow.redConfig') : isRose ? t('rose.config') : t('flow.whiteConfig')}</strong></div>
                 {isRed ? (
                   <select value={draft.macerationPlan} onChange={(event) => update('macerationPlan', event.target.value)}>
                     {['Tradicional · 8–12 días', 'Maceración corta · 5–7 días', 'Prefermentativa en frío'].map((option) => <option key={option} value={option}>{d(option)}</option>)}
                   </select>
+                ) : isRose ? (
+                  <div className="rose-specific-fields">
+                    <label><span>{t('rose.style')}</span><select value={draft.roseStyle} onChange={(event) => {
+                      const style = event.target.value as NonNullable<NewLotInput['roseStyle']>
+                      setDraft((current) => ({ ...current, roseStyle: style, roseMethod: style === 'clarete' ? 'cofermentation' : current.roseMethod === 'cofermentation' ? 'direct_press' : current.roseMethod }))
+                      setError('')
+                    }}><option value="rosado">{t('rose.styleRose')}</option><option value="clarete">{t('rose.styleClarete')}</option></select></label>
+                    <label><span>{t('rose.method')}</span><select value={draft.roseMethod} onChange={(event) => update('roseMethod', event.target.value as NonNullable<NewLotInput['roseMethod']>)}>
+                      {draft.roseStyle === 'clarete'
+                        ? <option value="cofermentation">{t('rose.methodCofermentation')}</option>
+                        : <><option value="direct_press">{t('rose.methodDirect')}</option><option value="short_maceration">{t('rose.methodMaceration')}</option><option value="saignee">{t('rose.methodSaignee')}</option></>}
+                    </select></label>
+                    <label><span>{t('rose.redPercentage')}</span><div><input type="number" min="25" max="100" value={draft.redGrapePercentage} onChange={(event) => update('redGrapePercentage', Number(event.target.value))} /><i>%</i></div></label>
+                    <label><span>{t('rose.colorTarget')}</span><div><input type="number" min="0.1" max="1.8" step="0.01" value={draft.targetColorIntensity} onChange={(event) => update('targetColorIntensity', numberValue(event.target.value))} /><i>UA/cm</i></div></label>
+                    {draft.roseMethod !== 'direct_press' && <label><span>{t('rose.macerationHours')}</span><div><input type="number" min="1" max="48" value={draft.macerationHours} onChange={(event) => update('macerationHours', Number(event.target.value))} /><i>h</i></div></label>}
+                    <label><span>{t('detail.turbidityTarget')}</span><div><input type="number" min="20" max="300" value={draft.turbidityTarget} onChange={(event) => update('turbidityTarget', Number(event.target.value))} /><i>NTU</i></div></label>
+                    <label className="rose-wide-field"><span>{t('rose.pressFraction')}</span><select value={draft.pressFraction} onChange={(event) => update('pressFraction', event.target.value)}>{['Mosto yema', 'Primera prensada', 'Mosto yema + primera prensada'].map((option) => <option key={option} value={option}>{d(option)}</option>)}</select></label>
+                    <label className="rose-wide-field"><span>{t('rose.protection')}</span><select value={draft.protection} onChange={(event) => update('protection', event.target.value)}>{['Inertizado con CO₂', 'Inertizado con N₂', 'Protección antioxidante'].map((option) => <option key={option} value={option}>{d(option)}</option>)}</select></label>
+                    <label className="rose-weighbridge"><input type="checkbox" checked={Boolean(draft.blendAfterWeighing)} onChange={(event) => update('blendAfterWeighing', event.target.checked)} /><span><strong>{t('rose.afterWeighbridge')}</strong><small>{t('rose.afterWeighbridgeText')}</small></span></label>
+                  </div>
                 ) : (
                   <div className="specific-fields">
                     <select value={draft.pressFraction} onChange={(event) => update('pressFraction', event.target.value)}>
@@ -175,7 +215,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
           {step === 2 && (
             <section className="flow-section review-section">
               <div className="flow-title"><span className="eyebrow">{t('flow.step', { step: 3 })}</span><h2>{t('flow.ready')}</h2><p>{t('flow.reviewText')}</p></div>
-              <div className={`review-hero ${type}`}><span>{isRed ? <Grape /> : <Leaf />}</span><div><small>{draft.id} · {t('common.vintage')} {draft.vintage}</small><h3>{draft.name}</h3><p>{draft.varieties}</p><em><MapPin size={14} /> {draft.origin}</em></div></div>
+              <div className={`review-hero ${type}`}><span><TypeIcon /></span><div><small>{draft.id} · {t('common.vintage')} {draft.vintage}</small><h3>{draft.name}</h3><p>{draft.varieties}</p><em><MapPin size={14} /> {draft.origin}</em></div></div>
               <div className="review-grid">
                 <ReviewValue label={t('flow.reception')} value={new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(`${draft.receptionDate}T12:00:00`))} />
                 <ReviewValue label={t('flow.grapesReceived')} value={`${draft.receivedKg.toLocaleString(locale)} kg`} />
@@ -183,7 +223,9 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
                 <ReviewValue label={t('flow.estimatedYield')} value={`${yieldPercentage}%`} />
                 <ReviewValue label={t('detail.vessel')} value={draft.vessel} />
                 <ReviewValue label={t('common.occupancy')} value={selectedTank ? `${Math.round(draft.volume / selectedTank.capacity * 100)}%` : '—'} />
+                {isRose && draft.roseMethod && <><ReviewValue label={t('rose.style')} value={draft.roseStyle === 'clarete' ? t('rose.styleClarete') : t('rose.styleRose')} /><ReviewValue label={t('rose.method')} value={t(roseMethodLabelKey[draft.roseMethod])} /></>}
               </div>
+              {isRose && <div className="rose-eligibility-card"><CheckCircle2 size={20} /><div><strong>{t('rose.eligibilityOk')}</strong><p>{t('rose.eligibilityOkText', { red: draft.redGrapePercentage ?? 0, yield: yieldPercentage })}</p></div></div>}
               <div className="next-steps-card"><CheckCircle2 size={20} /><div><strong>{t('flow.autoCreate')}</strong><p>{t('flow.autoCreateText')}</p></div></div>
             </section>
           )}

@@ -14,9 +14,11 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Non-negotiable domain rules
 
-- Red and white winemaking use distinct process templates, stages, metrics and contextual operations.
+- Red, white, rosado and clarete winemaking use distinct process templates, stages, metrics and contextual operations.
 - Never expose red-only actions such as `Remontado`, `Bazuqueo` or `Descube` on a white lot.
 - Never expose white-specific operations such as `Desfangado` as a routine red-lot action.
+- Rosado routes may use direct pressing, short skin maceration or saignée; traditional clarete uses joint vatting and co-fermentation after separate weighbridge records.
+- Internal rosado/clarete eligibility requires at least 25% red varieties, mixing after delivery or weighbridge when red and white grapes are combined, 0.10–1.80 UA/cm colour intensity and no more than 70 L/100 kg estimated transformation yield.
 - Process stages can be complete, current, upcoming or optional.
 - Keep the physical barrel, its current wine assignment and its operation history as distinct domain concepts.
 - Topping-up volume must not exceed the measured headspace of the selected filled barrels.
@@ -51,4 +53,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 2G is a bilingual reports-and-administration frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.
+Phase 2H is the completed bilingual functional frontend, including distinct rosado and clarete production routes with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.

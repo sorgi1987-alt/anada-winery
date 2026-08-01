@@ -1,4 +1,6 @@
 export type WineType = 'tinto' | 'blanco' | 'rosado' | 'espumoso'
+export type RoseStyle = 'rosado' | 'clarete'
+export type RoseMethod = 'direct_press' | 'short_maceration' | 'saignee' | 'cofermentation'
 export type AttentionLevel = 'normal' | 'warning' | 'critical'
 
 export interface ReadingPoint {
@@ -31,6 +33,17 @@ export interface ProductionDetails {
     pressFraction: string
     turbidityTarget: number
     protection: string
+  }
+  rose?: {
+    style: RoseStyle
+    method: RoseMethod
+    redGrapePercentage: number
+    blendAfterWeighing: boolean
+    macerationHours: number
+    pressFraction: string
+    turbidityTarget: number
+    protection: string
+    targetColorIntensity: number
   }
 }
 
@@ -138,7 +151,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 8
+  schemaVersion: 9
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -180,7 +193,7 @@ export interface WinerySettings {
 }
 
 export interface NewLotInput {
-  type: Extract<WineType, 'tinto' | 'blanco'>
+  type: Extract<WineType, 'tinto' | 'blanco' | 'rosado'>
   id: string
   name: string
   vintage: number
@@ -196,6 +209,12 @@ export interface NewLotInput {
   pressFraction?: string
   turbidityTarget?: number
   protection?: string
+  roseStyle?: RoseStyle
+  roseMethod?: RoseMethod
+  redGrapePercentage?: number
+  blendAfterWeighing?: boolean
+  macerationHours?: number
+  targetColorIntensity?: number
 }
 
 export interface NewTaskInput {

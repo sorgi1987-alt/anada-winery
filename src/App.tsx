@@ -17,12 +17,16 @@ import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { browserWineryRepository } from './store'
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ReadingPoint, RecallSimulation, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineType } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ReadingPoint, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
 const wineLabelKey: Record<WineType, 'wine.red' | 'wine.white' | 'wine.rose' | 'wine.sparkling'> = {
   tinto: 'wine.red', blanco: 'wine.white', rosado: 'wine.rose', espumoso: 'wine.sparkling',
+}
+
+const roseMethodLabelKey: Record<RoseMethod, 'rose.method.direct_press' | 'rose.method.short_maceration' | 'rose.method.saignee' | 'rose.method.cofermentation'> = {
+  direct_press: 'rose.method.direct_press', short_maceration: 'rose.method.short_maceration', saignee: 'rose.method.saignee', cofermentation: 'rose.method.cofermentation',
 }
 
 const FermentationChart = lazy(() => import('./Charts').then((module) => ({ default: module.FermentationChart })))
@@ -81,7 +85,7 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 8, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
+    browserWineryRepository.save({ schemaVersion: 9, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
   }, [demoLots, tasks, demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings])
 
   const toggleCellarMode = () => {
@@ -361,7 +365,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.10</span>
+          <span>Añada 0.11</span>
         </div>
       </section>
     </main>
@@ -614,10 +618,10 @@ function Production({ onStartCreate }: { onStartCreate: (type: NewLotInput['type
   const options = [
     { type: 'tinto' as const, title: t('wine.red'), image: images.cellar, detail: t('production.redDetail'), stages: t('production.stages', { count: 11 }), active: true },
     { type: 'blanco' as const, title: t('wine.white'), image: images.whiteGrapes, detail: t('production.whiteDetail'), stages: t('production.stages', { count: 10 }), active: true },
-    { type: 'rosado' as const, title: `${t('wine.rose')} / Clarete`, image: images.vineyard, detail: t('production.roseDetail'), stages: t('production.phase2'), active: false },
+    { type: 'rosado' as const, title: t('wine.roseClarete'), image: images.vineyard, detail: t('production.roseDetail'), stages: t('production.routes', { count: 4 }), active: true },
     { type: 'espumoso' as const, title: t('wine.sparkling'), image: images.barrels, detail: t('production.sparklingDetail'), stages: t('production.phase4'), active: false },
   ]
-  const selectedLot = selected === 'tinto' ? seedLots[0] : seedLots[1]
+  const selectedLot = selected ? seedLots.find((lot) => lot.type === selected) : undefined
   return (
     <main>
       <PageHeader eyebrow={t('production.kicker')} title={t('production.title')} description={t('production.description')} />
@@ -641,7 +645,11 @@ function Production({ onStartCreate }: { onStartCreate: (type: NewLotInput['type
           <div className="process-preview-head"><div><span className="eyebrow">{t('production.template')}</span><h2>{t('production.traditional', { wine: t(wineLabelKey[selected]).toLowerCase() })}</h2><p>{t('production.adapt')}</p></div><div className="process-preview-actions"><button className="secondary-button" onClick={() => navigate(`/lots/${selectedLot.id}`)}>{t('production.example')}</button><button className="primary-button" onClick={() => onStartCreate(selected as NewLotInput['type'])}>{t('production.configure')} <ArrowUpRight size={18} /></button></div></div>
           <ProcessTimeline lot={selectedLot} />
           <div className="context-operation-row">
-            {(selected === 'tinto' ? ['Remontado', 'Bazuqueo', 'Descube', 'Control de málico'] : ['Prensado', 'Desfangado', 'Control de turbidez', 'Bâtonnage']).map((operation) => <span key={operation}><CheckCircle2 size={15} /> {d(operation)}</span>)}
+            {(selected === 'tinto'
+              ? ['Remontado', 'Bazuqueo', 'Descube', 'Control de málico']
+              : selected === 'rosado'
+                ? ['Prensado por color', 'Maceración corta', 'Sangrado', 'Cofermentación']
+                : ['Prensado', 'Desfangado', 'Control de turbidez', 'Bâtonnage']).map((operation) => <span key={operation}><CheckCircle2 size={15} /> {d(operation)}</span>)}
           </div>
         </section>
       )}
@@ -666,7 +674,7 @@ function LotsOverview({ lots }: { lots: WineLot[] }) {
       <div className="filter-bar">
         <label className="search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('lots.search')} /></label>
         <div className="filter-chips">
-          {([['todos', t('lots.all')], ['tinto', t('lots.red')], ['blanco', t('lots.white')], ['attention', t('lots.needsAttention')]] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}
+          {([['todos', t('lots.all')], ['tinto', t('lots.red')], ['blanco', t('lots.white')], ['rosado', t('lots.rose')], ['attention', t('lots.needsAttention')]] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}
         </div>
         <div className="view-switch"><button className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')} aria-label={t('lots.grid')}><Grid2X2 size={17} /></button><button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')} aria-label={t('lots.list')}><List size={17} /></button></div>
       </div>
@@ -697,24 +705,39 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
   const lot = lots.find((item) => item.id === lotId)
   if (!lot) return <div className="empty-state"><Search size={28} /><h3>{t('detail.notFound')}</h3><button className="secondary-button" onClick={() => navigate('/lots')}>{t('detail.backLots')}</button></div>
   const isRed = lot.type === 'tinto'
+  const isRose = lot.type === 'rosado'
   const isReception = lot.process[0]?.status === 'current'
+  const whiteDetails = lot.productionDetails?.white
+  const roseDetails = lot.productionDetails?.rose
+  const roseMethod = roseDetails?.method ?? 'direct_press'
   const vessel = tanks.find((tank) => tank.id === lot.vessel)
   const vesselCapacity = vessel?.capacity ?? 10000
   const stageDescription = isReception
     ? isRed
       ? t('detail.redReception')
-      : t('detail.whiteReception')
+      : isRose ? t('rose.detailReception') : t('detail.whiteReception')
     : isRed
       ? t('detail.redFermentation')
-      : t('detail.whiteFermentation')
+      : isRose ? t('rose.detailFermentation') : t('detail.whiteFermentation')
+  const roseActions: Record<RoseMethod, string[]> = {
+    direct_press: ['Prensado por color', 'Fracciones', 'Muestra de color'],
+    short_maceration: ['Control de color', 'Maceración corta', 'Separación'],
+    saignee: ['Control de color', 'Sangrado', 'Prensado'],
+    cofermentation: ['Control de color', 'Cofermentación', 'Separación'],
+  }
   const stageActions = isReception
-    ? isRed ? ['Selección', 'Pesaje', 'Encubado'] : ['Pesaje', 'Muestra', 'Prensado']
-    : isRed ? ['Remontado', 'Bazuqueo', 'Adición', 'Muestra'] : ['Control temperatura', 'Muestra', 'Trasiego']
+    ? isRed ? ['Selección', 'Pesaje', 'Encubado'] : isRose ? roseActions[roseMethod] : ['Pesaje', 'Muestra', 'Prensado']
+    : isRed ? ['Remontado', 'Bazuqueo', 'Adición', 'Muestra'] : isRose ? roseActions[roseMethod] : ['Control temperatura', 'Muestra', 'Trasiego']
   const fallbackActivities = isRed ? [
     ['Remontado suave', 'Martín Ruiz', 'Hoy · 12:10', '15 min · Sin incidencias'],
     ['Lectura de densidad', 'Elena Martín', 'Hoy · 08:04', '1.052 · 24,2 °C'],
     ['Adición de nutrientes', 'Elena Martín', 'Ayer · 18:42', '12 kg · Nutriente orgánico'],
     ['Remontado con aireación', 'Martín Ruiz', 'Ayer · 17:15', '20 min'],
+  ] : isRose ? [
+    ['Control de intensidad colorante', 'Elena Martín', 'Hoy · 12:05', '0,82 UA/cm · Dentro del objetivo'],
+    ['Lectura de densidad', 'Lucía Sáenz', 'Hoy · 08:10', '1.076 · 17,7 °C'],
+    ['Control de encubado conjunto', 'Martín Ruiz', 'Ayer · 18:15', '40% uva tinta · Tras báscula'],
+    ['Protección del mosto', 'Elena Martín', 'Ayer · 17:40', 'Inertizado con CO₂'],
   ] : [
     ['Control de temperatura', 'Elena Martín', 'Hoy · 09:12', '15,2 °C · Estable'],
     ['Lectura de densidad', 'Lucía Sáenz', 'Ayer · 17:30', '1.026 · 15,1 °C'],
@@ -724,7 +747,6 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
   const activityRows = lot.activities?.length
     ? lot.activities.map((activity) => [activity.title, activity.person, activity.time, activity.detail])
     : fallbackActivities
-  const whiteDetails = lot.productionDetails?.white
   return (
     <main className="lot-detail-page">
       <button className="back-button" onClick={() => navigate('/lots')}><ArrowLeft size={17} /> {t('detail.backLots')}</button>
@@ -763,7 +785,9 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
           <div className="reading-kpis">
             {lot.temperature && <span><i className="kpi-icon warm"><Thermometer /></i><small>{t('common.temperature')}</small><strong>{lot.temperature.toFixed(1)} °C</strong><em>{isReception ? t('detail.receptionReading') : isRed ? t('detail.tempChange') : t('detail.stable')}</em></span>}
             {lot.density && <span><i className="kpi-icon blue"><Droplets /></i><small>{t('common.density')}</small><strong>{lot.density.toFixed(3)}</strong><em>{isReception ? t('detail.initialDensity') : t('detail.densityChange')}</em></span>}
-            {!isRed && <span><i className="kpi-icon stone"><Beaker /></i><small>{isReception ? t('detail.turbidityTarget') : t('detail.initialTurbidity')}</small><strong>{isReception && whiteDetails ? whiteDetails.turbidityTarget : 82} NTU</strong><em>{isReception ? t('detail.forSettling') : t('detail.afterSettling')}</em></span>}
+            {isRose
+              ? <span><i className="kpi-icon rose"><Sparkles /></i><small>{t('rose.colorTarget')}</small><strong>{(roseDetails?.targetColorIntensity ?? 0.8).toLocaleString(locale)} UA/cm</strong><em>{t('rose.colorRange')}</em></span>
+              : !isRed && <span><i className="kpi-icon stone"><Beaker /></i><small>{isReception ? t('detail.turbidityTarget') : t('detail.initialTurbidity')}</small><strong>{isReception && whiteDetails ? whiteDetails.turbidityTarget : 82} NTU</strong><em>{isReception ? t('detail.forSettling') : t('detail.afterSettling')}</em></span>}
           </div>
         </div>
         <div className="panel activity-panel">
@@ -776,7 +800,7 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
         </div>
       </section>
 
-      {!isRed && (
+      {lot.type === 'blanco' && (
         <section className="white-specific panel">
           <div><span className="eyebrow">{t('detail.mustPrep')}</span><h2>{t('detail.pressSettling')}</h2><p>{t('detail.whiteSpecific')}</p></div>
           <div className="white-specific-grid">
@@ -785,6 +809,23 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
             <span><i>03</i><small>{t('detail.settling')}</small><strong>{isReception ? t('common.pending') : '18 h'}</strong><em>{isReception ? t('detail.afterPress') : '10.2 °C'}</em></span>
             <span><i>04</i><small>{t('detail.turbidityTarget')}</small><strong>{whiteDetails ? `${whiteDetails.turbidityTarget} NTU` : '82 NTU'}</strong><em>{isReception ? t('detail.targetConfigured') : t('detail.targetReached')}</em></span>
           </div>
+        </section>
+      )}
+
+      {isRose && roseDetails && (
+        <section className="rose-specific panel">
+          <div className="rose-specific-head"><div><span className="eyebrow">{t('rose.processIdentity')}</span><h2>{roseDetails.style === 'clarete' ? t('rose.clareteTitle') : t('rose.roseTitle')}</h2><p>{t('rose.specificText')}</p></div><span className="rose-route-badge"><Sparkles size={18} /><small>{t('rose.method')}</small><strong>{t(roseMethodLabelKey[roseDetails.method])}</strong></span></div>
+          <div className="rose-specific-grid">
+            <span><i>01</i><small>{t('rose.redPercentage')}</small><strong>{roseDetails.redGrapePercentage}%</strong><em>{t('rose.minimumRed')}</em></span>
+            <span><i>02</i><small>{t('rose.mixingMoment')}</small><strong>{roseDetails.blendAfterWeighing ? t('rose.afterScale') : t('common.pending')}</strong><em>{t('rose.separateWeighing')}</em></span>
+            <span><i>03</i><small>{t('rose.skinContact')}</small><strong>{roseDetails.method === 'direct_press' ? t('rose.noMaceration') : `${roseDetails.macerationHours} h`}</strong><em>{t(roseMethodLabelKey[roseDetails.method])}</em></span>
+            <span><i>04</i><small>{t('rose.colorTarget')}</small><strong>{roseDetails.targetColorIntensity.toLocaleString(locale)} UA/cm</strong><em>{t('rose.colorRange')}</em></span>
+            <span><i>05</i><small>{t('rose.pressFraction')}</small><strong>{d(roseDetails.pressFraction)}</strong><em>{t('rose.fractionTrace')}</em></span>
+            <span><i>06</i><small>{t('rose.protection')}</small><strong>{d(roseDetails.protection)}</strong><em>{t('detail.sinceReception')}</em></span>
+            <span><i>07</i><small>{t('detail.turbidityTarget')}</small><strong>{roseDetails.turbidityTarget} NTU</strong><em>{t('detail.forSettling')}</em></span>
+            <span><i>08</i><small>{t('rose.estimatedYield')}</small><strong>{lot.productionDetails ? Math.round(lot.volume / lot.productionDetails.receivedKg * 100) : 0}%</strong><em>{t('rose.maximumYield')}</em></span>
+          </div>
+          <div className="rose-compliance-note"><ShieldCheck size={19} /><span><strong>{t('rose.internalCheck')}</strong><small>{t('rose.internalCheckText')}</small></span></div>
         </section>
       )}
     </main>
@@ -806,7 +847,7 @@ function ProcessTimeline({ lot }: { lot: WineLot }) {
 }
 
 function CellarMap({ tanks }: { tanks: Tank[] }) {
-  const [filter, setFilter] = useState<'all' | 'empty' | 'tinto' | 'blanco' | 'attention'>('all')
+  const [filter, setFilter] = useState<'all' | 'empty' | 'tinto' | 'blanco' | 'rosado' | 'attention'>('all')
   const [selected, setSelected] = useState<Tank | null>(null)
   const { t } = useLanguage()
   const visible = tanks.filter((tank) => filter === 'all' || (filter === 'empty' ? tank.volume === 0 : filter === 'attention' ? tank.attention !== 'normal' : tank.type === filter))
@@ -814,7 +855,7 @@ function CellarMap({ tanks }: { tanks: Tank[] }) {
     <main>
       <PageHeader eyebrow={t('cellar.kicker')} title={t('cellar.title')} description={t('cellar.description')} />
       <div className="cellar-tabs"><span className="active">{t('cellar.fermentationHall')}</span><span>{t('cellar.conservation')}</span><span>{t('cellar.barrels')}</span><span>{t('cellar.bottling')}</span></div>
-      <div className="filter-bar cellar-filter"><div className="filter-chips">{([['all', t('cellar.all')], ['empty', t('cellar.free')], ['tinto', t('cellar.red')], ['blanco', t('cellar.white')], ['attention', t('cellar.attention')]] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><span className="map-summary">{t('cellar.visible', { count: visible.length })}</span></div>
+      <div className="filter-bar cellar-filter"><div className="filter-chips">{([['all', t('cellar.all')], ['empty', t('cellar.free')], ['tinto', t('cellar.red')], ['blanco', t('cellar.white')], ['rosado', t('cellar.rose')], ['attention', t('cellar.attention')]] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><span className="map-summary">{t('cellar.visible', { count: visible.length })}</span></div>
       <section className="cellar-map-shell">
         <div className="cellar-map-header"><span>{t('cellar.harvestEntrance')}</span><i /><span>{t('cellar.workArea')}</span></div>
         <div className="tank-grid">

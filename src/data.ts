@@ -1,4 +1,4 @@
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, RecallSimulation, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -36,6 +36,64 @@ export const whiteProcess: ProcessStage[] = [
   { id: 'stability', label: 'Estabilización tartárica', shortLabel: 'Estabilización', status: 'upcoming' },
   { id: 'bottle', label: 'Filtración y embotellado', shortLabel: 'Embotellado', status: 'upcoming' },
 ]
+
+export const roseProcesses: Record<RoseMethod, ProcessStage[]> = {
+  direct_press: [
+    { id: 'reception', label: 'Recepción y control de composición', shortLabel: 'Recepción', status: 'complete' },
+    { id: 'press', label: 'Prensado directo y selección por color', shortLabel: 'Prensado', status: 'complete' },
+    { id: 'settling', label: 'Protección y desfangado', shortLabel: 'Desfangado', status: 'current' },
+    { id: 'af', label: 'Fermentación alcohólica en frío', shortLabel: 'Fermentación', status: 'upcoming' },
+    { id: 'lees', label: 'Afinado sobre lías', shortLabel: 'Lías', status: 'optional' },
+    { id: 'stability', label: 'Estabilización y ajuste de color', shortLabel: 'Estabilización', status: 'upcoming' },
+    { id: 'bottle', label: 'Filtración y embotellado', shortLabel: 'Embotellado', status: 'upcoming' },
+  ],
+  short_maceration: [
+    { id: 'reception', label: 'Recepción y control de composición', shortLabel: 'Recepción', status: 'complete' },
+    { id: 'maceration', label: 'Despalillado y maceración pelicular corta', shortLabel: 'Maceración', status: 'complete' },
+    { id: 'press', label: 'Sangrado, prensado y selección de fracciones', shortLabel: 'Separación', status: 'current' },
+    { id: 'settling', label: 'Protección y desfangado', shortLabel: 'Desfangado', status: 'upcoming' },
+    { id: 'af', label: 'Fermentación alcohólica en frío', shortLabel: 'Fermentación', status: 'upcoming' },
+    { id: 'lees', label: 'Afinado sobre lías', shortLabel: 'Lías', status: 'optional' },
+    { id: 'bottle', label: 'Estabilización y embotellado', shortLabel: 'Embotellado', status: 'upcoming' },
+  ],
+  saignee: [
+    { id: 'reception', label: 'Recepción y control de composición', shortLabel: 'Recepción', status: 'complete' },
+    { id: 'maceration', label: 'Encubado y maceración prefermentativa', shortLabel: 'Maceración', status: 'complete' },
+    { id: 'saignee', label: 'Sangrado y prensado de fracciones', shortLabel: 'Sangrado', status: 'current' },
+    { id: 'settling', label: 'Protección y desfangado', shortLabel: 'Desfangado', status: 'upcoming' },
+    { id: 'af', label: 'Fermentación alcohólica en frío', shortLabel: 'Fermentación', status: 'upcoming' },
+    { id: 'lees', label: 'Afinado sobre lías', shortLabel: 'Lías', status: 'optional' },
+    { id: 'bottle', label: 'Estabilización y embotellado', shortLabel: 'Embotellado', status: 'upcoming' },
+  ],
+  cofermentation: [
+    { id: 'reception', label: 'Pesaje separado y control de composición', shortLabel: 'Pesaje', status: 'complete' },
+    { id: 'vatting', label: 'Encubado conjunto tras báscula', shortLabel: 'Encubado', status: 'complete' },
+    { id: 'cofermentation', label: 'Cofermentación corta con hollejos', shortLabel: 'Cofermentación', status: 'current' },
+    { id: 'press', label: 'Separación y prensado de fracciones', shortLabel: 'Separación', status: 'upcoming' },
+    { id: 'af', label: 'Final de fermentación alcohólica', shortLabel: 'Fermentación', status: 'upcoming' },
+    { id: 'lees', label: 'Afinado sobre lías o maloláctica', shortLabel: 'Afinado', status: 'optional' },
+    { id: 'bottle', label: 'Estabilización y embotellado', shortLabel: 'Embotellado', status: 'upcoming' },
+  ],
+}
+
+export const roseLot: WineLot = {
+  id: 'R-26-003', name: 'Clarete del Iregua', type: 'rosado', varieties: '60% Viura · 40% Garnacha Tinta',
+  origin: 'Alberite · Rioja Oriental', vintage: 2026, volume: 4450, vessel: 'D-07',
+  stage: 'Cofermentación corta con hollejos', day: 2, temperature: 18.4, density: 1.071,
+  progress: 29, attention: 'normal', nextAction: 'Comprobar color y decidir separación', nextTime: '15:30',
+  image: images.vineyard,
+  process: roseProcesses.cofermentation,
+  readings: [
+    { time: 'Recepción', temperature: 14.1, density: 1.093 },
+    { time: 'Día 1', temperature: 16.2, density: 1.085 },
+    { time: 'Hoy 08h', temperature: 17.7, density: 1.076 },
+    { time: 'Hoy 12h', temperature: 18.4, density: 1.071, note: 'Intensidad colorante 0,82 UA/cm' },
+  ],
+  productionDetails: {
+    receivedKg: 6500, receptionDate: '2026-09-18', initialDensity: 1.093, receptionTemperature: 14.1,
+    rose: { style: 'clarete', method: 'cofermentation', redGrapePercentage: 40, blendAfterWeighing: true, macerationHours: 18, pressFraction: 'Mosto yema + primera prensada', turbidityTarget: 110, protection: 'Inertizado con CO₂', targetColorIntensity: 0.8 },
+  },
+}
 
 export const lots: WineLot[] = [
   {
@@ -81,7 +139,10 @@ export const lots: WineLot[] = [
     image: images.barrels, process: redProcess.map((stage, index) => ({ ...stage, status: index < 5 ? 'complete' : index === 5 ? 'current' : 'upcoming' })),
     readings: [],
   },
+  roseLot,
 ]
+
+export const roseTask: CellarTask = { id: 'rose-demo-task', title: 'Comprobar color y decidir separación', lot: 'R-26-003', time: '15:30', assignee: 'Elena', priority: 'media', complete: false }
 
 export const initialTasks: CellarTask[] = [
   { id: '1', title: 'Remontado suave', lot: 'T-26-017', time: '14:30', assignee: 'Martín', priority: 'alta', complete: false },
@@ -89,7 +150,10 @@ export const initialTasks: CellarTask[] = [
   { id: '3', title: 'Revisar temperatura', lot: 'B-26-006', time: '17:30', assignee: 'Elena', priority: 'normal', complete: false },
   { id: '4', title: 'Toma de muestra maloláctica', lot: 'T-25-012', time: '18:00', assignee: 'Lucía', priority: 'media', complete: false },
   { id: '5', title: 'Rellenar barricas', lot: 'CR-25-004', time: 'Mañana', assignee: 'Martín', priority: 'normal', complete: false },
+  roseTask,
 ]
+
+export const roseTank: Tank = { id: 'D-07', capacity: 6000, volume: 4450, lot: 'R-26-003', type: 'rosado', stage: 'Cofermentación', temperature: 18.4, attention: 'normal' }
 
 export const tanks: Tank[] = [
   { id: 'D-01', capacity: 10000, volume: 0, attention: 'normal' },
@@ -98,6 +162,7 @@ export const tanks: Tank[] = [
   { id: 'D-04', capacity: 6000, volume: 5200, lot: 'B-26-006', type: 'blanco', stage: 'Fermentación en frío', temperature: 15.2, attention: 'normal' },
   { id: 'D-05', capacity: 6000, volume: 0, attention: 'normal' },
   { id: 'D-06', capacity: 7500, volume: 6100, lot: 'B-26-004', type: 'blanco', stage: 'Desfangado', temperature: 10.4, attention: 'normal' },
+  roseTank,
   { id: 'D-11', capacity: 10000, volume: 8700, lot: 'T-26-016', type: 'tinto', stage: 'Fermentación', temperature: 24.1, attention: 'normal' },
   { id: 'D-12', capacity: 10000, volume: 7850, lot: 'T-26-017', type: 'tinto', stage: 'Fermentación', temperature: 24.8, attention: 'warning' },
   { id: 'D-13', capacity: 10000, volume: 9800, lot: 'T-26-019', type: 'tinto', stage: 'Encubado', temperature: 20.7, attention: 'critical' },

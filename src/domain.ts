@@ -1,5 +1,5 @@
-import { images, redProcess, whiteProcess } from './data'
-import type { Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ProcessStage, RecallSimulation, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WineLot } from './types'
+import { images, redProcess, roseProcesses, whiteProcess } from './data'
+import type { Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ProcessStage, RecallSimulation, RoseMethod, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WineLot } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -8,8 +8,40 @@ const initialProcess = (template: ProcessStage[]) => template.map((stage, index)
   status: index === 0 ? 'current' as const : stage.status === 'optional' ? 'optional' as const : 'upcoming' as const,
 }))
 
+const roseOpeningActions: Record<RoseMethod, string> = {
+  direct_press: 'Registrar prensado directo y fracciones por color',
+  short_maceration: 'Iniciar maceración pelicular corta',
+  saignee: 'Iniciar maceración para sangrado',
+  cofermentation: 'Confirmar encubado conjunto tras báscula',
+}
+
+export const roseOpeningAction = (method: RoseMethod) => roseOpeningActions[method]
+
+export const roseEligibilityIssues = (input: NewLotInput) => {
+  if (input.type !== 'rosado') return []
+  const issues: string[] = []
+  const redPercentage = input.redGrapePercentage ?? 0
+  const colorIntensity = input.targetColorIntensity ?? 0
+  const method = input.roseMethod ?? 'direct_press'
+  const macerationHours = input.macerationHours ?? 0
+  const estimatedYield = input.receivedKg > 0 ? input.volume / input.receivedKg * 100 : 0
+
+  if (redPercentage < 25 || redPercentage > 100) issues.push('red_percentage')
+  if (redPercentage < 100 && !input.blendAfterWeighing) issues.push('blend_after_weighing')
+  if (colorIntensity < 0.1 || colorIntensity > 1.8) issues.push('color_intensity')
+  if (estimatedYield > 70) issues.push('yield')
+  if (input.roseStyle === 'clarete' && method !== 'cofermentation') issues.push('clarete_method')
+  if (method !== 'direct_press' && (macerationHours <= 0 || macerationHours > 48)) issues.push('maceration_hours')
+  return issues
+}
+
+export const validateRoseInput = (input: NewLotInput) => {
+  const issues = roseEligibilityIssues(input)
+  if (issues.length) throw new Error(`Rosado eligibility checks failed: ${issues.join(', ')}`)
+}
+
 export const nextLotCode = (type: NewLotInput['type'], vintage: number, lots: WineLot[]) => {
-  const prefix = type === 'tinto' ? 'T' : 'B'
+  const prefix = type === 'tinto' ? 'T' : type === 'blanco' ? 'B' : 'R'
   const year = String(vintage).slice(-2)
   const matcher = new RegExp(`^${prefix}-${year}-(\\d+)$`)
   const highest = lots.reduce((maximum, lot) => {
@@ -21,7 +53,9 @@ export const nextLotCode = (type: NewLotInput['type'], vintage: number, lots: Wi
 
 export const createLot = (input: NewLotInput): WineLot => {
   const isRed = input.type === 'tinto'
-  const process = initialProcess(isRed ? redProcess : whiteProcess)
+  const isRose = input.type === 'rosado'
+  if (isRose) validateRoseInput(input)
+  const process = initialProcess(isRed ? redProcess : isRose ? roseProcesses[input.roseMethod ?? 'direct_press'] : whiteProcess)
   const recordedAt = new Date().toISOString()
   const activity: LotActivity = {
     id: nowId('activity'),
@@ -46,9 +80,9 @@ export const createLot = (input: NewLotInput): WineLot => {
     density: input.density,
     progress: 4,
     attention: 'normal',
-    nextAction: isRed ? 'Completar selección y encubado' : 'Registrar prensado y fracciones',
+    nextAction: isRed ? 'Completar selección y encubado' : isRose ? roseOpeningAction(input.roseMethod ?? 'direct_press') : 'Registrar prensado y fracciones',
     nextTime: 'Hoy',
-    image: isRed ? images.cellar : images.whiteGrapes,
+    image: isRed ? images.cellar : isRose ? images.vineyard : images.whiteGrapes,
     process,
     readings: [{
       time: 'Recepción',
@@ -64,10 +98,21 @@ export const createLot = (input: NewLotInput): WineLot => {
       initialDensity: input.density,
       receptionTemperature: input.temperature,
       red: isRed ? { macerationPlan: input.macerationPlan ?? 'Tradicional' } : undefined,
-      white: !isRed ? {
+      white: input.type === 'blanco' ? {
         pressFraction: input.pressFraction ?? 'Mosto yema',
         turbidityTarget: input.turbidityTarget ?? 100,
         protection: input.protection ?? 'Inertizado',
+      } : undefined,
+      rose: isRose ? {
+        style: input.roseStyle ?? 'rosado',
+        method: input.roseMethod ?? 'direct_press',
+        redGrapePercentage: input.redGrapePercentage ?? 25,
+        blendAfterWeighing: input.blendAfterWeighing ?? true,
+        macerationHours: input.macerationHours ?? 0,
+        pressFraction: input.pressFraction ?? 'Mosto yema',
+        turbidityTarget: input.turbidityTarget ?? 100,
+        protection: input.protection ?? 'Inertizado con CO₂',
+        targetColorIntensity: input.targetColorIntensity ?? 0.8,
       } : undefined,
     },
   }
@@ -75,7 +120,7 @@ export const createLot = (input: NewLotInput): WineLot => {
 
 export const createOpeningTask = (lot: WineLot): CellarTask => ({
   id: nowId('task'),
-  title: lot.type === 'tinto' ? 'Completar selección y encubado' : 'Registrar prensado y fracciones',
+  title: lot.type === 'tinto' ? 'Completar selección y encubado' : lot.type === 'rosado' ? roseOpeningAction(lot.productionDetails?.rose?.method ?? 'direct_press') : 'Registrar prensado y fracciones',
   lot: lot.id,
   time: 'Hoy',
   assignee: 'Elena',

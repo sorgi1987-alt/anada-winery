@@ -1,20 +1,20 @@
 # Añada
 
-Añada is a visual winery-production application for small and medium-sized Rioja wineries. It is designed for fast use in the cellar and models red and white winemaking as genuinely different processes.
+Añada is a visual winery-production application for small and medium-sized Rioja wineries. It is designed for fast use in the cellar and models red, white, rosado and clarete winemaking as genuinely different processes.
 
 ## Current status
 
-Phase 2G is a production-fidelity bilingual functional frontend. Operational data starts from realistic Rioja seed data and is persisted in the current browser. There is no shared server persistence, authentication or regulatory certification yet.
+Phase 2H completes the production-fidelity bilingual frontend. Operational data starts from realistic Rioja seed data and is persisted in the current browser. There is no shared server persistence, authentication or regulatory certification yet.
 
 Implemented views:
 
 - Visual entry experience
 - Today dashboard
-- Red/white process selection
-- Guided red and white lot creation
+- Red, white, rosado and clarete process selection
+- Guided lot creation with type-specific cellar controls
 - Capacity-aware vessel assignment
 - Lot search and filters
-- Separate red and white lot-detail experiences
+- Separate red, white and rosado/clarete lot-detail experiences
 - Process-specific contextual operations
 - Responsive visual cellar map
 - Persistent quick readings and activity history
@@ -64,7 +64,10 @@ Implemented views:
 - Transparent system status distinguishing local storage from deferred Catalyst, authentication and external integrations
 - Confirmed demonstration-data reset with destructive-action protection
 - Desktop typography calibrated for comfortable 1440p use
-- Preview states for later modules
+- Direct-press, short-maceration, saignée and traditional clarete co-fermentation routes
+- Internal rosado/clarete checks for composition, weighbridge timing, colour intensity and transformation yield
+- Rosado/clarete filters in lot, cellar and reporting views
+- Preview state for the later sparkling-wine module
 
 ## Local development
 

@@ -12,7 +12,7 @@ import type {
 } from './types'
 
 type ReportView = 'overview' | 'production' | 'quality' | 'control'
-type WineFilter = 'all' | Extract<WineType, 'tinto' | 'blanco'>
+type WineFilter = 'all' | Extract<WineType, 'tinto' | 'blanco' | 'rosado'>
 
 interface ReportsPageProps {
   lots: WineLot[]
@@ -29,7 +29,11 @@ interface ReportsPageProps {
   settings: WinerySettings
 }
 
-const deliveryType = (delivery: GrapeDelivery): WineFilter => /viura|malvas[ií]a|tempranillo blanco/i.test(delivery.varieties) ? 'blanco' : 'tinto'
+const deliveryType = (delivery: GrapeDelivery): Exclude<WineFilter, 'all'> => {
+  const hasWhite = /viura|malvas[ií]a|garnacha blanca|tempranillo blanco|maturana blanca|verdejo|turrunt[eé]s|chardonnay|sauvignon/i.test(delivery.varieties)
+  const hasRed = /tempranillo(?! blanco)|garnacha(?! blanca)|graciano|mazuelo|maturana tinta/i.test(delivery.varieties)
+  return hasWhite && hasRed ? 'rosado' : hasWhite ? 'blanco' : 'tinto'
+}
 const pct = (value: number, total: number) => total ? Math.round(value / total * 100) : 0
 
 export function ReportsPage(props: ReportsPageProps) {
@@ -76,8 +80,8 @@ export function ReportsPage(props: ReportsPageProps) {
     return [...days.values()].sort((a, b) => a.date.localeCompare(b.date)).map((item) => ({ ...item, label: new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short' }).format(new Date(`${item.date}T12:00:00`)) }))
   }, [filteredDeliveries, locale])
 
-  const volumeByType = (['tinto', 'blanco'] as const).map((type) => ({
-    type: t(type === 'tinto' ? 'wine.red' : 'wine.white'),
+  const volumeByType = (['tinto', 'blanco', 'rosado'] as const).map((type) => ({
+    type: t(type === 'tinto' ? 'wine.red' : type === 'blanco' ? 'wine.white' : 'wine.rose'),
     volume: lots.filter((lot) => (campaign === 'all' || lot.vintage === campaign) && lot.type === type).reduce((sum, lot) => sum + lot.volume, 0),
   }))
   const stageRows = [...new Map(filteredLots.map((lot) => [lot.stage, lot.stage])).values()].map((stage) => ({
@@ -104,7 +108,7 @@ export function ReportsPage(props: ReportsPageProps) {
 
     <section className="reports-hero" style={{ backgroundImage: `url(${images.cellar})` }}><div className="reports-hero-overlay" /><div className="reports-hero-copy"><span className="report-season"><BarChart3 size={15} /> {t('reports.campaignView', { year: campaign === 'all' ? t('reports.allCampaigns') : campaign })}</span><h2>{t('reports.heroTitle')}</h2><p>{t('reports.heroText')}</p><div className="reports-hero-badges"><span><TrendingUp size={15} /> {t('reports.liveData')}</span><span><ShieldCheck size={15} /> {t('reports.internalManagement')}</span></div></div><div className="report-hero-summary"><span><small>{t('reports.activeWine')}</small><strong>{number(wineVolume)} L</strong><em>{filteredLots.length} {t('reports.lots').toLowerCase()}</em></span><i /><span><small>{t('reports.campaignProgress')}</small><strong>{pct(receivedKg, campaignTargetKg)}%</strong><em>{number(receivedKg)} kg</em></span></div></section>
 
-    <section className="report-filters"><div className="harvest-tabs reports-tabs" role="tablist">{(['overview', 'production', 'quality', 'control'] as const).map((item) => <button key={item} role="tab" aria-selected={view === item} className={view === item ? 'active' : ''} onClick={() => setView(item)}>{t(`reports.${item}` as 'reports.overview')}</button>)}</div><div className="report-filter-controls"><label><span>{t('reports.campaign')}</span><select value={campaign} onChange={(event) => setCampaign(event.target.value === 'all' ? 'all' : Number(event.target.value))}><option value="all">{t('reports.allCampaigns')}</option>{campaigns.map((year) => <option key={year} value={year}>{year}</option>)}</select></label><div className="filter-chips">{(['all', 'tinto', 'blanco'] as const).map((type) => <button key={type} className={wineFilter === type ? 'active' : ''} onClick={() => setWineFilter(type)}>{t(type === 'all' ? 'reports.allWines' : type === 'tinto' ? 'wine.red' : 'wine.white')}</button>)}</div></div></section>
+    <section className="report-filters"><div className="harvest-tabs reports-tabs" role="tablist">{(['overview', 'production', 'quality', 'control'] as const).map((item) => <button key={item} role="tab" aria-selected={view === item} className={view === item ? 'active' : ''} onClick={() => setView(item)}>{t(`reports.${item}` as 'reports.overview')}</button>)}</div><div className="report-filter-controls"><label><span>{t('reports.campaign')}</span><select value={campaign} onChange={(event) => setCampaign(event.target.value === 'all' ? 'all' : Number(event.target.value))}><option value="all">{t('reports.allCampaigns')}</option>{campaigns.map((year) => <option key={year} value={year}>{year}</option>)}</select></label><div className="filter-chips">{(['all', 'tinto', 'blanco', 'rosado'] as const).map((type) => <button key={type} className={wineFilter === type ? 'active' : ''} onClick={() => setWineFilter(type)}>{t(type === 'all' ? 'reports.allWines' : type === 'tinto' ? 'wine.red' : type === 'blanco' ? 'wine.white' : 'wine.rose')}</button>)}</div></div></section>
 
     <section className="report-metrics" aria-label={t('reports.summary')}><ReportMetric icon={<Grape />} label={t('reports.grapesReceived')} value={`${number(receivedKg)} kg`} detail={t('reports.ofExpected', { value: `${pct(receivedKg, campaignTargetKg)}%` })} tone="wine" /><ReportMetric icon={<Wine />} label={t('reports.activeWine')} value={`${number(wineVolume)} L`} detail={t('reports.acrossLots', { count: filteredLots.length })} tone="gold" /><ReportMetric icon={<Warehouse />} label={t('reports.tankOccupancy')} value={`${tankOccupancy}%`} detail={`${number(tankVolume)} / ${number(tankCapacity)} L`} tone="blue" /><ReportMetric icon={<ClipboardCheck />} label={t('reports.openWork')} value={String(openTasks)} detail={t('reports.attentionCount', { count: attentionLots.length + reviewSamples.length })} tone="critical" /></section>
 

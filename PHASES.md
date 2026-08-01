@@ -43,7 +43,7 @@ Wine names, grape varieties, winery names and Rioja place names remain unchanged
 
 ## Phase 2 — Complete frontend modules
 
-Status: in progress.
+Status: completed.
 
 ### Phase 2A — Harvest planning and intake
 
@@ -138,9 +138,17 @@ Status: completed.
 - Protected demonstration-data reset
 - Schema migration preserving Phase 2F browser data
 
-Remaining Phase 2 modules:
+### Phase 2H — Rosado and clarete production
 
-- Rosé/clarete frontend process
+Status: completed.
+
+- Four distinct routes: direct press, short skin maceration, saignée and traditional clarete co-fermentation
+- Composition, separate-weighing, press-fraction, protection, skin-contact, turbidity and colour-intensity controls
+- Internal DOCa eligibility checks for minimum red-grape percentage, mixing point, colour range and transformation yield
+- Guided rosado/clarete lot creation with process-specific stages and opening tasks
+- Dedicated lot detail, cellar, search and reporting experiences
+- Bilingual operational terminology and large-screen legibility pass
+- Schema migration preserving Phase 2G browser data and introducing a process-detailed clarete example
 
 ## Phase 3 — Catalyst foundation
 
