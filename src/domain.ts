@@ -548,8 +548,7 @@ const redNextActions: Record<string, string> = {
 const currentStage = (lot: WineLot) => lot.process.find((stage) => stage.status === 'current')
 
 const latestMetric = (events: ProductionEvent[], lotId: string, metric: 'density' | 'malicAcid') => events
-  .filter((event) => event.lotId === lotId && event.kind === 'operation' && event.metrics[metric] !== undefined)
-  .sort((left, right) => right.performedAt.localeCompare(left.performedAt))[0]?.metrics[metric]
+  .find((event) => event.lotId === lotId && event.kind === 'operation' && event.metrics[metric] !== undefined)?.metrics[metric]
 
 export const redStageGate = (lot: WineLot, events: ProductionEvent[]): RedStageGate => {
   if (lot.type !== 'tinto') throw new Error('Red process gates only apply to red lots')

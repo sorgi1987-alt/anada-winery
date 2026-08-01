@@ -50,9 +50,7 @@ export function RedProcessControl({ lot, events, onRecordOperation, onAdvanceSta
   const nextStage = stageIndex >= 0 ? lot.process[stageIndex + 1] : undefined
   const availableOperations = stage ? redOperationTypesByStage[stage.id] ?? [] : []
   const gate = redStageGate(lot, events)
-  const lotEvents = useMemo(() => events
-    .filter((event) => event.lotId === lot.id)
-    .sort((left, right) => right.performedAt.localeCompare(left.performedAt)), [events, lot.id])
+  const lotEvents = useMemo(() => events.filter((event) => event.lotId === lot.id), [events, lot.id])
   const gateValue = gate.value === undefined ? '—' : gate.reason === 'density_required' ? gate.value.toFixed(3) : `${gate.value.toFixed(2)} g/L`
 
   const eventDetail = (event: ProductionEvent) => {

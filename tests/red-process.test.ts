@@ -22,7 +22,7 @@ test('a qualifying density check unlocks and advances the lot to devatting', () 
   const recorded = recordRedOperation([lot], cellarTanks(), [], structuredClone(productionEvents), {
     lotId: lot.id,
     type: 'density_check',
-    performedAt: '2026-09-24T08:10:00+02:00',
+    performedAt: '2026-08-01T14:10:00+02:00',
     operator: 'Elena Martín',
     notes: 'Fermentación alcohólica terminada.',
     metrics: { density: 0.994, temperature: 24.1 },
@@ -32,7 +32,7 @@ test('a qualifying density check unlocks and advances the lot to devatting', () 
 
   const advanced = advanceRedStage(recorded.lots, recorded.tanks, recorded.tasks, recorded.events, {
     lotId: lot.id,
-    performedAt: '2026-09-24T08:20:00+02:00',
+    performedAt: '2026-08-01T14:20:00+02:00',
     operator: 'Elena Martín',
     notes: 'Cierre confirmado por densidad.',
   })
