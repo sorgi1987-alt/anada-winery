@@ -11,15 +11,14 @@ import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
 import { BlendingPage } from './Blending'
 import { images, lots as seedLots } from './data'
-import { advanceRedStage, advanceWhiteStage, approveBlendTrial, assignLotToTank, completeBottlingOrder, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createRecallSimulation, createTask, receiveGrapeDelivery, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, recordWhiteOperation, setBottlingGate, startBottlingOrder } from './domain'
+import { advanceRedStage, advanceRoseStage, advanceWhiteStage, approveBlendTrial, assignLotToTank, completeBottlingOrder, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createRecallSimulation, createTask, receiveGrapeDelivery, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, recordRoseOperation, recordWhiteOperation, setBottlingGate, startBottlingOrder } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
 import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { RedProcessControl } from './RedProcess'
-import { WhiteProcessControl } from './WhiteProcess'
 import { browserWineryRepository } from './store'
-import type { AdvanceRedStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewRedOperationInput, NewTaskInput, NewWhiteOperationInput, PackagingMaterial, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineType } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewTaskInput, NewWhiteOperationInput, PackagingMaterial, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -32,6 +31,8 @@ const roseMethodLabelKey: Record<RoseMethod, 'rose.method.direct_press' | 'rose.
 }
 
 const FermentationChart = lazy(() => import('./Charts').then((module) => ({ default: module.FermentationChart })))
+const WhiteProcessControl = lazy(() => import('./WhiteProcess').then((module) => ({ default: module.WhiteProcessControl })))
+const RoseProcessControl = lazy(() => import('./RoseProcess').then((module) => ({ default: module.RoseProcessControl })))
 const BottlingPage = lazy(() => import('./Bottling').then((module) => ({ default: module.BottlingPage })))
 const TraceabilityPage = lazy(() => import('./Traceability').then((module) => ({ default: module.TraceabilityPage })))
 const ReportsPage = lazy(() => import('./Reports').then((module) => ({ default: module.ReportsPage })))
@@ -88,7 +89,7 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 11, lots: demoLots, tasks, tanks: demoTanks, productionEvents, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
+    browserWineryRepository.save({ schemaVersion: 12, lots: demoLots, tasks, tanks: demoTanks, productionEvents, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
   }, [demoLots, tasks, demoTanks, productionEvents, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings])
 
   const toggleCellarMode = () => {
@@ -123,7 +124,7 @@ function App() {
         }
       : lot))
     const stage = targetLot?.process.find((item) => item.status === 'current')
-    if ((targetLot?.type === 'tinto' || targetLot?.type === 'blanco') && stage) {
+    if ((targetLot?.type === 'tinto' || targetLot?.type === 'blanco' || targetLot?.type === 'rosado') && stage) {
       const event: ProductionEvent = {
         id: activityId,
         lotId,
@@ -205,6 +206,28 @@ function App() {
     setProductionEvents(result.events)
     setUndoLot(null)
     setToast(t('toast.whiteStageAdvanced', { id: result.lot.id, stage: d(result.lot.stage) }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
+  const saveRoseOperation = (input: NewRoseOperationInput) => {
+    const result = recordRoseOperation(demoLots, demoTanks, tasks, productionEvents, input)
+    setDemoLots(result.lots)
+    setDemoTanks(result.tanks)
+    setTasks(result.tasks)
+    setProductionEvents(result.events)
+    setUndoLot(null)
+    setToast(t('toast.roseOperationSaved', { id: result.lot.id }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
+  const moveRoseStage = (input: AdvanceRoseStageInput) => {
+    const result = advanceRoseStage(demoLots, demoTanks, tasks, productionEvents, input)
+    setDemoLots(result.lots)
+    setDemoTanks(result.tanks)
+    setTasks(result.tasks)
+    setProductionEvents(result.events)
+    setUndoLot(null)
+    setToast(t('toast.roseStageAdvanced', { id: result.lot.id, stage: d(result.lot.stage) }))
     window.setTimeout(() => setToast(null), 4200)
   }
 
@@ -365,7 +388,7 @@ function App() {
   else if (pathname === '/harvest') currentPage = <HarvestPage parcels={parcels} deliveries={deliveries} onOpenIntake={(deliveryId) => setIntakeFlow({ open: true, deliveryId })} />
   else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={demoLots} />
-  else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} productionEvents={productionEvents} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} onRecordRedOperation={saveRedOperation} onAdvanceRedStage={moveRedStage} onRecordWhiteOperation={saveWhiteOperation} onAdvanceWhiteStage={moveWhiteStage} />
+  else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} productionEvents={productionEvents} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} onRecordRedOperation={saveRedOperation} onAdvanceRedStage={moveRedStage} onRecordWhiteOperation={saveWhiteOperation} onAdvanceWhiteStage={moveWhiteStage} onRecordRoseOperation={saveRoseOperation} onAdvanceRoseStage={moveRoseStage} />
   else if (pathname === '/cellar') currentPage = <CellarMap tanks={demoTanks} />
   else if (pathname === '/tasks') currentPage = <TasksPage lots={demoLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} />
   else if (pathname === '/laboratory') currentPage = <LaboratoryPage samples={samples} lots={demoLots} deliveries={deliveries} parcels={parcels} onCreate={addLabSample} onRecordResults={saveLabResults} />
@@ -772,7 +795,7 @@ function OverviewLotCard({ lot, onOpen, compact }: { lot: WineLot; onOpen: () =>
   )
 }
 
-function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRedOperation, onAdvanceRedStage, onRecordWhiteOperation, onAdvanceWhiteStage }: {
+function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRedOperation, onAdvanceRedStage, onRecordWhiteOperation, onAdvanceWhiteStage, onRecordRoseOperation, onAdvanceRoseStage }: {
   lots: WineLot[]
   tanks: Tank[]
   productionEvents: ProductionEvent[]
@@ -782,6 +805,8 @@ function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRe
   onAdvanceRedStage: (input: AdvanceRedStageInput) => void
   onRecordWhiteOperation: (input: NewWhiteOperationInput) => void
   onAdvanceWhiteStage: (input: AdvanceWhiteStageInput) => void
+  onRecordRoseOperation: (input: NewRoseOperationInput) => void
+  onAdvanceRoseStage: (input: AdvanceRoseStageInput) => void
 }) {
   const navigate = useNavigate()
   const { t, d, locale } = useLanguage()
@@ -863,6 +888,7 @@ function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRe
 
       {isRed && <RedProcessControl lot={lot} events={productionEvents} onRecordOperation={onRecordRedOperation} onAdvanceStage={onAdvanceRedStage} />}
       {lot.type === 'blanco' && <WhiteProcessControl lot={lot} events={productionEvents} onRecordOperation={onRecordWhiteOperation} onAdvanceStage={onAdvanceWhiteStage} />}
+      {isRose && <RoseProcessControl lot={lot} events={productionEvents} onRecordOperation={onRecordRoseOperation} onAdvanceStage={onAdvanceRoseStage} />}
 
       <section className="detail-columns">
         <div className="panel readings-panel">

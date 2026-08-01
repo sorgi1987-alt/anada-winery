@@ -151,7 +151,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 11
+  schemaVersion: 12
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -260,6 +260,11 @@ export interface ProductionEventMetrics {
   settlingHours?: number
   leesDecision?: 'continue' | 'complete' | 'skip'
   conductivityDrop?: number
+  colorIntensity?: number
+  skinContactHours?: number
+  redGrapePercentage?: number
+  separateWeightsConfirmed?: boolean
+  mixingAfterWeighing?: boolean
 }
 
 export interface ProductionEvent {
@@ -268,7 +273,7 @@ export interface ProductionEvent {
   wineType: WineType
   kind: 'operation' | 'transition'
   stageId: string
-  operationType?: RedOperationType | WhiteOperationType
+  operationType?: RedOperationType | WhiteOperationType | RoseOperationType
   fromStageId?: string
   toStageId?: string
   performedAt: string
@@ -339,6 +344,50 @@ export interface WhiteStageGate {
   nextStageId?: string
   eligible: boolean
   reason: 'protection_required' | 'pressing_required' | 'turbidity_required' | 'racking_required' | 'density_required' | 'lees_decision_required' | 'stability_required' | 'complete' | 'ready'
+  value?: number
+}
+
+export type RoseOperationType =
+  | 'composition_check'
+  | 'separate_weighing'
+  | 'must_protection'
+  | 'direct_pressing'
+  | 'skin_contact_check'
+  | 'color_check'
+  | 'saignee_separation'
+  | 'joint_vatting'
+  | 'gentle_cap_management'
+  | 'fraction_separation'
+  | 'turbidity_check'
+  | 'clean_must_racking'
+  | 'inoculation'
+  | 'temperature_check'
+  | 'density_check'
+  | 'sample'
+  | 'lees_decision'
+  | 'stability_check'
+
+export interface NewRoseOperationInput {
+  lotId: string
+  type: RoseOperationType
+  performedAt: string
+  operator: string
+  notes: string
+  metrics: ProductionEventMetrics
+}
+
+export interface AdvanceRoseStageInput {
+  lotId: string
+  performedAt: string
+  operator: string
+  notes: string
+}
+
+export interface RoseStageGate {
+  stageId: string
+  nextStageId?: string
+  eligible: boolean
+  reason: 'composition_required' | 'weighing_required' | 'protection_required' | 'pressing_required' | 'contact_required' | 'color_required' | 'vatting_required' | 'separation_required' | 'turbidity_required' | 'racking_required' | 'density_required' | 'lees_decision_required' | 'stability_required' | 'complete' | 'ready'
   value?: number
 }
 

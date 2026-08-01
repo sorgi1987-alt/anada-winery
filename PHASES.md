@@ -206,7 +206,7 @@ Completion gate passed: a quick density reading is retained in process history a
 
 ### Phase 4B — Executable white-wine process
 
-Status: deployment prepared.
+Status: completed.
 
 - Independent white-stage operation matrix with no red cap-management actions
 - Reception control, must protection, pressing fractions, turbidity, clean-must racking, inoculation, cool-fermentation controls, sampling, bâtonnage, lees tasting and tartaric-stability checks
@@ -219,11 +219,27 @@ Status: deployment prepared.
 - Bilingual, cellar-friendly visual controls and attributed browser-local history
 - Schema migration preserving Phase 4A events and adding the white demonstration history only when absent
 
-Completion gate: deploy the frontend, save a density of 0.994 on `B-26-006`, confirm it appears in white process history and advance the lot to the optional lees stage.
+Completion gate passed: a density of 0.994 is retained in the white process history and unlocks the optional lees stage on `B-26-006`.
+
+### Phase 4C — Executable rosado and clarete processes
+
+Status: deployment prepared.
+
+- Four independent executable routes: direct press, short skin maceration, saignée and traditional clarete co-fermentation
+- Route-and-stage operation matrices that prevent red or white operations leaking into rosado work
+- Composition and colour-target controls retained with each lot
+- Separate source weights and post-weighbridge mixing required before traditional clarete joint vatting
+- Planned skin-contact and target-colour gates before short-maceration or co-fermentation separation
+- Direct-press, saignée and fraction-separation volume reconciliation without volume creation
+- Internal transformation-yield checkpoint capped at 70 L/100 kg of received grapes
+- Rosado-specific settling, cool-fermentation, optional lees and stability gates where present in the selected route
+- Bilingual visual route identity, operation sheets and attributed browser-local history
+- Schema migration preserving completed red and white process histories
+
+Completion gate: deploy the frontend, open `R-26-003`, record a colour check of 0.82 UA/cm with 18 hours of skin contact, then advance the clarete to separation and pressing.
 
 ### Later Phase 4 checkpoints
 
-- Executable rosado and clarete process engines
 - Splits, merges and physical blend movements
 - Cross-vessel transfer and loss reconciliation
 - Authenticated audit trail and electronic sign-off after access control is enabled

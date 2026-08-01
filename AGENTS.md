@@ -55,4 +55,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 4B is prepared: red and white lots now have distinct executable operation matrices, guarded transitions, process-specific reconciliations and attributed browser-local histories. White gates cover protected must, press yield, turbidity plus clean-must racking, dry density, optional lees work and internal tartaric-stability checks. Phase 3B.1 health connectivity is live, but the browser repository remains authoritative. Authentication, protected operational reads and remote writes are still deferred. See `PHASES.md`.
+Phase 4C is prepared: red, white, rosado and clarete lots now have distinct executable operation matrices, guarded transitions, process-specific reconciliations and attributed browser-local histories. Rosado/clarete gates preserve route identity, separate weighing, post-weighbridge mixing, planned skin contact, target colour and transformation yield. Phase 3B.1 health connectivity is live, but the browser repository remains authoritative. Authentication, protected operational reads and remote writes are still deferred. See `PHASES.md`.

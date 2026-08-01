@@ -184,6 +184,21 @@ export const productionEvents: ProductionEvent[] = [
     performedAt: '2026-09-26T09:12:00+02:00', recordedAt: '2026-09-26T09:14:00+02:00', operator: 'Elena Martín',
     notes: 'Temperatura estable.', metrics: { temperature: 15.2, volumeBefore: 5200, volumeAfter: 5200 }, storageMode: 'browser-local',
   },
+  {
+    id: 'production-event-rose-001', lotId: 'R-26-003', wineType: 'rosado', kind: 'operation', stageId: 'cofermentation', operationType: 'gentle_cap_management',
+    performedAt: '2026-09-19T12:05:00+02:00', recordedAt: '2026-09-19T12:08:00+02:00', operator: 'Elena Martín',
+    notes: 'Movimiento corto para homogeneizar color sin extracción intensa.', metrics: { durationMinutes: 6, temperature: 18.4, volumeBefore: 4450, volumeAfter: 4450 }, storageMode: 'browser-local',
+  },
+  {
+    id: 'production-event-rose-002', lotId: 'R-26-003', wineType: 'rosado', kind: 'operation', stageId: 'cofermentation', operationType: 'density_check',
+    performedAt: '2026-09-19T08:10:00+02:00', recordedAt: '2026-09-19T08:13:00+02:00', operator: 'Lucía Sáenz',
+    notes: 'Cinética regular.', metrics: { density: 1.076, temperature: 17.7, volumeBefore: 4450, volumeAfter: 4450 }, storageMode: 'browser-local',
+  },
+  {
+    id: 'production-event-rose-003', lotId: 'R-26-003', wineType: 'rosado', kind: 'operation', stageId: 'vatting', operationType: 'joint_vatting',
+    performedAt: '2026-09-18T17:55:00+02:00', recordedAt: '2026-09-18T18:01:00+02:00', operator: 'Martín Ruiz',
+    notes: 'Encubado conjunto después de conservar los pesajes por origen.', metrics: { separateWeightsConfirmed: true, mixingAfterWeighing: true, volumeBefore: 4450, volumeAfter: 4450 }, storageMode: 'browser-local',
+  },
 ]
 
 export const roseTank: Tank = { id: 'D-07', capacity: 6000, volume: 4450, lot: 'R-26-003', type: 'rosado', stage: 'Cofermentación', temperature: 18.4, attention: 'normal' }

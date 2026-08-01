@@ -1,5 +1,5 @@
 import { images, redProcess, roseProcesses, whiteProcess } from './data'
-import type { AdvanceRedStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewRedOperationInput, NewTaskInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewTaskInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -547,7 +547,7 @@ const redNextActions: Record<string, string> = {
 
 const currentStage = (lot: WineLot) => lot.process.find((stage) => stage.status === 'current')
 
-const latestMetric = (events: ProductionEvent[], lotId: string, metric: 'density' | 'malicAcid' | 'turbidity' | 'conductivityDrop') => events
+const latestMetric = (events: ProductionEvent[], lotId: string, metric: 'density' | 'malicAcid' | 'turbidity' | 'conductivityDrop' | 'colorIntensity' | 'skinContactHours') => events
   .find((event) => event.lotId === lotId && event.kind === 'operation' && event.metrics[metric] !== undefined)?.metrics[metric]
 
 export const redStageGate = (lot: WineLot, events: ProductionEvent[]): RedStageGate => {
@@ -873,6 +873,254 @@ export const advanceWhiteStage = (
   const openingTask: CellarTask = {
     id: nowId('task'), title: updatedLot.nextAction, lot: lot.id, time: 'Hoy', assignee: input.operator.split(' ')[0], priority: 'media', complete: false,
   }
+  const updatedLots = lots.map((item) => item.id === lot.id ? updatedLot : item)
+  const updatedTanks = tanks.map((tank) => tank.lot === lot.id ? { ...tank, stage: nextStage.shortLabel, volume: lot.volume, attention: 'normal' as const } : tank)
+  return { event, lot: updatedLot, lots: updatedLots, tanks: updatedTanks, tasks: [openingTask, ...tasks], events: [event, ...events] }
+}
+
+export const roseOperationTypesByMethod: Record<RoseMethod, Record<string, RoseOperationType[]>> = {
+  direct_press: {
+    reception: ['composition_check', 'must_protection', 'temperature_check', 'sample'],
+    press: ['direct_pressing', 'color_check', 'sample'],
+    settling: ['turbidity_check', 'clean_must_racking', 'must_protection', 'sample'],
+    af: ['inoculation', 'temperature_check', 'density_check', 'color_check', 'sample'],
+    lees: ['lees_decision', 'sample'], stability: ['stability_check', 'color_check', 'sample'], bottle: [],
+  },
+  short_maceration: {
+    reception: ['composition_check', 'must_protection', 'temperature_check', 'sample'],
+    maceration: ['skin_contact_check', 'color_check', 'temperature_check', 'sample'],
+    press: ['fraction_separation', 'color_check', 'sample'],
+    settling: ['turbidity_check', 'clean_must_racking', 'must_protection', 'sample'],
+    af: ['inoculation', 'temperature_check', 'density_check', 'color_check', 'sample'],
+    lees: ['lees_decision', 'sample'], bottle: [],
+  },
+  saignee: {
+    reception: ['composition_check', 'must_protection', 'temperature_check', 'sample'],
+    maceration: ['skin_contact_check', 'color_check', 'temperature_check', 'sample'],
+    saignee: ['saignee_separation', 'color_check', 'sample'],
+    settling: ['turbidity_check', 'clean_must_racking', 'must_protection', 'sample'],
+    af: ['inoculation', 'temperature_check', 'density_check', 'color_check', 'sample'],
+    lees: ['lees_decision', 'sample'], bottle: [],
+  },
+  cofermentation: {
+    reception: ['composition_check', 'separate_weighing', 'temperature_check', 'sample'],
+    vatting: ['joint_vatting', 'temperature_check', 'sample'],
+    cofermentation: ['gentle_cap_management', 'skin_contact_check', 'color_check', 'temperature_check', 'density_check', 'sample'],
+    press: ['fraction_separation', 'color_check', 'sample'],
+    af: ['inoculation', 'temperature_check', 'density_check', 'sample'],
+    lees: ['lees_decision', 'sample'], bottle: [],
+  },
+}
+
+export const roseOperationsForLot = (lot: WineLot) => {
+  const method = lot.productionDetails?.rose?.method ?? 'direct_press'
+  const stage = currentStage(lot)
+  return stage ? roseOperationTypesByMethod[method][stage.id] ?? [] : []
+}
+
+const roseOperationTitles: Record<RoseOperationType, string> = {
+  composition_check: 'Control de composición', separate_weighing: 'Pesajes separados', must_protection: 'Protección del mosto', direct_pressing: 'Prensado directo',
+  skin_contact_check: 'Control de contacto pelicular', color_check: 'Control de color', saignee_separation: 'Sangrado y separación', joint_vatting: 'Encubado conjunto',
+  gentle_cap_management: 'Gestión suave de hollejos', fraction_separation: 'Separación de fracciones', turbidity_check: 'Control de turbidez', clean_must_racking: 'Trasiego de mosto limpio',
+  inoculation: 'Inoculación', temperature_check: 'Control de temperatura', density_check: 'Control de densidad', sample: 'Toma de muestra',
+  lees_decision: 'Decisión de afinado', stability_check: 'Control de estabilidad',
+}
+
+const roseNextActions: Record<string, string> = {
+  reception: 'Confirmar composición y recepción', vatting: 'Registrar encubado conjunto', maceration: 'Controlar contacto pelicular y color',
+  cofermentation: 'Comprobar color y decidir separación', press: 'Registrar separación y fracciones', saignee: 'Registrar sangrado y fracciones',
+  settling: 'Comprobar turbidez y trasegar mosto limpio', af: 'Registrar densidad y temperatura', lees: 'Decidir el afinado sobre lías',
+  stability: 'Comprobar estabilidad y color', bottle: 'Preparar filtración y embotellado',
+}
+
+const roseColorReady = (lot: WineLot, value: number | undefined) => {
+  if (value === undefined) return false
+  const target = lot.productionDetails?.rose?.targetColorIntensity ?? 0.8
+  return value >= Math.max(0.1, target - 0.15) && value <= Math.min(1.8, target + 0.15)
+}
+
+export const roseStageGate = (lot: WineLot, events: ProductionEvent[]): RoseStageGate => {
+  if (lot.type !== 'rosado') throw new Error('Rosado process gates only apply to rosado or clarete lots')
+  const stage = currentStage(lot)
+  if (!stage) return { stageId: 'complete', eligible: false, reason: 'complete' }
+  const stageIndex = lot.process.findIndex((item) => item.id === stage.id)
+  const nextStageId = lot.process[stageIndex + 1]?.id
+  if (!nextStageId) return { stageId: stage.id, eligible: false, reason: 'complete' }
+  const method = lot.productionDetails?.rose?.method ?? 'direct_press'
+  const stageEvents = events.filter((event) => event.lotId === lot.id && event.stageId === stage.id && event.kind === 'operation')
+  const hasOperation = (type: RoseOperationType) => stageEvents.some((event) => event.operationType === type)
+  const stageMetric = (metric: 'density' | 'turbidity' | 'conductivityDrop' | 'colorIntensity' | 'skinContactHours') => stageEvents.find((event) => event.metrics[metric] !== undefined)?.metrics[metric]
+
+  if (stage.id === 'reception') {
+    if (!hasOperation('composition_check')) return { stageId: stage.id, nextStageId, eligible: false, reason: 'composition_required' }
+    if (method === 'cofermentation') return { stageId: stage.id, nextStageId, eligible: hasOperation('separate_weighing'), reason: hasOperation('separate_weighing') ? 'ready' : 'weighing_required' }
+    return { stageId: stage.id, nextStageId, eligible: hasOperation('must_protection'), reason: hasOperation('must_protection') ? 'ready' : 'protection_required' }
+  }
+  if (stage.id === 'vatting') return { stageId: stage.id, nextStageId, eligible: hasOperation('joint_vatting'), reason: hasOperation('joint_vatting') ? 'ready' : 'vatting_required' }
+  if (stage.id === 'maceration' || stage.id === 'cofermentation') {
+    const contact = stageMetric('skinContactHours')
+    const planned = lot.productionDetails?.rose?.macerationHours ?? 0
+    if (contact === undefined || contact < planned) return { stageId: stage.id, nextStageId, eligible: false, reason: 'contact_required', value: contact }
+    const color = stageMetric('colorIntensity')
+    return { stageId: stage.id, nextStageId, eligible: roseColorReady(lot, color), reason: roseColorReady(lot, color) ? 'ready' : 'color_required', value: color }
+  }
+  if (stage.id === 'press') {
+    const required = method === 'direct_press' ? 'direct_pressing' : 'fraction_separation'
+    return { stageId: stage.id, nextStageId, eligible: hasOperation(required), reason: hasOperation(required) ? 'ready' : 'pressing_required' }
+  }
+  if (stage.id === 'saignee') return { stageId: stage.id, nextStageId, eligible: hasOperation('saignee_separation'), reason: hasOperation('saignee_separation') ? 'ready' : 'separation_required' }
+  if (stage.id === 'settling') {
+    const turbidity = stageMetric('turbidity')
+    const target = lot.productionDetails?.rose?.turbidityTarget ?? 110
+    if (turbidity === undefined || turbidity > target) return { stageId: stage.id, nextStageId, eligible: false, reason: 'turbidity_required', value: turbidity }
+    return { stageId: stage.id, nextStageId, eligible: hasOperation('clean_must_racking'), reason: hasOperation('clean_must_racking') ? 'ready' : 'racking_required', value: turbidity }
+  }
+  if (stage.id === 'af') {
+    const density = stageMetric('density') ?? lot.density
+    const eligible = density !== undefined && density <= 0.995
+    return { stageId: stage.id, nextStageId, eligible, reason: eligible ? 'ready' : 'density_required', value: density }
+  }
+  if (stage.id === 'lees') {
+    const decision = stageEvents.find((event) => event.operationType === 'lees_decision')?.metrics.leesDecision
+    const eligible = decision === 'complete' || decision === 'skip'
+    return { stageId: stage.id, nextStageId, eligible, reason: eligible ? 'ready' : 'lees_decision_required' }
+  }
+  if (stage.id === 'stability') {
+    const conductivityDrop = stageMetric('conductivityDrop')
+    const eligible = conductivityDrop !== undefined && conductivityDrop <= 30
+    return { stageId: stage.id, nextStageId, eligible, reason: eligible ? 'ready' : 'stability_required', value: conductivityDrop }
+  }
+  return { stageId: stage.id, nextStageId, eligible: false, reason: 'complete' }
+}
+
+const roseOperationDetail = (input: NewRoseOperationInput, volumeAfter: number) => {
+  const metrics = input.metrics
+  if (input.type === 'composition_check') return `${metrics.redGrapePercentage?.toFixed(0)}% uva tinta · objetivo ${metrics.colorIntensity?.toFixed(2)} UA/cm`
+  if (input.type === 'separate_weighing' || input.type === 'joint_vatting') return metrics.mixingAfterWeighing ? 'Pesajes por origen conservados · mezcla posterior' : input.notes
+  if (input.type === 'must_protection') return metrics.protection ?? input.notes
+  if (input.type === 'direct_pressing' || input.type === 'fraction_separation' || input.type === 'saignee_separation') return `${Math.round(metrics.freeRunVolume ?? 0).toLocaleString('es-ES')} L yema · ${Math.round(metrics.pressVolume ?? 0).toLocaleString('es-ES')} L prensa`
+  if (input.type === 'skin_contact_check') return `${metrics.skinContactHours?.toFixed(1)} h · ${metrics.colorIntensity?.toFixed(2)} UA/cm`
+  if (input.type === 'color_check') return `${metrics.colorIntensity?.toFixed(2)} UA/cm${metrics.skinContactHours !== undefined ? ` · ${metrics.skinContactHours.toFixed(1)} h` : ''}`
+  if (input.type === 'gentle_cap_management') return `${metrics.durationMinutes} min${metrics.temperature !== undefined ? ` · ${metrics.temperature.toFixed(1)} °C` : ''}`
+  if (input.type === 'turbidity_check') return `${metrics.turbidity?.toFixed(0)} NTU`
+  if (input.type === 'clean_must_racking') return `${Math.round(volumeAfter).toLocaleString('es-ES')} L reconciliados`
+  if (input.type === 'inoculation') return `${metrics.additionAmount} ${metrics.additionUnit} · ${metrics.product}`
+  if (input.type === 'temperature_check') return `${metrics.temperature?.toFixed(1)} °C`
+  if (input.type === 'density_check') return `${metrics.density?.toFixed(3)}${metrics.temperature !== undefined ? ` · ${metrics.temperature.toFixed(1)} °C` : ''}`
+  if (input.type === 'lees_decision') return metrics.leesDecision ?? ''
+  if (input.type === 'stability_check') return `Δ ${metrics.conductivityDrop?.toFixed(0)} µS/cm`
+  return input.notes.trim() || 'Operación registrada'
+}
+
+const roseAttention = (stageId: string, temperature: number | undefined, fallback: WineLot['attention']) => {
+  if (!['maceration', 'cofermentation', 'af'].includes(stageId) || temperature === undefined) return fallback
+  if (temperature > 24) return 'critical' as const
+  if (temperature > 20 || temperature < 10) return 'warning' as const
+  return 'normal' as const
+}
+
+export const recordRoseOperation = (
+  lots: WineLot[], tanks: Tank[], tasks: CellarTask[], events: ProductionEvent[], input: NewRoseOperationInput,
+) => {
+  const lot = lots.find((item) => item.id === input.lotId)
+  if (!lot || lot.type !== 'rosado') throw new Error('Rosado operation requires a rosado or clarete lot')
+  const stage = currentStage(lot)
+  const method = lot.productionDetails?.rose?.method ?? 'direct_press'
+  if (!stage || !roseOperationTypesByMethod[method][stage.id]?.includes(input.type)) throw new Error('Operation is not allowed for this rosado route and stage')
+  if (!input.performedAt || !input.operator.trim()) throw new Error('Operation requires time and operator')
+
+  const metrics = { ...input.metrics, volumeBefore: lot.volume }
+  let volumeAfter = metrics.volumeAfter ?? lot.volume
+  if (input.type === 'composition_check') {
+    const redPercentage = requiredNumber(metrics.redGrapePercentage, 'Red-grape percentage is required', 25, 100)
+    if (redPercentage < 100 && !metrics.mixingAfterWeighing) throw new Error('Mixed grapes must be combined after weighing')
+    requiredNumber(metrics.colorIntensity, 'Target colour intensity is required', 0.1, 1.8)
+  }
+  if (input.type === 'separate_weighing' && (!metrics.separateWeightsConfirmed || !metrics.mixingAfterWeighing)) throw new Error('Separate weighbridge records and later mixing are required')
+  if (input.type === 'must_protection' && !metrics.protection?.trim()) throw new Error('Must protection is required')
+  if (input.type === 'joint_vatting' && (!metrics.separateWeightsConfirmed || !metrics.mixingAfterWeighing)) throw new Error('Joint vatting requires preserved separate weights')
+  if (input.type === 'direct_pressing' || input.type === 'fraction_separation' || input.type === 'saignee_separation') {
+    const freeRun = requiredNumber(metrics.freeRunVolume, 'Free-run volume is required', 0, 1000000)
+    const press = requiredNumber(metrics.pressVolume, 'Press volume is required', 0, 1000000)
+    volumeAfter = freeRun + press
+    const yieldLimit = lot.productionDetails?.receivedKg !== undefined ? lot.productionDetails.receivedKg * 0.7 : lot.volume
+    const maximumOutput = Math.min(lot.volume, yieldLimit)
+    if (volumeAfter <= 0 || volumeAfter > maximumOutput + 0.01) throw new Error('Separated output exceeds available volume or the internal 70 L/100 kg checkpoint')
+  }
+  if (input.type === 'skin_contact_check') {
+    requiredNumber(metrics.skinContactHours, 'Skin-contact time is required', 0, 48)
+    requiredNumber(metrics.colorIntensity, 'Colour intensity is required', 0.1, 1.8)
+  }
+  if (input.type === 'color_check') {
+    requiredNumber(metrics.colorIntensity, 'Colour intensity is required', 0.1, 1.8)
+    if (metrics.skinContactHours !== undefined) requiredNumber(metrics.skinContactHours, 'Skin-contact time is outside the accepted range', 0, 48)
+  }
+  if (input.type === 'gentle_cap_management') requiredNumber(metrics.durationMinutes, 'Duration is required', 1, 60)
+  if (input.type === 'turbidity_check') requiredNumber(metrics.turbidity, 'Turbidity is required', 0, 5000)
+  if (input.type === 'clean_must_racking') {
+    volumeAfter = requiredNumber(metrics.volumeAfter, 'Reconciled volume is required', 0.01, lot.volume)
+    if (metrics.settlingHours !== undefined) requiredNumber(metrics.settlingHours, 'Settling time is outside the accepted range', 0, 168)
+  }
+  if (input.type === 'inoculation') {
+    if (!metrics.product?.trim() || !metrics.additionUnit) throw new Error('Inoculation product and unit are required')
+    requiredNumber(metrics.additionAmount, 'Inoculation amount is required', 0.001, 10000)
+  }
+  if (input.type === 'temperature_check') requiredNumber(metrics.temperature, 'Temperature is required', 0, 35)
+  if (input.type === 'density_check') requiredNumber(metrics.density, 'Density is required', 0.97, 1.2)
+  if (input.type === 'lees_decision' && !metrics.leesDecision) throw new Error('Lees decision is required')
+  if (input.type === 'stability_check') requiredNumber(metrics.conductivityDrop, 'Conductivity drop is required', 0, 1000)
+  if (metrics.temperature !== undefined) requiredNumber(metrics.temperature, 'Temperature is outside the accepted entry range', 0, 35)
+  if (metrics.colorIntensity !== undefined) requiredNumber(metrics.colorIntensity, 'Colour intensity is outside the internal Rioja range', 0.1, 1.8)
+  metrics.volumeAfter = volumeAfter
+
+  const recordedAt = new Date().toISOString()
+  const event: ProductionEvent = {
+    id: nowId('production-event'), lotId: lot.id, wineType: lot.type, kind: 'operation', stageId: stage.id, operationType: input.type,
+    performedAt: input.performedAt, recordedAt, operator: input.operator.trim(), notes: input.notes.trim(), metrics, storageMode: 'browser-local',
+  }
+  const nextEvents = [event, ...events]
+  const gate = roseStageGate(lot, nextEvents)
+  const temperature = metrics.temperature ?? lot.temperature
+  const density = metrics.density ?? lot.density
+  const nextAttention = roseAttention(stage.id, temperature, lot.attention)
+  const readingChanged = metrics.temperature !== undefined || metrics.density !== undefined || volumeAfter !== lot.volume
+  const updatedLot: WineLot = {
+    ...lot, volume: volumeAfter, temperature, density, attention: nextAttention,
+    nextAction: gate.eligible ? 'Revisar cierre de etapa' : roseNextActions[stage.id] ?? lot.nextAction,
+    readings: readingChanged ? [...lot.readings, { time: 'Ahora', temperature: temperature ?? 0, density: density ?? 0, volume: volumeAfter, note: input.notes.trim(), recordedAt }] : lot.readings,
+    activities: [{ id: event.id, title: roseOperationTitles[input.type], person: event.operator, time: 'Ahora', detail: roseOperationDetail(input, volumeAfter), recordedAt }, ...(lot.activities ?? [])],
+  }
+  const updatedLots = lots.map((item) => item.id === lot.id ? updatedLot : item)
+  const updatedTanks = tanks.map((tank) => tank.lot === lot.id ? { ...tank, volume: volumeAfter, temperature, stage: stage.shortLabel, attention: nextAttention } : tank)
+  return { event, lot: updatedLot, lots: updatedLots, tanks: updatedTanks, tasks, events: nextEvents, gate }
+}
+
+export const advanceRoseStage = (
+  lots: WineLot[], tanks: Tank[], tasks: CellarTask[], events: ProductionEvent[], input: AdvanceRoseStageInput,
+) => {
+  const lot = lots.find((item) => item.id === input.lotId)
+  if (!lot || lot.type !== 'rosado') throw new Error('Rosado stage transition requires a rosado or clarete lot')
+  if (!input.performedAt || !input.operator.trim()) throw new Error('Transition requires time and operator')
+  const stage = currentStage(lot)
+  if (!stage) throw new Error('Lot has no active stage')
+  const gate = roseStageGate(lot, events)
+  if (!gate.eligible || !gate.nextStageId) throw new Error(`Stage gate is not ready: ${gate.reason}`)
+  const nextIndex = lot.process.findIndex((item) => item.id === gate.nextStageId)
+  const nextStage = lot.process[nextIndex]
+  if (!nextStage) throw new Error('Next stage not found')
+  const recordedAt = new Date().toISOString()
+  const event: ProductionEvent = {
+    id: nowId('production-transition'), lotId: lot.id, wineType: lot.type, kind: 'transition', stageId: stage.id,
+    fromStageId: stage.id, toStageId: nextStage.id, performedAt: input.performedAt, recordedAt, operator: input.operator.trim(), notes: input.notes.trim(),
+    metrics: { volumeBefore: lot.volume, volumeAfter: lot.volume }, storageMode: 'browser-local',
+  }
+  const process = lot.process.map((item, index) => ({ ...item, status: index < nextIndex ? 'complete' as const : index === nextIndex ? 'current' as const : item.status === 'optional' ? 'optional' as const : 'upcoming' as const }))
+  const updatedLot: WineLot = {
+    ...lot, process, stage: nextStage.label, day: 1, progress: Math.round(nextIndex / Math.max(1, lot.process.length - 1) * 100),
+    attention: 'normal', attentionText: undefined, nextAction: roseNextActions[nextStage.id] ?? lot.nextAction, nextTime: 'Hoy',
+    activities: [{ id: event.id, title: 'Cambio de etapa', person: event.operator, time: 'Ahora', detail: `${stage.shortLabel} → ${nextStage.shortLabel}`, recordedAt }, ...(lot.activities ?? [])],
+  }
+  const openingTask: CellarTask = { id: nowId('task'), title: updatedLot.nextAction, lot: lot.id, time: 'Hoy', assignee: input.operator.split(' ')[0], priority: 'media', complete: false }
   const updatedLots = lots.map((item) => item.id === lot.id ? updatedLot : item)
   const updatedTanks = tanks.map((tank) => tank.lot === lot.id ? { ...tank, stage: nextStage.shortLabel, volume: lot.volume, attention: 'normal' as const } : tank)
   return { event, lot: updatedLot, lots: updatedLots, tanks: updatedTanks, tasks: [openingTask, ...tasks], events: [event, ...events] }
