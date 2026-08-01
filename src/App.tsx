@@ -2,21 +2,22 @@ import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } f
 import {
   Activity, ArrowLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
-  Factory, FlaskConical, Gauge, Grape, Grid2X2, Home, Languages, Leaf, List, MapPin, Menu, Moon,
+  Factory, FlaskConical, Gauge, GitMerge, Grape, Grid2X2, Home, Languages, Leaf, List, MapPin, Menu, Moon,
   MoreHorizontal, Package, Plus, Save, Search, Settings2, ShieldCheck,
   Sparkles, Sprout, Sun, Thermometer, Undo2, Warehouse,
   Waypoints, Wine, X,
 } from 'lucide-react'
 import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
+import { BlendingPage } from './Blending'
 import { images, lots as seedLots } from './data'
-import { assignLotToTank, createBarrel, createLabSample, createLot as buildLot, createOpeningTask, createTask, receiveGrapeDelivery, recordBarrelOperation, recordLabResults } from './domain'
+import { approveBlendTrial, assignLotToTank, createBarrel, createBlendTrial, createLabSample, createLot as buildLot, createOpeningTask, createTask, receiveGrapeDelivery, recordBarrelOperation, recordBlendTasting, recordLabResults } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
 import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { browserWineryRepository } from './store'
-import type { Barrel, BarrelOperation, CellarTask, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ReadingPoint, Tank, VineyardParcel, WineLot, WineType } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, CellarTask, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ReadingPoint, Tank, VineyardParcel, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -41,6 +42,7 @@ const navItems = [
   { labelKey: 'nav.cellar' as const, path: '/cellar', icon: Warehouse },
   { labelKey: 'nav.laboratory' as const, path: '/laboratory', icon: FlaskConical },
   { labelKey: 'nav.ageing' as const, path: '/ageing', icon: Wine },
+  { labelKey: 'nav.blending' as const, path: '/blending', icon: GitMerge },
   { labelKey: 'nav.bottling' as const, path: '/bottling', icon: Package },
   { labelKey: 'nav.traceability' as const, path: '/traceability', icon: Waypoints },
   { labelKey: 'nav.reports' as const, path: '/reports', icon: BarChart3 },
@@ -59,6 +61,8 @@ function App() {
   const [samples, setSamples] = useState<LabSample[]>(initialState.samples)
   const [barrels, setBarrels] = useState<Barrel[]>(initialState.barrels)
   const [barrelOperations, setBarrelOperations] = useState<BarrelOperation[]>(initialState.barrelOperations)
+  const [blendCandidates, setBlendCandidates] = useState<BlendCandidate[]>(initialState.blendCandidates)
+  const [blendTrials, setBlendTrials] = useState<BlendTrial[]>(initialState.blendTrials)
   const [cellarMode, setCellarMode] = useState(() => localStorage.getItem('anada-theme') === 'cellar')
   const [menuOpen, setMenuOpen] = useState(false)
   const [readingLotId, setReadingLotId] = useState<string | null>(null)
@@ -68,8 +72,8 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 4, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations })
-  }, [demoLots, tasks, demoTanks, parcels, deliveries, samples, barrels, barrelOperations])
+    browserWineryRepository.save({ schemaVersion: 5, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials })
+  }, [demoLots, tasks, demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials])
 
   const toggleCellarMode = () => {
     setCellarMode((current) => {
@@ -177,6 +181,27 @@ function App() {
     window.setTimeout(() => setToast(null), 4200)
   }
 
+  const addBlendTrial = (input: NewBlendTrialInput) => {
+    const trial = createBlendTrial(input, blendCandidates, blendTrials)
+    setBlendTrials((current) => [trial, ...current])
+    setToast(t('toast.blendTrialCreated', { code: trial.code }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
+  const saveBlendTasting = (input: BlendTastingInput) => {
+    const result = recordBlendTasting(blendTrials, input)
+    setBlendTrials(result.trials)
+    setToast(t('toast.blendTastingSaved', { code: result.trial.code }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
+  const approveBlend = (trialId: string) => {
+    const result = approveBlendTrial(blendTrials, blendCandidates, trialId)
+    setBlendTrials(result.trials)
+    setToast(t('toast.blendApproved', { code: result.trial.code }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
   const resetDemoData = () => {
     const reset = browserWineryRepository.clear()
     setDemoLots(reset.lots)
@@ -187,6 +212,8 @@ function App() {
     setSamples(reset.samples)
     setBarrels(reset.barrels)
     setBarrelOperations(reset.barrelOperations)
+    setBlendCandidates(reset.blendCandidates)
+    setBlendTrials(reset.blendTrials)
     setUndoLot(null)
     setToast(t('toast.reset'))
     window.setTimeout(() => setToast(null), 3200)
@@ -207,6 +234,7 @@ function App() {
   else if (pathname === '/tasks') currentPage = <TasksPage lots={demoLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} />
   else if (pathname === '/laboratory') currentPage = <LaboratoryPage samples={samples} lots={demoLots} deliveries={deliveries} parcels={parcels} onCreate={addLabSample} onRecordResults={saveLabResults} />
   else if (pathname === '/ageing') currentPage = <AgeingPage barrels={barrels} operations={barrelOperations} lots={demoLots} onCreateBarrel={addBarrel} onRecordOperation={saveBarrelOperation} />
+  else if (pathname === '/blending') currentPage = <BlendingPage candidates={blendCandidates} trials={blendTrials} onCreateTrial={addBlendTrial} onRecordTasting={saveBlendTasting} onApproveTrial={approveBlend} />
   else if (pathname === '/bottling') currentPage = <PreviewModule type="bottling" />
   else if (pathname === '/traceability') currentPage = <PreviewModule type="traceability" />
   else if (pathname === '/reports') currentPage = <PreviewModule type="reports" />
@@ -273,7 +301,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.6</span>
+          <span>Añada 0.7</span>
         </div>
       </section>
     </main>

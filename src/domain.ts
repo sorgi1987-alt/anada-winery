@@ -1,5 +1,5 @@
 import { images, redProcess, whiteProcess } from './data'
-import type { Barrel, BarrelOperation, CellarTask, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, CellarTask, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -270,4 +270,79 @@ export const recordBarrelOperation = (
     person: 'Elena Martín', volumeAdded: input.type === 'top_up' ? input.volumeAdded : undefined, notes: input.notes.trim(),
   }
   return { barrels: updatedBarrels, operations: [operation, ...operations], operation }
+}
+
+export const reservedBlendVolume = (candidateId: string, trials: BlendTrial[], excludedTrialId?: string) => trials
+  .filter((trial) => trial.status === 'approved' && trial.id !== excludedTrialId)
+  .reduce((total, trial) => {
+    const component = trial.components.find((item) => item.candidateId === candidateId)
+    return total + (component ? trial.targetVolume * component.percentage / 100 : 0)
+  }, 0)
+
+export const estimateBlendAnalysis = (components: NewBlendTrialInput['components'], candidates: BlendCandidate[]): BlendAnalysis => {
+  const value = (key: keyof BlendAnalysis) => components.reduce((total, component) => {
+    const candidate = candidates.find((item) => item.id === component.candidateId)
+    return total + (candidate?.analysis[key] ?? 0) * component.percentage / 100
+  }, 0)
+  return {
+    alcohol: Number(value('alcohol').toFixed(2)),
+    ph: Number(value('ph').toFixed(2)),
+    totalAcidity: Number(value('totalAcidity').toFixed(2)),
+    colorIntensity: Number(value('colorIntensity').toFixed(2)),
+  }
+}
+
+const validateBlendFormula = (input: NewBlendTrialInput, candidates: BlendCandidate[], trials: BlendTrial[], excludedTrialId?: string) => {
+  if (!input.name.trim() || !input.objective.trim() || !Number.isFinite(input.targetVolume) || input.targetVolume <= 0) throw new Error('Invalid blend identity')
+  if (input.components.length < 2 || new Set(input.components.map((item) => item.candidateId)).size !== input.components.length) throw new Error('Blend requires distinct components')
+  const percentage = input.components.reduce((total, item) => total + item.percentage, 0)
+  if (Math.abs(percentage - 100) > 0.01 || input.components.some((item) => item.percentage <= 0)) throw new Error('Blend formula must total 100%')
+  input.components.forEach((component) => {
+    const candidate = candidates.find((item) => item.id === component.candidateId)
+    if (!candidate || candidate.type !== input.type) throw new Error('Incompatible blend component')
+    const remaining = candidate.availableVolume - reservedBlendVolume(candidate.id, trials, excludedTrialId)
+    if (input.targetVolume * component.percentage / 100 > remaining + 0.01) throw new Error('Blend component volume unavailable')
+  })
+}
+
+export const nextBlendCode = (trials: BlendTrial[]) => {
+  const highest = trials.reduce((maximum, trial) => {
+    const match = trial.code.match(/^ENS-\d{2}-(\d+)$/)
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0)
+  return `ENS-${String(new Date().getFullYear()).slice(-2)}-${String(highest + 1).padStart(3, '0')}`
+}
+
+export const createBlendTrial = (input: NewBlendTrialInput, candidates: BlendCandidate[], trials: BlendTrial[]): BlendTrial => {
+  validateBlendFormula(input, candidates, trials)
+  return {
+    id: nowId('blend-trial'), code: nextBlendCode(trials), name: input.name.trim(), type: input.type, targetVolume: input.targetVolume,
+    objective: input.objective.trim(), status: 'draft', components: input.components.map((component) => ({ ...component })),
+    estimatedAnalysis: estimateBlendAnalysis(input.components, candidates), createdAt: new Date().toISOString(), createdBy: 'Elena Martín',
+  }
+}
+
+export const recordBlendTasting = (trials: BlendTrial[], input: BlendTastingInput) => {
+  const trial = trials.find((item) => item.id === input.trialId)
+  if (!trial || trial.status === 'approved') throw new Error('Blend trial is not available for tasting')
+  const scores = [input.visual, input.aroma, input.palate, input.balance]
+  if (scores.some((score) => !Number.isInteger(score) || score < 1 || score > 5)) throw new Error('Invalid tasting score')
+  const updated: BlendTrial = {
+    ...trial,
+    status: input.recommendation === 'reject' ? 'rejected' : 'tasting',
+    tasting: {
+      visual: input.visual, aroma: input.aroma, palate: input.palate, balance: input.balance,
+      recommendation: input.recommendation, notes: input.notes.trim(), tastedAt: new Date().toISOString(), tastedBy: 'Elena Martín',
+    },
+  }
+  return { trial: updated, trials: trials.map((item) => item.id === updated.id ? updated : item) }
+}
+
+export const approveBlendTrial = (trials: BlendTrial[], candidates: BlendCandidate[], trialId: string) => {
+  const trial = trials.find((item) => item.id === trialId)
+  if (!trial || trial.status === 'approved' || trial.tasting?.recommendation !== 'promising') throw new Error('Blend trial requires a favourable tasting')
+  validateBlendFormula({ name: trial.name, type: trial.type, targetVolume: trial.targetVolume, objective: trial.objective, components: trial.components }, candidates, trials, trial.id)
+  if (trial.components.some((component) => candidates.find((candidate) => candidate.id === component.candidateId)?.readiness !== 'ready')) throw new Error('All components must be released before approval')
+  const updated: BlendTrial = { ...trial, status: 'approved', approvedAt: new Date().toISOString(), approvedBy: 'Elena Martín' }
+  return { trial: updated, trials: trials.map((item) => item.id === updated.id ? updated : item) }
 }

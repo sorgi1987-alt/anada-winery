@@ -1,4 +1,4 @@
-import type { Barrel, BarrelOperation, CellarTask, GrapeDelivery, LabSample, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, CellarTask, GrapeDelivery, LabSample, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -224,4 +224,51 @@ export const barrelOperations: BarrelOperation[] = [
   { id: 'barrel-op-002', type: 'tasting', barrelIds: ['barrel-009', 'barrel-010', 'barrel-011'], targetLabel: 'CR-25-004 · Cueva del Moncalvillo', performedAt: '2026-09-17T11:45:00+02:00', person: 'Elena Martín', notes: 'Fruta integrada, madera todavía presente.' },
   { id: 'barrel-op-003', type: 'so2_check', barrelIds: ['barrel-005', 'barrel-006', 'barrel-007', 'barrel-008'], targetLabel: 'T-25-012 · Las Suertes', performedAt: '2026-09-15T09:30:00+02:00', person: 'Lucía Sáenz', notes: 'SO₂ libre dentro del objetivo.' },
   { id: 'barrel-op-004', type: 'cleaning', barrelIds: ['barrel-016', 'barrel-017'], targetLabel: 'BR-C-01 · BR-C-02', performedAt: '2026-09-14T15:10:00+02:00', person: 'Martín Ruiz', notes: 'Lavado, vapor y conservación completados.' },
+]
+
+export const blendCandidates: BlendCandidate[] = [
+  {
+    id: 'blend-candidate-001', lotId: 'T-25-012', name: 'Las Suertes', type: 'tinto', vintage: 2025, varieties: 'Tempranillo', origin: 'Alberite · Rioja Oriental', vessel: 'Barricas A', availableVolume: 4300,
+    analysis: { alcohol: 14.1, ph: 3.62, totalAcidity: 5.1, colorIntensity: 13.8 }, sensory: ['Ciruela', 'Regaliz', 'Tanino fino'], readiness: 'ready', nextReview: '25 sept', image: images.barrels,
+  },
+  {
+    id: 'blend-candidate-002', lotId: 'CR-25-004', name: 'Cueva del Moncalvillo', type: 'tinto', vintage: 2025, varieties: 'Tempranillo · Mazuelo', origin: 'Nalda · Rioja Oriental', vessel: 'Barricas B', availableVolume: 5200,
+    analysis: { alcohol: 13.8, ph: 3.54, totalAcidity: 5.5, colorIntensity: 14.6 }, sensory: ['Fruta negra', 'Cedro', 'Estructura'], readiness: 'ready', nextReview: '2 oct', image: images.cellar,
+  },
+  {
+    id: 'blend-candidate-003', lotId: 'T-25-021', name: 'Alto Najerilla', type: 'tinto', vintage: 2025, varieties: 'Garnacha', origin: 'Badarán · Rioja Alta', vessel: 'D-21', availableVolume: 3600,
+    analysis: { alcohol: 14.4, ph: 3.68, totalAcidity: 4.9, colorIntensity: 10.7 }, sensory: ['Frambuesa', 'Floral', 'Volumen'], readiness: 'ready', nextReview: '28 sept', image: images.vineyard,
+  },
+  {
+    id: 'blend-candidate-004', lotId: 'T-25-029', name: 'La Plana', type: 'tinto', vintage: 2025, varieties: 'Graciano', origin: 'Villamediana · Rioja Oriental', vessel: 'D-23', availableVolume: 1800,
+    analysis: { alcohol: 13.5, ph: 3.31, totalAcidity: 6.4, colorIntensity: 16.8 }, sensory: ['Especias', 'Frescura', 'Persistencia'], readiness: 'ready', nextReview: '24 sept', image: images.tanks,
+  },
+  {
+    id: 'blend-candidate-005', lotId: 'B-25-008', name: 'Viura sobre lías', type: 'blanco', vintage: 2025, varieties: 'Viura', origin: 'Nalda · Rioja Oriental', vessel: 'D-08', availableVolume: 3400,
+    analysis: { alcohol: 12.7, ph: 3.22, totalAcidity: 6.2, colorIntensity: 0.18 }, sensory: ['Manzana', 'Hinojo', 'Textura'], readiness: 'ready', nextReview: '26 sept', image: images.whiteGrapes,
+  },
+  {
+    id: 'blend-candidate-006', lotId: 'B-25-011', name: 'Maturana de Moncalvillo', type: 'blanco', vintage: 2025, varieties: 'Maturana Blanca', origin: 'Sojuela · Rioja Alta', vessel: 'D-10', availableVolume: 1400,
+    analysis: { alcohol: 13.1, ph: 3.17, totalAcidity: 6.8, colorIntensity: 0.14 }, sensory: ['Cítrico', 'Hierbas', 'Tensión'], readiness: 'hold', nextReview: 'Hoy · 17:00', image: images.whiteGrapes,
+  },
+]
+
+export const blendTrials: BlendTrial[] = [
+  {
+    id: 'blend-trial-001', code: 'ENS-26-001', name: 'Reserva de la Casa', type: 'tinto', targetVolume: 4500, objective: 'Profundidad de fruta, frescura y final largo para crianza prolongada.', status: 'tasting',
+    components: [{ candidateId: 'blend-candidate-001', percentage: 55 }, { candidateId: 'blend-candidate-002', percentage: 30 }, { candidateId: 'blend-candidate-004', percentage: 15 }],
+    estimatedAnalysis: { alcohol: 13.92, ph: 3.55, totalAcidity: 5.42, colorIntensity: 14.49 }, createdAt: '2026-09-18T10:15:00+02:00', createdBy: 'Elena Martín',
+    tasting: { visual: 5, aroma: 4, palate: 4, balance: 4, recommendation: 'promising', notes: 'La aportación de Graciano alarga el final sin dominar la fruta.', tastedAt: '2026-09-19T11:20:00+02:00', tastedBy: 'Elena Martín' },
+  },
+  {
+    id: 'blend-trial-002', code: 'ENS-26-002', name: 'Blanco de Parcela', type: 'blanco', targetVolume: 2200, objective: 'Mantener tensión y carácter de Viura con mayor longitud de boca.', status: 'draft',
+    components: [{ candidateId: 'blend-candidate-005', percentage: 80 }, { candidateId: 'blend-candidate-006', percentage: 20 }],
+    estimatedAnalysis: { alcohol: 12.78, ph: 3.21, totalAcidity: 6.32, colorIntensity: 0.17 }, createdAt: '2026-09-19T09:40:00+02:00', createdBy: 'Lucía Sáenz',
+  },
+  {
+    id: 'blend-trial-003', code: 'ENS-26-003', name: 'Crianza Selección', type: 'tinto', targetVolume: 3000, objective: 'Perfil accesible, fruta definida y estructura media para salida temprana.', status: 'approved',
+    components: [{ candidateId: 'blend-candidate-002', percentage: 70 }, { candidateId: 'blend-candidate-003', percentage: 30 }],
+    estimatedAnalysis: { alcohol: 13.98, ph: 3.58, totalAcidity: 5.32, colorIntensity: 13.43 }, createdAt: '2026-09-15T12:10:00+02:00', createdBy: 'Elena Martín', approvedAt: '2026-09-18T13:05:00+02:00', approvedBy: 'Elena Martín',
+    tasting: { visual: 4, aroma: 4, palate: 5, balance: 5, recommendation: 'promising', notes: 'Ensamblaje equilibrado y listo para preparación de depósito.', tastedAt: '2026-09-18T12:20:00+02:00', tastedBy: 'Elena Martín' },
+  },
 ]

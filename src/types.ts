@@ -138,7 +138,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 4
+  schemaVersion: 5
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -147,6 +147,8 @@ export interface WineryState {
   samples: LabSample[]
   barrels: Barrel[]
   barrelOperations: BarrelOperation[]
+  blendCandidates: BlendCandidate[]
+  blendTrials: BlendTrial[]
 }
 
 export interface NewLotInput {
@@ -305,5 +307,84 @@ export interface NewBarrelOperationInput {
   type: BarrelOperationType
   performedAt: string
   volumeAdded: number
+  notes: string
+}
+
+export type BlendTrialStatus = 'draft' | 'tasting' | 'approved' | 'rejected'
+export type BlendCandidateReadiness = 'ready' | 'hold'
+export type BlendTastingRecommendation = 'promising' | 'adjust' | 'reject'
+
+export interface BlendAnalysis {
+  alcohol: number
+  ph: number
+  totalAcidity: number
+  colorIntensity: number
+}
+
+export interface BlendCandidate {
+  id: string
+  lotId: string
+  name: string
+  type: Extract<WineType, 'tinto' | 'blanco'>
+  vintage: number
+  varieties: string
+  origin: string
+  vessel: string
+  availableVolume: number
+  analysis: BlendAnalysis
+  sensory: string[]
+  readiness: BlendCandidateReadiness
+  nextReview: string
+  image: string
+}
+
+export interface BlendComponent {
+  candidateId: string
+  percentage: number
+}
+
+export interface BlendTasting {
+  visual: number
+  aroma: number
+  palate: number
+  balance: number
+  recommendation: BlendTastingRecommendation
+  notes: string
+  tastedAt: string
+  tastedBy: string
+}
+
+export interface BlendTrial {
+  id: string
+  code: string
+  name: string
+  type: Extract<WineType, 'tinto' | 'blanco'>
+  targetVolume: number
+  objective: string
+  status: BlendTrialStatus
+  components: BlendComponent[]
+  estimatedAnalysis: BlendAnalysis
+  createdAt: string
+  createdBy: string
+  tasting?: BlendTasting
+  approvedAt?: string
+  approvedBy?: string
+}
+
+export interface NewBlendTrialInput {
+  name: string
+  type: BlendTrial['type']
+  targetVolume: number
+  objective: string
+  components: BlendComponent[]
+}
+
+export interface BlendTastingInput {
+  trialId: string
+  visual: number
+  aroma: number
+  palate: number
+  balance: number
+  recommendation: BlendTastingRecommendation
   notes: string
 }

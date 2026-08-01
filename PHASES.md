@@ -83,9 +83,21 @@ Status: completed.
 - Persistent barrel and operation history with responsible operator
 - Schema migration preserving Phase 2B browser data
 
+### Phase 2D — Blending workspace
+
+Status: completed.
+
+- Visual formula board and candidate-lot palette
+- Red and white component compatibility controls
+- Percentage and target-volume formula validation
+- Candidate-volume availability and approved-formula reservations
+- Weighted indicative analytical profile with pH confirmation warning
+- Traceable bench tastings, sensory scores and recommendations
+- Approval separated from physical cellar movement
+- Schema migration preserving Phase 2C browser data
+
 Remaining Phase 2 modules:
 
-- Blending workspace
 - Bottling orders and packaging
 - Traceability explorer
 - Reports and administration

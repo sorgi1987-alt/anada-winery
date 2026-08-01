@@ -20,6 +20,9 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - Process stages can be complete, current, upcoming or optional.
 - Keep the physical barrel, its current wine assignment and its operation history as distinct domain concepts.
 - Topping-up volume must not exceed the measured headspace of the selected filled barrels.
+- Blend formulas must total exactly 100% and cannot mix incompatible red and white component lots.
+- Formula approval reserves component volume but never implies that a physical cellar transfer has occurred.
+- Weighted blend analytics are indicative; pH must be confirmed by laboratory analysis.
 - Regulatory eligibility is indicative until it has been validated against the relevant DOCa rules and vintage.
 - All future mutations require an audit trail and user attribution.
 
@@ -37,4 +40,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 2C is a bilingual barrel-inventory and ageing-workflow frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.
+Phase 2D is a bilingual blending-workspace frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.

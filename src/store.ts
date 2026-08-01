@@ -1,13 +1,14 @@
-import { barrelOperations, barrels, deliveries, initialTasks, labSamples, lots, parcels, tanks } from './data'
+import { barrelOperations, barrels, blendCandidates, blendTrials, deliveries, initialTasks, labSamples, lots, parcels, tanks } from './data'
 import type { WineryState } from './types'
 
-const STORAGE_KEY = 'anada-winery-state-v4'
+const STORAGE_KEY = 'anada-winery-state-v5'
+const LEGACY_V4_STORAGE_KEY = 'anada-winery-state-v4'
 const LEGACY_V3_STORAGE_KEY = 'anada-winery-state-v3'
 const LEGACY_V2_STORAGE_KEY = 'anada-winery-state-v2'
 const LEGACY_V1_STORAGE_KEY = 'anada-winery-state-v1'
 
 const seedState = (): WineryState => ({
-  schemaVersion: 4,
+  schemaVersion: 5,
   lots: structuredClone(lots),
   tasks: structuredClone(initialTasks),
   tanks: structuredClone(tanks),
@@ -16,6 +17,8 @@ const seedState = (): WineryState => ({
   samples: structuredClone(labSamples),
   barrels: structuredClone(barrels),
   barrelOperations: structuredClone(barrelOperations),
+  blendCandidates: structuredClone(blendCandidates),
+  blendTrials: structuredClone(blendTrials),
 })
 
 export interface WineryRepository {
@@ -27,7 +30,7 @@ export interface WineryRepository {
 const isWineryState = (value: unknown): value is WineryState => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<WineryState>
-  return candidate.schemaVersion === 4
+  return candidate.schemaVersion === 5
     && Array.isArray(candidate.lots)
     && Array.isArray(candidate.tasks)
     && Array.isArray(candidate.tanks)
@@ -36,22 +39,26 @@ const isWineryState = (value: unknown): value is WineryState => {
     && Array.isArray(candidate.samples)
     && Array.isArray(candidate.barrels)
     && Array.isArray(candidate.barrelOperations)
+    && Array.isArray(candidate.blendCandidates)
+    && Array.isArray(candidate.blendTrials)
 }
 
 const migrateLegacyState = (value: unknown): WineryState | null => {
   if (!value || typeof value !== 'object') return null
   const candidate = value as Record<string, unknown>
-  if (![1, 2, 3].includes(candidate.schemaVersion as number) || !Array.isArray(candidate.lots) || !Array.isArray(candidate.tasks) || !Array.isArray(candidate.tanks)) return null
+  if (![1, 2, 3, 4].includes(candidate.schemaVersion as number) || !Array.isArray(candidate.lots) || !Array.isArray(candidate.tasks) || !Array.isArray(candidate.tanks)) return null
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     lots: candidate.lots as WineryState['lots'],
     tasks: candidate.tasks as WineryState['tasks'],
     tanks: candidate.tanks as WineryState['tanks'],
-    parcels: (candidate.schemaVersion === 2 || candidate.schemaVersion === 3) && Array.isArray(candidate.parcels) ? candidate.parcels as WineryState['parcels'] : structuredClone(parcels),
-    deliveries: (candidate.schemaVersion === 2 || candidate.schemaVersion === 3) && Array.isArray(candidate.deliveries) ? candidate.deliveries as WineryState['deliveries'] : structuredClone(deliveries),
-    samples: candidate.schemaVersion === 3 && Array.isArray(candidate.samples) ? candidate.samples as WineryState['samples'] : structuredClone(labSamples),
-    barrels: structuredClone(barrels),
-    barrelOperations: structuredClone(barrelOperations),
+    parcels: [2, 3, 4].includes(candidate.schemaVersion as number) && Array.isArray(candidate.parcels) ? candidate.parcels as WineryState['parcels'] : structuredClone(parcels),
+    deliveries: [2, 3, 4].includes(candidate.schemaVersion as number) && Array.isArray(candidate.deliveries) ? candidate.deliveries as WineryState['deliveries'] : structuredClone(deliveries),
+    samples: [3, 4].includes(candidate.schemaVersion as number) && Array.isArray(candidate.samples) ? candidate.samples as WineryState['samples'] : structuredClone(labSamples),
+    barrels: candidate.schemaVersion === 4 && Array.isArray(candidate.barrels) ? candidate.barrels as WineryState['barrels'] : structuredClone(barrels),
+    barrelOperations: candidate.schemaVersion === 4 && Array.isArray(candidate.barrelOperations) ? candidate.barrelOperations as WineryState['barrelOperations'] : structuredClone(barrelOperations),
+    blendCandidates: structuredClone(blendCandidates),
+    blendTrials: structuredClone(blendTrials),
   }
 }
 
@@ -63,7 +70,7 @@ export const browserWineryRepository: WineryRepository = {
         const parsed: unknown = JSON.parse(stored)
         return isWineryState(parsed) ? parsed : seedState()
       }
-      const legacy = localStorage.getItem(LEGACY_V3_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V2_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V1_STORAGE_KEY)
+      const legacy = localStorage.getItem(LEGACY_V4_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V3_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V2_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V1_STORAGE_KEY)
       if (!legacy) return seedState()
       return migrateLegacyState(JSON.parse(legacy)) ?? seedState()
     } catch {
@@ -75,6 +82,7 @@ export const browserWineryRepository: WineryRepository = {
   },
   clear() {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(LEGACY_V4_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V3_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V2_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V1_STORAGE_KEY)
