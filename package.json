@@ -1,12 +1,13 @@
 {
   "name": "anada-winery",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
+    "test:backend": "node --test backend/anada_data_api/contract.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

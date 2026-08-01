@@ -152,12 +152,27 @@ Status: completed.
 
 ## Phase 3 — Catalyst foundation
 
-- Generated Catalyst project/client configuration
+### Phase 3A — Data foundation
+
+Status: completed.
+
+- Seven normalized, empty Development Data Store tables
+- Stable schema IDs and documented application-column contract
+- Typed frontend Catalyst configuration boundary
+- Visual backend-readiness and connection status in Administration
+- Advanced I/O schema-health function scaffold
+- Browser repository retained as the only operational authority
+- No public operational reads, remote writes, authentication or user data
+
+### Phase 3B — Protected read integration
+
+- CLI-generated Catalyst function configuration
+- Protected Advanced I/O deployment and verified Slate origin policy
 - Authentication and winery membership
 - Roles and permissions
-- Data Store schema and seed strategy
-- Server-side service layer
-- Read-only API integration
+- Idempotent seed/migration strategy
+- Authenticated read-only bootstrap API
+- Browser fallback and migration rehearsal
 
 ## Phase 4 — Production process engine
 

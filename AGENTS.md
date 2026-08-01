@@ -34,6 +34,8 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - Reports must be derived from operational records and must state when an indicator is an internal management measure.
 - Exported figures must respect the active campaign and wine-type filters.
 - Administration screens must never imply that authentication, Catalyst persistence or external integrations are active before they are actually connected.
+- Catalyst tables being provisioned does not make them the operational source of truth; the UI must distinguish schema readiness from a deployed and protected data service.
+- Never expose operational Data Store reads without winery membership and authorization, and never place API keys or service credentials in the browser bundle.
 - Resetting demonstration data requires an explicit confirmation and restores winery settings together with operational records.
 - Internal Rioja controls never imply official wine qualification, label authorisation or regulatory approval.
 - Regulatory eligibility is indicative until it has been validated against the relevant DOCa rules and vintage.
@@ -53,4 +55,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 2H is the completed bilingual functional frontend, including distinct rosado and clarete production routes with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.
+Phase 3A is complete: the normalized Development Data Store schema, frontend contract and schema-health scaffold exist, while the browser repository remains authoritative. Authentication and protected operational reads are deferred to Phase 3B. See `PHASES.md`.

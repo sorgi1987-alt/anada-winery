@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   BellRing, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CloudOff,
-  Database, FlaskConical, Gauge, Grape, HardDrive, Info, LockKeyhole, RefreshCw,
+  Database, FlaskConical, Gauge, Grape, HardDrive, Info, LockKeyhole, RefreshCw, Server,
   Save, ShieldCheck, SlidersHorizontal, Thermometer, Trash2, Users, Warehouse,
 } from 'lucide-react'
+import { catalystFoundation, checkCatalystReadService, type CatalystConnectionResult } from './catalyst'
 import { images } from './data'
 import { useLanguage } from './i18n'
 import type { WinerySettings } from './types'
@@ -23,6 +24,10 @@ export function AdministrationPage({ settings, recordCount, onSave, onResetData 
   const [draft, setDraft] = useState(settings)
   const [error, setError] = useState('')
   const [resetOpen, setResetOpen] = useState(false)
+  const [checkingCatalyst, setCheckingCatalyst] = useState(false)
+  const [catalystConnection, setCatalystConnection] = useState<CatalystConnectionResult>({
+    state: catalystFoundation.readApiUrl ? 'not-checked' : 'not-configured',
+  })
   useEffect(() => setDraft(settings), [settings])
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings])
   const initials = draft.wineryName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
@@ -38,13 +43,25 @@ export function AdministrationPage({ settings, recordCount, onSave, onResetData 
     if (draft.cellarTemperatureTarget < 5 || draft.cellarTemperatureTarget > 25 || draft.cellarHumidityTarget < 40 || draft.cellarHumidityTarget > 95) return setError(t('admin.errorOperations'))
     setError(''); onSave({ ...draft, updatedAt: new Date().toISOString(), updatedBy: 'Elena Martín' })
   }
+  const checkCatalyst = async () => {
+    setCheckingCatalyst(true)
+    setCatalystConnection(await checkCatalystReadService())
+    setCheckingCatalyst(false)
+  }
+  const connectionCopy = {
+    'not-configured': ['admin.bridgeAwaitingDeploy', 'pending'],
+    'not-checked': ['admin.notChecked', 'pending'],
+    ready: ['admin.available', 'success'],
+    unavailable: ['admin.unavailable', 'warning'],
+  } as const
+  const activeConnectionCopy = connectionCopy[catalystConnection.state]
 
   return <main className="admin-page">
     <header className="page-header"><div><span className="eyebrow">{t('admin.kicker')}</span><h1>{t('admin.title')}</h1><p>{t('admin.description')}</p></div><div className="page-header-action"><button className="primary-button" form="admin-settings-form" disabled={!dirty}><Save size={16} /> {dirty ? t('admin.saveChanges') : t('admin.saved')}</button></div></header>
 
     <section className="admin-hero" style={{ backgroundImage: `url(${images.vineyard})` }}><div className="admin-hero-overlay" /><div className="admin-hero-copy"><span className="admin-season"><Building2 size={15} /> {t('admin.singleWinery')}</span><h2>{draft.wineryName}</h2><p>{draft.municipality} · {draft.province} · {draft.designation}</p><div className="admin-hero-badges"><span><ShieldCheck size={15} /> {t('admin.localCheckpoint')}</span><span><CloudOff size={15} /> {t('admin.backendDeferred')}</span></div></div><div className="winery-identity-card"><span className="winery-large-mark">{initials || 'VI'}</span><span><small>{t('admin.registry')}</small><strong>{draft.wineryCode}</strong><em>{t('admin.campaignLabel', { year: draft.campaignYear })}</em></span></div></section>
 
-    <section className="admin-status-grid"><AdminStatus icon={<HardDrive />} label={t('admin.storage')} value={t('admin.browserLocal')} detail={t('admin.localRecords', { count: recordCount })} tone="wine" /><AdminStatus icon={<Users />} label={t('admin.access')} value={t('admin.demoOperator')} detail={t('admin.authPending')} tone="gold" /><AdminStatus icon={<Database />} label={t('admin.dataService')} value={t('admin.notConnected')} detail={t('admin.catalystPhase3')} tone="blue" /><AdminStatus icon={<CheckCircle2 />} label={t('admin.configuration')} value={dirty ? t('admin.unsaved') : t('admin.upToDate')} detail={t('admin.lastSavedBy', { name: settings.updatedBy })} tone={dirty ? 'warning' : 'success'} /></section>
+    <section className="admin-status-grid"><AdminStatus icon={<HardDrive />} label={t('admin.storage')} value={t('admin.browserLocal')} detail={t('admin.localRecords', { count: recordCount })} tone="wine" /><AdminStatus icon={<Users />} label={t('admin.access')} value={t('admin.demoOperator')} detail={t('admin.authPending')} tone="gold" /><AdminStatus icon={<Database />} label={t('admin.dataService')} value={t('admin.schemaReady')} detail={t('admin.catalystTables', { count: catalystFoundation.tables.length })} tone="blue" /><AdminStatus icon={<CheckCircle2 />} label={t('admin.configuration')} value={dirty ? t('admin.unsaved') : t('admin.upToDate')} detail={t('admin.lastSavedBy', { name: settings.updatedBy })} tone={dirty ? 'warning' : 'success'} /></section>
 
     <div className="admin-workspace"><aside className="admin-section-nav">{([
       ['winery', <Building2 />, 'admin.wineryProfile', 'admin.wineryProfileText'],
@@ -71,7 +88,18 @@ export function AdministrationPage({ settings, recordCount, onSave, onResetData 
         </AdminSection>}
 
         {view === 'system' && <AdminSection icon={<Database />} title={t('admin.systemData')} text={t('admin.systemIntro')}>
-          <div className="integration-cards"><IntegrationCard icon={<HardDrive />} title={t('admin.browserRepository')} status={t('admin.active')} detail={t('admin.browserRepositoryText')} tone="success" /><IntegrationCard icon={<Database />} title={t('admin.catalystDataStore')} status={t('admin.planned')} detail={t('admin.catalystDataStoreText')} tone="pending" /><IntegrationCard icon={<LockKeyhole />} title={t('admin.authentication')} status={t('admin.deferred')} detail={t('admin.authenticationText')} tone="pending" /><IntegrationCard icon={<RefreshCw />} title={t('admin.externalSystems')} status={t('admin.notConfigured')} detail={t('admin.externalSystemsText')} tone="neutral" /></div>
+          <div className="integration-cards"><IntegrationCard icon={<HardDrive />} title={t('admin.browserRepository')} status={t('admin.active')} detail={t('admin.browserRepositoryText')} tone="success" /><IntegrationCard icon={<Database />} title={t('admin.catalystDataStore')} status={t('admin.schemaReady')} detail={t('admin.catalystDataStoreText')} tone="success" /><IntegrationCard icon={<LockKeyhole />} title={t('admin.authentication')} status={t('admin.deferred')} detail={t('admin.authenticationText')} tone="pending" /><IntegrationCard icon={<RefreshCw />} title={t('admin.externalSystems')} status={t('admin.notConfigured')} detail={t('admin.externalSystemsText')} tone="neutral" /></div>
+          <section className="catalyst-foundation-card">
+            <header><span><Database /><span><small>{t('admin.catalystFoundation')}</small><strong>{t('admin.developmentSchema')}</strong></span></span><em>{t('admin.schemaVersion', { version: catalystFoundation.schemaVersion })}</em></header>
+            <div className="catalyst-foundation-steps">
+              <FoundationStep icon={<Database />} status="ready" title={t('admin.dataStoreSchema')} detail={t('admin.tablesProvisioned', { count: catalystFoundation.tables.length })} />
+              <FoundationStep icon={<Server />} status={catalystConnection.state === 'ready' ? 'ready' : 'pending'} title={t('admin.readBridge')} detail={t(activeConnectionCopy[0])} />
+              <FoundationStep icon={<LockKeyhole />} status="locked" title={t('admin.remoteOperations')} detail={t('admin.remoteOperationsLocked')} />
+            </div>
+            <div className="catalyst-table-cloud">{catalystFoundation.tables.map((table) => <span key={table.id}><CheckCircle2 /> {table.name.replace('Anada_', '')}</span>)}</div>
+            <footer><span><ShieldCheck /><span><strong>{t('admin.browserAuthority')}</strong><small>{t('admin.browserAuthorityText')}</small></span></span><button type="button" className="secondary-button" disabled={!catalystFoundation.readApiUrl || checkingCatalyst} onClick={checkCatalyst}><RefreshCw className={checkingCatalyst ? 'spin' : ''} /> {checkingCatalyst ? t('admin.checking') : t('admin.checkConnection')}</button></footer>
+            <div className={`catalyst-connection-note ${activeConnectionCopy[1]}`}><span>{t(activeConnectionCopy[0])}</span><small>{catalystConnection.message ?? (catalystConnection.checkedAt ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(catalystConnection.checkedAt)) : t('admin.endpointNotConfigured'))}</small></div>
+          </section>
           <div className="admin-team-card"><header><span><Users /><strong>{t('admin.demoTeam')}</strong></span><em>{t('admin.notUserManagement')}</em></header><div>{[['EM', 'Elena Martín', t('admin.roleWinemaker')], ['MS', 'Martín Sáenz', t('admin.roleCellar')], ['LS', 'Lucía Sáenz', t('admin.roleLaboratory')]].map(([initial, name, role]) => <article key={name}><span>{initial}</span><span><strong>{name}</strong><small>{role}</small></span><LockKeyhole /></article>)}</div></div>
           <div className="danger-zone"><span><Trash2 /><span><strong>{t('admin.demoData')}</strong><small>{t('admin.demoDataText')}</small></span></span><button type="button" className="danger-button" onClick={() => setResetOpen(true)}>{t('common.reset')}</button></div>
         </AdminSection>}
@@ -89,3 +117,4 @@ function AdminSection({ icon, title, text, children }: { icon: ReactNode; title:
 function AdminField({ label, wide = false, children }: { label: string; wide?: boolean; children: ReactNode }) { return <label className={`admin-field ${wide ? 'wide' : ''}`}><span>{label}</span><div>{children}</div></label> }
 function ThresholdField({ icon, label, value, unit, min, max, onChange }: { icon: ReactNode; label: string; value: number; unit: string; min: number; max: number; onChange: (value: number) => void }) { return <label className="threshold-field"><span className="threshold-icon">{icon}</span><span><small>{label}</small><strong>{value} {unit}</strong></span><input type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label> }
 function IntegrationCard({ icon, title, status, detail, tone }: { icon: ReactNode; title: string; status: string; detail: string; tone: string }) { return <article className="integration-card"><span className={`integration-icon ${tone}`}>{icon}</span><span><strong>{title}</strong><small>{detail}</small></span><em className={tone}>{status}</em></article> }
+function FoundationStep({ icon, status, title, detail }: { icon: ReactNode; status: 'ready' | 'pending' | 'locked'; title: string; detail: string }) { return <article className={`foundation-step ${status}`}><span>{icon}</span><span><strong>{title}</strong><small>{detail}</small></span><em>{status === 'ready' ? <Check /> : status === 'locked' ? <LockKeyhole /> : <RefreshCw />}</em></article> }
