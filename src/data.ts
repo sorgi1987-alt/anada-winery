@@ -1,4 +1,4 @@
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -151,6 +151,24 @@ export const initialTasks: CellarTask[] = [
   { id: '4', title: 'Toma de muestra maloláctica', lot: 'T-25-012', time: '18:00', assignee: 'Lucía', priority: 'media', complete: false },
   { id: '5', title: 'Rellenar barricas', lot: 'CR-25-004', time: 'Mañana', assignee: 'Martín', priority: 'normal', complete: false },
   roseTask,
+]
+
+export const productionEvents: ProductionEvent[] = [
+  {
+    id: 'production-event-001', lotId: 'T-26-017', wineType: 'tinto', kind: 'operation', stageId: 'af', operationType: 'pump_over',
+    performedAt: '2026-09-19T12:10:00+02:00', recordedAt: '2026-09-19T12:14:00+02:00', operator: 'Martín Ruiz',
+    notes: 'Remontado suave sin incidencias.', metrics: { durationMinutes: 15, temperature: 24.8, volumeBefore: 7850, volumeAfter: 7850 }, storageMode: 'browser-local',
+  },
+  {
+    id: 'production-event-002', lotId: 'T-26-017', wineType: 'tinto', kind: 'operation', stageId: 'af', operationType: 'density_check',
+    performedAt: '2026-09-19T12:00:00+02:00', recordedAt: '2026-09-19T12:03:00+02:00', operator: 'Elena Martín',
+    notes: 'Cinética regular; continuar seguimiento.', metrics: { density: 1.046, temperature: 24.8, volumeBefore: 7850, volumeAfter: 7850 }, storageMode: 'browser-local',
+  },
+  {
+    id: 'production-event-003', lotId: 'T-26-017', wineType: 'tinto', kind: 'operation', stageId: 'af', operationType: 'addition',
+    performedAt: '2026-09-18T18:42:00+02:00', recordedAt: '2026-09-18T18:44:00+02:00', operator: 'Elena Martín',
+    notes: 'Nutriente orgánico incorporado durante remontado.', metrics: { product: 'Nutriente orgánico', additionAmount: 12, additionUnit: 'kg', volumeBefore: 7850, volumeAfter: 7850 }, storageMode: 'browser-local',
+  },
 ]
 
 export const roseTank: Tank = { id: 'D-07', capacity: 6000, volume: 4450, lot: 'R-26-003', type: 'rosado', stage: 'Cofermentación', temperature: 18.4, attention: 'normal' }

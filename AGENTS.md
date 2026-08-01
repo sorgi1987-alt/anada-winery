@@ -55,4 +55,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 3B.1 is prepared: the Development schema, exact-origin CORS policy, direct health contract and automatic frontend diagnostic exist, while the browser repository remains authoritative. The function still requires one CLI-generated configuration and deployment. Authentication and protected operational reads are deferred to Phase 3B.2. See `PHASES.md`.
+Phase 4A is prepared: red-wine lots have persistent local operation events, stage-specific allowed actions, guarded transitions, volume reconciliation and an attributed browser-local audit history. Phase 3B.1 health connectivity is live, but the browser repository remains authoritative. Authentication, protected operational reads and remote writes are still deferred. See `PHASES.md`.

@@ -4,7 +4,7 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 3B.1 prepares the first live Catalyst connectivity checkpoint without changing operational authority. Seven normalized development tables are provisioned, the exact Slate hostname is authorized for CORS, and a health-only Advanced I/O function is ready for CLI deployment. Operational data still starts from realistic Rioja seed data and is persisted in the current browser. There is no shared server persistence, authentication or regulatory certification yet.
+Phase 4A adds the first executable production template: red-wine operations and stage changes now follow explicit cellar rules, persist in the current browser and retain attributed local history. Catalyst health connectivity is live and confirms the seven normalized Development tables, but operational authority intentionally remains in the browser. There is no shared server persistence, authentication or regulatory certification yet.
 
 Implemented views:
 
@@ -75,6 +75,11 @@ Implemented views:
 - Direct health endpoint contract with automatic bilingual connection diagnostics
 - Exact Slate-origin CORS authorization with iframe access disabled
 - API Gateway deliberately left disabled
+- Executable red-wine stage controls with only contextually valid operations
+- Guarded fermentation, devatting and malolactic transitions
+- Free-run and press-wine volume reconciliation
+- Persistent operator-attributed local production history
+- Explicit distinction between local attribution and authenticated electronic signatures
 
 ## Local development
 
@@ -91,6 +96,8 @@ Use the URL printed by Vite. The entry route is `/#/welcome`. Hash routing is in
 
 ```bash
 npm run typecheck
+npm run test:process
+npm run test:backend
 npm run build
 npm run preview
 ```

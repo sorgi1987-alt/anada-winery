@@ -11,13 +11,14 @@ import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
 import { BlendingPage } from './Blending'
 import { images, lots as seedLots } from './data'
-import { approveBlendTrial, assignLotToTank, completeBottlingOrder, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createRecallSimulation, createTask, receiveGrapeDelivery, recordBarrelOperation, recordBlendTasting, recordLabResults, setBottlingGate, startBottlingOrder } from './domain'
+import { advanceRedStage, approveBlendTrial, assignLotToTank, completeBottlingOrder, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createRecallSimulation, createTask, receiveGrapeDelivery, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, setBottlingGate, startBottlingOrder } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
 import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
+import { RedProcessControl } from './RedProcess'
 import { browserWineryRepository } from './store'
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewTaskInput, PackagingMaterial, ReadingPoint, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineType } from './types'
+import type { AdvanceRedStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewRedOperationInput, NewTaskInput, PackagingMaterial, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -57,12 +58,13 @@ const navItems = [
 
 function App() {
   const { pathname } = useHashLocation()
-  const { t } = useLanguage()
+  const { t, d } = useLanguage()
   const navigate = useNavigate()
   const [initialState] = useState(() => browserWineryRepository.load())
   const [demoLots, setDemoLots] = useState<WineLot[]>(initialState.lots)
   const [tasks, setTasks] = useState<CellarTask[]>(initialState.tasks)
   const [demoTanks, setDemoTanks] = useState<Tank[]>(initialState.tanks)
+  const [productionEvents, setProductionEvents] = useState<ProductionEvent[]>(initialState.productionEvents)
   const [parcels, setParcels] = useState<VineyardParcel[]>(initialState.parcels)
   const [deliveries, setDeliveries] = useState<GrapeDelivery[]>(initialState.deliveries)
   const [samples, setSamples] = useState<LabSample[]>(initialState.samples)
@@ -85,8 +87,8 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 9, lots: demoLots, tasks, tanks: demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
-  }, [demoLots, tasks, demoTanks, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings])
+    browserWineryRepository.save({ schemaVersion: 10, lots: demoLots, tasks, tanks: demoTanks, productionEvents, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
+  }, [demoLots, tasks, demoTanks, productionEvents, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings])
 
   const toggleCellarMode = () => {
     setCellarMode((current) => {
@@ -134,6 +136,28 @@ function App() {
     setToast(t('toast.readingUndone', { id: undoLot.id }))
     setUndoLot(null)
     window.setTimeout(() => setToast(null), 3200)
+  }
+
+  const saveRedOperation = (input: NewRedOperationInput) => {
+    const result = recordRedOperation(demoLots, demoTanks, tasks, productionEvents, input)
+    setDemoLots(result.lots)
+    setDemoTanks(result.tanks)
+    setTasks(result.tasks)
+    setProductionEvents(result.events)
+    setUndoLot(null)
+    setToast(t('toast.redOperationSaved', { id: result.lot.id }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
+  const moveRedStage = (input: AdvanceRedStageInput) => {
+    const result = advanceRedStage(demoLots, demoTanks, tasks, productionEvents, input)
+    setDemoLots(result.lots)
+    setDemoTanks(result.tanks)
+    setTasks(result.tasks)
+    setProductionEvents(result.events)
+    setUndoLot(null)
+    setToast(t('toast.redStageAdvanced', { id: result.lot.id, stage: d(result.lot.stage) }))
+    window.setTimeout(() => setToast(null), 4200)
   }
 
   const createNewLot = (input: NewLotInput) => {
@@ -263,6 +287,7 @@ function App() {
     setDemoLots(reset.lots)
     setTasks(reset.tasks)
     setDemoTanks(reset.tanks)
+    setProductionEvents(reset.productionEvents)
     setParcels(reset.parcels)
     setDeliveries(reset.deliveries)
     setSamples(reset.samples)
@@ -283,7 +308,7 @@ function App() {
   }
 
   const readingLot = demoLots.find((lot) => lot.id === readingLotId)
-  const operationalRecordCount = demoLots.length + tasks.length + demoTanks.length + parcels.length + deliveries.length + samples.length + barrels.length + barrelOperations.length + blendTrials.length + packagingMaterials.length + bottlingOrders.length + traceabilityEntities.length + traceabilityLinks.length + recallSimulations.length
+  const operationalRecordCount = demoLots.length + tasks.length + demoTanks.length + productionEvents.length + parcels.length + deliveries.length + samples.length + barrels.length + barrelOperations.length + blendTrials.length + packagingMaterials.length + bottlingOrders.length + traceabilityEntities.length + traceabilityLinks.length + recallSimulations.length
 
   if (pathname === '/welcome') return <div className={cellarMode ? 'app cellar-theme' : 'app'}><Welcome /></div>
 
@@ -292,7 +317,7 @@ function App() {
   else if (pathname === '/harvest') currentPage = <HarvestPage parcels={parcels} deliveries={deliveries} onOpenIntake={(deliveryId) => setIntakeFlow({ open: true, deliveryId })} />
   else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={demoLots} />
-  else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} />
+  else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} productionEvents={productionEvents} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} onRecordRedOperation={saveRedOperation} onAdvanceRedStage={moveRedStage} />
   else if (pathname === '/cellar') currentPage = <CellarMap tanks={demoTanks} />
   else if (pathname === '/tasks') currentPage = <TasksPage lots={demoLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} />
   else if (pathname === '/laboratory') currentPage = <LaboratoryPage samples={samples} lots={demoLots} deliveries={deliveries} parcels={parcels} onCreate={addLabSample} onRecordResults={saveLabResults} />
@@ -699,7 +724,15 @@ function OverviewLotCard({ lot, onOpen, compact }: { lot: WineLot; onOpen: () =>
   )
 }
 
-function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: Tank[]; lotId: string; onReading: (id: string) => void }) {
+function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRedOperation, onAdvanceRedStage }: {
+  lots: WineLot[]
+  tanks: Tank[]
+  productionEvents: ProductionEvent[]
+  lotId: string
+  onReading: (id: string) => void
+  onRecordRedOperation: (input: NewRedOperationInput) => void
+  onAdvanceRedStage: (input: AdvanceRedStageInput) => void
+}) {
   const navigate = useNavigate()
   const { t, d, locale } = useLanguage()
   const lot = lots.find((item) => item.id === lotId)
@@ -777,6 +810,8 @@ function LotDetail({ lots, tanks, lotId, onReading }: { lots: WineLot[]; tanks: 
         <SectionHeading title={t('detail.process', { wine: t(wineLabelKey[lot.type]) })} subtitle={t('detail.processSubtitle')} compact />
         <ProcessTimeline lot={lot} />
       </section>
+
+      {isRed && <RedProcessControl lot={lot} events={productionEvents} onRecordOperation={onRecordRedOperation} onAdvanceStage={onAdvanceRedStage} />}
 
       <section className="detail-columns">
         <div className="panel readings-panel">

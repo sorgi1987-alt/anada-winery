@@ -166,7 +166,7 @@ Status: completed.
 
 ### Phase 3B.1 — Health connectivity
 
-Status: deployment prepared.
+Status: completed.
 
 - Exact Slate hostname authorized for CORS; iframe disabled
 - API Gateway retained in its disabled state
@@ -175,7 +175,7 @@ Status: deployment prepared.
 - Automatic bilingual connection diagnostics in Administration
 - No operational records, seed data, authentication or mutations
 
-Completion gate: deploy the CLI-generated `anada_data_api` function and verify a ready response from Slate.
+Completion gate passed: the deployed `anada_data_api` route returns `ready`, confirms all seven tables and retains the remote-write lock.
 
 ### Phase 3B.2 — Protected read integration
 
@@ -187,12 +187,28 @@ Completion gate: deploy the CLI-generated `anada_data_api` function and verify a
 
 ## Phase 4 — Production process engine
 
-- Persistent lots and vessel assignments
-- Process templates and allowed transitions
-- Readings, operations and work orders
-- Splits, merges and blends
-- Volume reconciliation
-- Audit trail and electronic sign-off
+### Phase 4A — Executable red-wine process
+
+Status: deployment prepared.
+
+- Persistent browser-local production events and schema migration
+- Red-stage operation matrix that excludes white and rosado actions
+- Selection, vatting, pump-over, punch-down, control, addition, sampling, devatting, racking, malolactic and SO₂ operations
+- Density-gated completion of alcoholic fermentation
+- Free-run and press-wine reconciliation without volume creation
+- Malic-acid gate before moving from malolactic fermentation
+- Guarded, sequential stage transitions and automatic next tasks
+- Operator-attributed local audit history with explicit non-authenticated status
+- Cellar-friendly operation sheet and bilingual process controls
+
+Completion gate: deploy the frontend and execute a density control followed by a guarded transition on the demonstration red lot.
+
+### Later Phase 4 checkpoints
+
+- Executable white, rosado and clarete process engines
+- Splits, merges and physical blend movements
+- Cross-vessel transfer and loss reconciliation
+- Authenticated audit trail and electronic sign-off after access control is enabled
 
 ## Phase 5 — Harvest and traceability
 

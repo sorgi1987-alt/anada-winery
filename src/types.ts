@@ -151,10 +151,11 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 9
+  schemaVersion: 10
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
+  productionEvents: ProductionEvent[]
   parcels: VineyardParcel[]
   deliveries: GrapeDelivery[]
   samples: LabSample[]
@@ -223,6 +224,76 @@ export interface NewTaskInput {
   time: string
   assignee: string
   priority: CellarTask['priority']
+}
+
+export type RedOperationType =
+  | 'selection'
+  | 'vatting'
+  | 'pump_over'
+  | 'punch_down'
+  | 'temperature_check'
+  | 'density_check'
+  | 'addition'
+  | 'sample'
+  | 'devatting_pressing'
+  | 'racking'
+  | 'malolactic_check'
+  | 'so2_adjustment'
+
+export interface ProductionEventMetrics {
+  durationMinutes?: number
+  temperature?: number
+  density?: number
+  volumeBefore?: number
+  volumeAfter?: number
+  freeRunVolume?: number
+  pressVolume?: number
+  product?: string
+  additionAmount?: number
+  additionUnit?: 'kg' | 'g' | 'L' | 'mL'
+  malicAcid?: number
+  freeSo2?: number
+}
+
+export interface ProductionEvent {
+  id: string
+  lotId: string
+  wineType: WineType
+  kind: 'operation' | 'transition'
+  stageId: string
+  operationType?: RedOperationType
+  fromStageId?: string
+  toStageId?: string
+  performedAt: string
+  recordedAt: string
+  operator: string
+  notes: string
+  metrics: ProductionEventMetrics
+  storageMode: 'browser-local'
+}
+
+export interface NewRedOperationInput {
+  lotId: string
+  type: RedOperationType
+  performedAt: string
+  operator: string
+  notes: string
+  metrics: ProductionEventMetrics
+}
+
+export interface AdvanceRedStageInput {
+  lotId: string
+  performedAt: string
+  operator: string
+  notes: string
+}
+
+export interface RedStageGate {
+  stageId: string
+  nextStageId?: string
+  eligible: boolean
+  reason: 'operation_required' | 'density_required' | 'malic_required' | 'managed_elsewhere' | 'complete' | 'ready'
+  value?: number
 }
 
 export interface NewGrapeIntakeInput {
