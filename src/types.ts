@@ -151,7 +151,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 10
+  schemaVersion: 11
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -253,6 +253,13 @@ export interface ProductionEventMetrics {
   additionUnit?: 'kg' | 'g' | 'L' | 'mL'
   malicAcid?: number
   freeSo2?: number
+  potentialAlcohol?: number
+  turbidity?: number
+  pressFraction?: string
+  protection?: string
+  settlingHours?: number
+  leesDecision?: 'continue' | 'complete' | 'skip'
+  conductivityDrop?: number
 }
 
 export interface ProductionEvent {
@@ -261,7 +268,7 @@ export interface ProductionEvent {
   wineType: WineType
   kind: 'operation' | 'transition'
   stageId: string
-  operationType?: RedOperationType
+  operationType?: RedOperationType | WhiteOperationType
   fromStageId?: string
   toStageId?: string
   performedAt: string
@@ -293,6 +300,45 @@ export interface RedStageGate {
   nextStageId?: string
   eligible: boolean
   reason: 'operation_required' | 'density_required' | 'malic_required' | 'managed_elsewhere' | 'complete' | 'ready'
+  value?: number
+}
+
+export type WhiteOperationType =
+  | 'reception_check'
+  | 'must_protection'
+  | 'pressing'
+  | 'turbidity_check'
+  | 'clean_must_racking'
+  | 'inoculation'
+  | 'temperature_check'
+  | 'density_check'
+  | 'sample'
+  | 'batonnage'
+  | 'lees_tasting'
+  | 'lees_decision'
+  | 'cold_stability_check'
+
+export interface NewWhiteOperationInput {
+  lotId: string
+  type: WhiteOperationType
+  performedAt: string
+  operator: string
+  notes: string
+  metrics: ProductionEventMetrics
+}
+
+export interface AdvanceWhiteStageInput {
+  lotId: string
+  performedAt: string
+  operator: string
+  notes: string
+}
+
+export interface WhiteStageGate {
+  stageId: string
+  nextStageId?: string
+  eligible: boolean
+  reason: 'protection_required' | 'pressing_required' | 'turbidity_required' | 'racking_required' | 'density_required' | 'lees_decision_required' | 'stability_required' | 'complete' | 'ready'
   value?: number
 }
 

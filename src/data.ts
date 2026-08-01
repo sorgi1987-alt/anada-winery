@@ -169,6 +169,21 @@ export const productionEvents: ProductionEvent[] = [
     performedAt: '2026-09-18T18:42:00+02:00', recordedAt: '2026-09-18T18:44:00+02:00', operator: 'Elena Martín',
     notes: 'Nutriente orgánico incorporado durante remontado.', metrics: { product: 'Nutriente orgánico', additionAmount: 12, additionUnit: 'kg', volumeBefore: 7850, volumeAfter: 7850 }, storageMode: 'browser-local',
   },
+  {
+    id: 'production-event-white-001', lotId: 'B-26-006', wineType: 'blanco', kind: 'operation', stageId: 'af', operationType: 'density_check',
+    performedAt: '2026-09-26T17:30:00+02:00', recordedAt: '2026-09-26T17:33:00+02:00', operator: 'Lucía Sáenz',
+    notes: 'Fermentación protegida y cinética estable.', metrics: { density: 1.018, temperature: 15.2, volumeBefore: 5200, volumeAfter: 5200 }, storageMode: 'browser-local',
+  },
+  {
+    id: 'production-event-white-002', lotId: 'B-26-006', wineType: 'blanco', kind: 'operation', stageId: 'af', operationType: 'inoculation',
+    performedAt: '2026-09-25T11:20:00+02:00', recordedAt: '2026-09-25T11:24:00+02:00', operator: 'Elena Martín',
+    notes: 'Inoculación tras aclimatación.', metrics: { product: 'Levadura seleccionada', additionAmount: 1.1, additionUnit: 'kg', temperature: 14.9, volumeBefore: 5200, volumeAfter: 5200 }, storageMode: 'browser-local',
+  },
+  {
+    id: 'production-event-white-003', lotId: 'B-26-006', wineType: 'blanco', kind: 'operation', stageId: 'af', operationType: 'temperature_check',
+    performedAt: '2026-09-26T09:12:00+02:00', recordedAt: '2026-09-26T09:14:00+02:00', operator: 'Elena Martín',
+    notes: 'Temperatura estable.', metrics: { temperature: 15.2, volumeBefore: 5200, volumeAfter: 5200 }, storageMode: 'browser-local',
+  },
 ]
 
 export const roseTank: Tank = { id: 'D-07', capacity: 6000, volume: 4450, lot: 'R-26-003', type: 'rosado', stage: 'Cofermentación', temperature: 18.4, attention: 'normal' }

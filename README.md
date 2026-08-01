@@ -4,7 +4,7 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 4A adds the first executable production template: red-wine operations and stage changes now follow explicit cellar rules, persist in the current browser and retain attributed local history. Catalyst health connectivity is live and confirms the seven normalized Development tables, but operational authority intentionally remains in the browser. There is no shared server persistence, authentication or regulatory certification yet.
+Phase 4B adds a genuinely separate executable white-wine template alongside the completed red engine. Press fractions, protected must, settling, cool fermentation, optional lees work and tartaric stability now follow explicit cellar rules, persist in the current browser and retain attributed local history. Catalyst health connectivity is live and confirms the seven normalized Development tables, but operational authority intentionally remains in the browser. There is no shared server persistence, authentication or regulatory certification yet.
 
 Implemented views:
 
@@ -78,6 +78,9 @@ Implemented views:
 - Executable red-wine stage controls with only contextually valid operations
 - Guarded fermentation, devatting and malolactic transitions
 - Free-run and press-wine volume reconciliation
+- Executable white-wine controls with protected-must, pressing, settling, cool-fermentation, lees and stability operations
+- White-specific turbidity, dry-density, lees-decision and conductivity-drop stage gates
+- Press-fraction reconciliation with an internal 70 L/100 kg transformation-yield checkpoint
 - Persistent operator-attributed local production history
 - Explicit distinction between local attribution and authenticated electronic signatures
 

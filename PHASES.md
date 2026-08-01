@@ -189,7 +189,7 @@ Completion gate passed: the deployed `anada_data_api` route returns `ready`, con
 
 ### Phase 4A — Executable red-wine process
 
-Status: deployment prepared.
+Status: completed.
 
 - Persistent browser-local production events and schema migration
 - Red-stage operation matrix that excludes white and rosado actions
@@ -202,11 +202,28 @@ Status: deployment prepared.
 - Quick cellar readings mirrored into the red process history and transition gate
 - Cellar-friendly operation sheet and bilingual process controls
 
-Completion gate: deploy the frontend and execute a density control followed by a guarded transition on the demonstration red lot.
+Completion gate passed: a quick density reading is retained in process history and unlocks the guarded transition on the demonstration red lot.
+
+### Phase 4B — Executable white-wine process
+
+Status: deployment prepared.
+
+- Independent white-stage operation matrix with no red cap-management actions
+- Reception control, must protection, pressing fractions, turbidity, clean-must racking, inoculation, cool-fermentation controls, sampling, bâtonnage, lees tasting and tartaric-stability checks
+- Internal press-yield checkpoint capped at 70 L/100 kg of received grapes
+- Settling gate requiring both configured turbidity and reconciled clean-must racking
+- Density-gated completion of cool alcoholic fermentation
+- Explicit continue, complete or skip decision for the optional lees stage
+- Internal conductivity-drop checkpoint before filtration and bottling
+- Quick cellar readings mirrored into white process history and the fermentation gate
+- Bilingual, cellar-friendly visual controls and attributed browser-local history
+- Schema migration preserving Phase 4A events and adding the white demonstration history only when absent
+
+Completion gate: deploy the frontend, save a density of 0.994 on `B-26-006`, confirm it appears in white process history and advance the lot to the optional lees stage.
 
 ### Later Phase 4 checkpoints
 
-- Executable white, rosado and clarete process engines
+- Executable rosado and clarete process engines
 - Splits, merges and physical blend movements
 - Cross-vessel transfer and loss reconciliation
 - Authenticated audit trail and electronic sign-off after access control is enabled

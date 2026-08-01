@@ -116,8 +116,8 @@ export function RedProcessControl({ lot, events, onRecordOperation, onAdvanceSta
           <div className="red-event-list">
             {lotEvents.slice(0, 5).map((event) => (
               <article key={event.id}>
-                <span>{event.kind === 'transition' ? <ArrowRight /> : event.operationType ? operationIcon(event.operationType) : <Check />}</span>
-                <div><strong>{event.kind === 'transition' ? t('redEngine.transition') : event.operationType ? t(operationLabelKeys[event.operationType] as Parameters<typeof t>[0]) : '—'}</strong><small>{event.operator} · {new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(event.performedAt))}</small><em>{eventDetail(event)}</em></div>
+                <span>{event.kind === 'transition' ? <ArrowRight /> : event.operationType ? operationIcon(event.operationType as RedOperationType) : <Check />}</span>
+                <div><strong>{event.kind === 'transition' ? t('redEngine.transition') : event.operationType ? t(operationLabelKeys[event.operationType as RedOperationType] as Parameters<typeof t>[0]) : '—'}</strong><small>{event.operator} · {new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(event.performedAt))}</small><em>{eventDetail(event)}</em></div>
                 <Check size={14} />
               </article>
             ))}
