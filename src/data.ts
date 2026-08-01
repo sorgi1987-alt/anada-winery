@@ -1,4 +1,4 @@
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, CellarTask, GrapeDelivery, LabSample, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -270,5 +270,48 @@ export const blendTrials: BlendTrial[] = [
     components: [{ candidateId: 'blend-candidate-002', percentage: 70 }, { candidateId: 'blend-candidate-003', percentage: 30 }],
     estimatedAnalysis: { alcohol: 13.98, ph: 3.58, totalAcidity: 5.32, colorIntensity: 13.43 }, createdAt: '2026-09-15T12:10:00+02:00', createdBy: 'Elena Martín', approvedAt: '2026-09-18T13:05:00+02:00', approvedBy: 'Elena Martín',
     tasting: { visual: 4, aroma: 4, palate: 5, balance: 5, recommendation: 'promising', notes: 'Ensamblaje equilibrado y listo para preparación de depósito.', tastedAt: '2026-09-18T12:20:00+02:00', tastedBy: 'Elena Martín' },
+  },
+]
+
+export const packagingMaterials: PackagingMaterial[] = [
+  { id: 'pack-bottle-001', code: 'ENV-075-01', type: 'bottle', name: 'Bordelesa Élite 75 cl', supplier: 'Verallia', lotNumber: 'VE-260914-B7', onHand: 18500, reserved: 4080, reorderPoint: 5000, unit: 'units' },
+  { id: 'pack-bottle-002', code: 'ENV-075-02', type: 'bottle', name: 'Borgoña Ámbar 75 cl', supplier: 'Vidrio Rioja', lotNumber: 'VR-260901-A2', onHand: 6200, reserved: 2993, reorderPoint: 2500, unit: 'units' },
+  { id: 'pack-closure-001', code: 'COR-044-01', type: 'closure', name: 'Corcho natural 44 × 24', supplier: 'Amorim', lotNumber: 'AM-26-4481', onHand: 15200, reserved: 4080, reorderPoint: 4000, unit: 'units' },
+  { id: 'pack-closure-002', code: 'COR-045-02', type: 'closure', name: 'Corcho técnico blanco', supplier: 'Diam', lotNumber: 'DI-26-1190', onHand: 5200, reserved: 2993, reorderPoint: 2000, unit: 'units' },
+  { id: 'pack-capsule-001', code: 'CAP-BUR-01', type: 'capsule', name: 'Cápsula borgoña mate', supplier: 'Ramondín', lotNumber: 'RA-2608-97', onHand: 14800, reserved: 4080, reorderPoint: 4000, unit: 'units' },
+  { id: 'pack-capsule-002', code: 'CAP-CRM-02', type: 'capsule', name: 'Cápsula crema mate', supplier: 'Ramondín', lotNumber: 'RA-2609-12', onHand: 4600, reserved: 2993, reorderPoint: 1800, unit: 'units' },
+  { id: 'pack-front-001', code: 'ETQ-CS-25', type: 'front_label', name: 'Crianza Selección 2025', supplier: 'Gráficas Larrad', lotNumber: 'GL-26188', onHand: 14000, reserved: 4080, reorderPoint: 3000, unit: 'units' },
+  { id: 'pack-front-002', code: 'ETQ-BP-25', type: 'front_label', name: 'Blanco de Parcela 2025', supplier: 'Gráficas Larrad', lotNumber: 'GL-26204', onHand: 5100, reserved: 2993, reorderPoint: 1800, unit: 'units' },
+  { id: 'pack-back-001', code: 'CR-RIO-26-A', type: 'back_label', name: 'Contraetiqueta DOCa Rioja · Crianza', supplier: 'Consejo Regulador', lotNumber: 'DOC-26-CR-A', onHand: 15000, reserved: 4080, reorderPoint: 3000, unit: 'units', riojaSeries: 'CR-26-A · 105221–120220' },
+  { id: 'pack-back-002', code: 'GE-RIO-26-B', type: 'back_label', name: 'Contraetiqueta DOCa Rioja · Genérico', supplier: 'Consejo Regulador', lotNumber: 'DOC-26-GE-B', onHand: 5000, reserved: 2993, reorderPoint: 1800, unit: 'units', riojaSeries: 'GE-26-B · 220001–225000' },
+  { id: 'pack-carton-001', code: 'CAJ-06-01', type: 'carton', name: 'Caja 6 botellas · kraft', supplier: 'Cartonajes Ebro', lotNumber: 'CE-260911', onHand: 2300, reserved: 680, reorderPoint: 600, unit: 'units' },
+  { id: 'pack-carton-002', code: 'CAJ-06-02', type: 'carton', name: 'Caja 6 botellas · blanca', supplier: 'Cartonajes Ebro', lotNumber: 'CE-260917', onHand: 920, reserved: 499, reorderPoint: 400, unit: 'units' },
+]
+
+export const bottlingOrders: BottlingOrder[] = [
+  {
+    id: 'bottling-order-006', code: 'EMB-26-006', sourceTrialId: 'blend-trial-historical-006', sourceCode: 'ENS-26-000', wineName: 'Crianza Selección', type: 'tinto', vintage: 2025,
+    ageingMention: 'crianza', originMention: 'rioja', targetVolume: 4000, targetBottles: 5334, scheduledAt: '2026-09-12T08:00:00+02:00', line: 'Línea 1', status: 'completed',
+    packaging: { bottleSize: 0.75, unitsPerCase: 6, bottleId: 'pack-bottle-001', closureId: 'pack-closure-001', capsuleId: 'pack-capsule-001', frontLabelId: 'pack-front-001', backLabelId: 'pack-back-001', cartonId: 'pack-carton-001' },
+    gates: ['wine_release', 'pre_bottling_lab', 'stabilisation', 'filtration', 'artwork', 'line_sanitation'].map((key) => ({ key: key as BottlingOrder['gates'][number]['key'], complete: true, verifiedAt: '2026-09-11T16:00:00+02:00', verifiedBy: 'Elena Martín' })),
+    createdAt: '2026-09-02T10:10:00+02:00', createdBy: 'Elena Martín', releasedAt: '2026-09-11T16:10:00+02:00', releasedBy: 'Elena Martín',
+    completion: { goodBottles: 5220, rejectedBottles: 42, actualVolume: 3951, finishedProductLot: 'PT-CS25-260912', backLabelFrom: 100001, backLabelTo: 105220, completedAt: '2026-09-12T15:42:00+02:00', completedBy: 'Martín Ruiz', notes: 'Arranque estable; 42 botellas rechazadas en control de nivel y cierre.' },
+  },
+  {
+    id: 'bottling-order-007', code: 'EMB-26-007', sourceTrialId: 'blend-trial-003', sourceCode: 'ENS-26-003', wineName: 'Crianza Selección', type: 'tinto', vintage: 2025,
+    ageingMention: 'crianza', originMention: 'rioja', targetVolume: 3000, targetBottles: 4000, scheduledAt: '2026-09-22T07:30:00+02:00', line: 'Línea 1', status: 'ready',
+    packaging: { bottleSize: 0.75, unitsPerCase: 6, bottleId: 'pack-bottle-001', closureId: 'pack-closure-001', capsuleId: 'pack-capsule-001', frontLabelId: 'pack-front-001', backLabelId: 'pack-back-001', cartonId: 'pack-carton-001' },
+    gates: ['wine_release', 'pre_bottling_lab', 'stabilisation', 'filtration', 'artwork', 'line_sanitation'].map((key) => ({ key: key as BottlingOrder['gates'][number]['key'], complete: true, verifiedAt: '2026-09-20T12:00:00+02:00', verifiedBy: 'Elena Martín' })),
+    createdAt: '2026-09-14T09:25:00+02:00', createdBy: 'Elena Martín', releasedAt: '2026-09-20T12:15:00+02:00', releasedBy: 'Elena Martín',
+  },
+  {
+    id: 'bottling-order-008', code: 'EMB-26-008', sourceTrialId: 'blend-trial-historical-008', sourceCode: 'ENS-26-005', wineName: 'Blanco de Parcela', type: 'blanco', vintage: 2025,
+    ageingMention: 'generic', originMention: 'vino_de_pueblo', targetVolume: 2200, targetBottles: 2934, scheduledAt: '2026-09-24T08:00:00+02:00', line: 'Línea 1', status: 'preparation',
+    packaging: { bottleSize: 0.75, unitsPerCase: 6, bottleId: 'pack-bottle-002', closureId: 'pack-closure-002', capsuleId: 'pack-capsule-002', frontLabelId: 'pack-front-002', backLabelId: 'pack-back-002', cartonId: 'pack-carton-002' },
+    gates: [
+      { key: 'wine_release', complete: false }, { key: 'pre_bottling_lab', complete: false }, { key: 'stabilisation', complete: true, verifiedAt: '2026-09-19T09:00:00+02:00', verifiedBy: 'Lucía Sáenz' },
+      { key: 'filtration', complete: false }, { key: 'artwork', complete: true, verifiedAt: '2026-09-18T13:00:00+02:00', verifiedBy: 'Elena Martín' }, { key: 'line_sanitation', complete: false },
+    ],
+    createdAt: '2026-09-17T11:05:00+02:00', createdBy: 'Lucía Sáenz',
   },
 ]

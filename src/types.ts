@@ -138,7 +138,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 5
+  schemaVersion: 6
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -149,6 +149,8 @@ export interface WineryState {
   barrelOperations: BarrelOperation[]
   blendCandidates: BlendCandidate[]
   blendTrials: BlendTrial[]
+  packagingMaterials: PackagingMaterial[]
+  bottlingOrders: BottlingOrder[]
 }
 
 export interface NewLotInput {
@@ -386,5 +388,103 @@ export interface BlendTastingInput {
   palate: number
   balance: number
   recommendation: BlendTastingRecommendation
+  notes: string
+}
+
+export type BottlingOrderStatus = 'draft' | 'preparation' | 'ready' | 'in_progress' | 'completed' | 'hold'
+export type RiojaAgeingMention = 'generic' | 'crianza' | 'reserva' | 'gran_reserva'
+export type RiojaOriginMention = 'rioja' | 'vino_de_pueblo' | 'vinedo_singular'
+export type BottlingGateKey = 'wine_release' | 'pre_bottling_lab' | 'stabilisation' | 'filtration' | 'artwork' | 'line_sanitation'
+export type PackagingMaterialType = 'bottle' | 'closure' | 'capsule' | 'front_label' | 'back_label' | 'carton'
+
+export interface BottlingReleaseGate {
+  key: BottlingGateKey
+  complete: boolean
+  verifiedAt?: string
+  verifiedBy?: string
+}
+
+export interface PackagingMaterial {
+  id: string
+  code: string
+  type: PackagingMaterialType
+  name: string
+  supplier: string
+  lotNumber: string
+  onHand: number
+  reserved: number
+  reorderPoint: number
+  unit: 'units'
+  riojaSeries?: string
+}
+
+export interface BottlingPackaging {
+  bottleSize: number
+  unitsPerCase: number
+  bottleId: string
+  closureId: string
+  capsuleId: string
+  frontLabelId: string
+  backLabelId: string
+  cartonId: string
+}
+
+export interface BottlingCompletion {
+  goodBottles: number
+  rejectedBottles: number
+  actualVolume: number
+  finishedProductLot: string
+  backLabelFrom: number
+  backLabelTo: number
+  completedAt: string
+  completedBy: string
+  notes: string
+}
+
+export interface BottlingOrder {
+  id: string
+  code: string
+  sourceTrialId: string
+  sourceCode: string
+  wineName: string
+  type: Extract<WineType, 'tinto' | 'blanco'>
+  vintage: number
+  ageingMention: RiojaAgeingMention
+  originMention: RiojaOriginMention
+  targetVolume: number
+  targetBottles: number
+  scheduledAt: string
+  line: string
+  status: BottlingOrderStatus
+  packaging: BottlingPackaging
+  gates: BottlingReleaseGate[]
+  createdAt: string
+  createdBy: string
+  releasedAt?: string
+  releasedBy?: string
+  completion?: BottlingCompletion
+}
+
+export interface NewBottlingOrderInput {
+  sourceTrialId: string
+  wineName: string
+  vintage: number
+  ageingMention: RiojaAgeingMention
+  originMention: RiojaOriginMention
+  targetVolume: number
+  scheduledAt: string
+  line: string
+  bottleSize: number
+  unitsPerCase: number
+  packaging: Omit<BottlingPackaging, 'bottleSize' | 'unitsPerCase'>
+}
+
+export interface CompleteBottlingOrderInput {
+  orderId: string
+  goodBottles: number
+  rejectedBottles: number
+  actualVolume: number
+  finishedProductLot: string
+  backLabelFrom: number
   notes: string
 }

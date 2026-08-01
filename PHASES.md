@@ -96,9 +96,23 @@ Status: completed.
 - Approval separated from physical cellar movement
 - Schema migration preserving Phase 2C browser data
 
+### Phase 2E — Bottling orders and packaging
+
+Status: completed.
+
+- Visual bottling-line schedule and operational order board
+- Orders linked to approved blending formulas
+- Wine, laboratory, stabilisation, filtration, artwork and line-sanitation release gates
+- Bottle-format and packaging bill-of-material configuration
+- Supplier-lot stock, operating allowance and material reservations
+- Controlled DOCa Rioja contraetiqueta/precinta series tracking
+- Finished-product lot, good bottle, reject, case, volume and yield reconciliation
+- Exact used back-label number range retained with each completed run
+- Internal regulatory checks clearly separated from official authorisation
+- Schema migration preserving Phase 2D browser data
+
 Remaining Phase 2 modules:
 
-- Bottling orders and packaging
 - Traceability explorer
 - Reports and administration
 - Rosé/clarete frontend process

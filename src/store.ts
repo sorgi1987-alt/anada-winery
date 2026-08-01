@@ -1,14 +1,15 @@
-import { barrelOperations, barrels, blendCandidates, blendTrials, deliveries, initialTasks, labSamples, lots, parcels, tanks } from './data'
+import { barrelOperations, barrels, blendCandidates, blendTrials, bottlingOrders, deliveries, initialTasks, labSamples, lots, packagingMaterials, parcels, tanks } from './data'
 import type { WineryState } from './types'
 
-const STORAGE_KEY = 'anada-winery-state-v5'
+const STORAGE_KEY = 'anada-winery-state-v6'
+const LEGACY_V5_STORAGE_KEY = 'anada-winery-state-v5'
 const LEGACY_V4_STORAGE_KEY = 'anada-winery-state-v4'
 const LEGACY_V3_STORAGE_KEY = 'anada-winery-state-v3'
 const LEGACY_V2_STORAGE_KEY = 'anada-winery-state-v2'
 const LEGACY_V1_STORAGE_KEY = 'anada-winery-state-v1'
 
 const seedState = (): WineryState => ({
-  schemaVersion: 5,
+  schemaVersion: 6,
   lots: structuredClone(lots),
   tasks: structuredClone(initialTasks),
   tanks: structuredClone(tanks),
@@ -19,6 +20,8 @@ const seedState = (): WineryState => ({
   barrelOperations: structuredClone(barrelOperations),
   blendCandidates: structuredClone(blendCandidates),
   blendTrials: structuredClone(blendTrials),
+  packagingMaterials: structuredClone(packagingMaterials),
+  bottlingOrders: structuredClone(bottlingOrders),
 })
 
 export interface WineryRepository {
@@ -30,7 +33,7 @@ export interface WineryRepository {
 const isWineryState = (value: unknown): value is WineryState => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<WineryState>
-  return candidate.schemaVersion === 5
+  return candidate.schemaVersion === 6
     && Array.isArray(candidate.lots)
     && Array.isArray(candidate.tasks)
     && Array.isArray(candidate.tanks)
@@ -41,24 +44,28 @@ const isWineryState = (value: unknown): value is WineryState => {
     && Array.isArray(candidate.barrelOperations)
     && Array.isArray(candidate.blendCandidates)
     && Array.isArray(candidate.blendTrials)
+    && Array.isArray(candidate.packagingMaterials)
+    && Array.isArray(candidate.bottlingOrders)
 }
 
 const migrateLegacyState = (value: unknown): WineryState | null => {
   if (!value || typeof value !== 'object') return null
   const candidate = value as Record<string, unknown>
-  if (![1, 2, 3, 4].includes(candidate.schemaVersion as number) || !Array.isArray(candidate.lots) || !Array.isArray(candidate.tasks) || !Array.isArray(candidate.tanks)) return null
+  if (![1, 2, 3, 4, 5].includes(candidate.schemaVersion as number) || !Array.isArray(candidate.lots) || !Array.isArray(candidate.tasks) || !Array.isArray(candidate.tanks)) return null
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     lots: candidate.lots as WineryState['lots'],
     tasks: candidate.tasks as WineryState['tasks'],
     tanks: candidate.tanks as WineryState['tanks'],
-    parcels: [2, 3, 4].includes(candidate.schemaVersion as number) && Array.isArray(candidate.parcels) ? candidate.parcels as WineryState['parcels'] : structuredClone(parcels),
-    deliveries: [2, 3, 4].includes(candidate.schemaVersion as number) && Array.isArray(candidate.deliveries) ? candidate.deliveries as WineryState['deliveries'] : structuredClone(deliveries),
-    samples: [3, 4].includes(candidate.schemaVersion as number) && Array.isArray(candidate.samples) ? candidate.samples as WineryState['samples'] : structuredClone(labSamples),
-    barrels: candidate.schemaVersion === 4 && Array.isArray(candidate.barrels) ? candidate.barrels as WineryState['barrels'] : structuredClone(barrels),
-    barrelOperations: candidate.schemaVersion === 4 && Array.isArray(candidate.barrelOperations) ? candidate.barrelOperations as WineryState['barrelOperations'] : structuredClone(barrelOperations),
-    blendCandidates: structuredClone(blendCandidates),
-    blendTrials: structuredClone(blendTrials),
+    parcels: [2, 3, 4, 5].includes(candidate.schemaVersion as number) && Array.isArray(candidate.parcels) ? candidate.parcels as WineryState['parcels'] : structuredClone(parcels),
+    deliveries: [2, 3, 4, 5].includes(candidate.schemaVersion as number) && Array.isArray(candidate.deliveries) ? candidate.deliveries as WineryState['deliveries'] : structuredClone(deliveries),
+    samples: [3, 4, 5].includes(candidate.schemaVersion as number) && Array.isArray(candidate.samples) ? candidate.samples as WineryState['samples'] : structuredClone(labSamples),
+    barrels: [4, 5].includes(candidate.schemaVersion as number) && Array.isArray(candidate.barrels) ? candidate.barrels as WineryState['barrels'] : structuredClone(barrels),
+    barrelOperations: [4, 5].includes(candidate.schemaVersion as number) && Array.isArray(candidate.barrelOperations) ? candidate.barrelOperations as WineryState['barrelOperations'] : structuredClone(barrelOperations),
+    blendCandidates: candidate.schemaVersion === 5 && Array.isArray(candidate.blendCandidates) ? candidate.blendCandidates as WineryState['blendCandidates'] : structuredClone(blendCandidates),
+    blendTrials: candidate.schemaVersion === 5 && Array.isArray(candidate.blendTrials) ? candidate.blendTrials as WineryState['blendTrials'] : structuredClone(blendTrials),
+    packagingMaterials: structuredClone(packagingMaterials),
+    bottlingOrders: structuredClone(bottlingOrders),
   }
 }
 
@@ -70,7 +77,7 @@ export const browserWineryRepository: WineryRepository = {
         const parsed: unknown = JSON.parse(stored)
         return isWineryState(parsed) ? parsed : seedState()
       }
-      const legacy = localStorage.getItem(LEGACY_V4_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V3_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V2_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V1_STORAGE_KEY)
+      const legacy = localStorage.getItem(LEGACY_V5_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V4_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V3_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V2_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V1_STORAGE_KEY)
       if (!legacy) return seedState()
       return migrateLegacyState(JSON.parse(legacy)) ?? seedState()
     } catch {
@@ -82,6 +89,7 @@ export const browserWineryRepository: WineryRepository = {
   },
   clear() {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(LEGACY_V5_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V4_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V3_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V2_STORAGE_KEY)

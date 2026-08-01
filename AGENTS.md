@@ -23,6 +23,10 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - Blend formulas must total exactly 100% and cannot mix incompatible red and white component lots.
 - Formula approval reserves component volume but never implies that a physical cellar transfer has occurred.
 - Weighted blend analytics are indicative; pH must be confirmed by laboratory analysis.
+- A bottling order may only be created from an approved blend and may start only after every release gate is verified.
+- Packaging reservations include the configured operating allowance and must never exceed unreserved supplier-lot stock.
+- Completing a bottling run must reconcile good bottles, rejects, actual wine volume, finished-product lot and controlled back-label range.
+- Internal Rioja controls never imply official wine qualification, label authorisation or regulatory approval.
 - Regulatory eligibility is indicative until it has been validated against the relevant DOCa rules and vintage.
 - All future mutations require an audit trail and user attribution.
 
@@ -40,4 +44,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 2D is a bilingual blending-workspace frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.
+Phase 2E is a bilingual bottling-and-packaging frontend checkpoint with versioned local persistence. Authentication and shared Catalyst persistence remain deferred. See `PHASES.md`.

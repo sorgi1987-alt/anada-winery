@@ -1,5 +1,5 @@
 import { images, redProcess, whiteProcess } from './data'
-import type { Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, CellarTask, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewTaskInput, PackagingMaterial, ProcessStage, Tank, VineyardParcel, WineLot } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -345,4 +345,92 @@ export const approveBlendTrial = (trials: BlendTrial[], candidates: BlendCandida
   if (trial.components.some((component) => candidates.find((candidate) => candidate.id === component.candidateId)?.readiness !== 'ready')) throw new Error('All components must be released before approval')
   const updated: BlendTrial = { ...trial, status: 'approved', approvedAt: new Date().toISOString(), approvedBy: 'Elena Martín' }
   return { trial: updated, trials: trials.map((item) => item.id === updated.id ? updated : item) }
+}
+
+const bottlingGateKeys: BottlingGateKey[] = ['wine_release', 'pre_bottling_lab', 'stabilisation', 'filtration', 'artwork', 'line_sanitation']
+
+export const bottlingMaterialRequirements = (order: Pick<BottlingOrder, 'targetBottles' | 'packaging'>) => {
+  const lineUnits = Math.ceil(order.targetBottles * 1.02)
+  return [
+    { materialId: order.packaging.bottleId, quantity: lineUnits },
+    { materialId: order.packaging.closureId, quantity: lineUnits },
+    { materialId: order.packaging.capsuleId, quantity: lineUnits },
+    { materialId: order.packaging.frontLabelId, quantity: lineUnits },
+    { materialId: order.packaging.backLabelId, quantity: lineUnits },
+    { materialId: order.packaging.cartonId, quantity: Math.ceil(order.targetBottles / order.packaging.unitsPerCase * 1.02) },
+  ]
+}
+
+export const nextBottlingCode = (orders: BottlingOrder[]) => {
+  const highest = orders.reduce((maximum, order) => {
+    const match = order.code.match(/^EMB-\d{2}-(\d+)$/)
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0)
+  return `EMB-${String(new Date().getFullYear()).slice(-2)}-${String(highest + 1).padStart(3, '0')}`
+}
+
+export const createBottlingOrder = (input: NewBottlingOrderInput, trials: BlendTrial[], orders: BottlingOrder[], materials: PackagingMaterial[]) => {
+  const trial = trials.find((item) => item.id === input.sourceTrialId)
+  if (!trial || trial.status !== 'approved') throw new Error('Bottling source must be an approved blend')
+  if (!input.wineName.trim() || !input.scheduledAt || !input.line.trim() || input.targetVolume <= 0 || input.bottleSize <= 0 || input.unitsPerCase <= 0) throw new Error('Invalid bottling order')
+  if (input.targetVolume > trial.targetVolume + 0.01) throw new Error('Target volume exceeds approved blend')
+  const packaging = { ...input.packaging, bottleSize: input.bottleSize, unitsPerCase: input.unitsPerCase }
+  const targetBottles = Math.floor(input.targetVolume / input.bottleSize)
+  const draftOrder: BottlingOrder = {
+    id: nowId('bottling-order'), code: nextBottlingCode(orders), sourceTrialId: trial.id, sourceCode: trial.code, wineName: input.wineName.trim(), type: trial.type,
+    vintage: input.vintage, ageingMention: input.ageingMention, originMention: input.originMention, targetVolume: input.targetVolume, targetBottles, scheduledAt: input.scheduledAt,
+    line: input.line.trim(), status: 'preparation', packaging, gates: bottlingGateKeys.map((key) => ({ key, complete: key === 'wine_release', ...(key === 'wine_release' ? { verifiedAt: new Date().toISOString(), verifiedBy: 'Elena Martín' } : {}) })),
+    createdAt: new Date().toISOString(), createdBy: 'Elena Martín',
+  }
+  const requirements = bottlingMaterialRequirements(draftOrder)
+  requirements.forEach(({ materialId, quantity }) => {
+    const material = materials.find((item) => item.id === materialId)
+    if (!material || material.onHand - material.reserved < quantity) throw new Error('Insufficient packaging material')
+  })
+  const nextMaterials = materials.map((material) => {
+    const required = requirements.find((item) => item.materialId === material.id)?.quantity ?? 0
+    return required ? { ...material, reserved: material.reserved + required } : material
+  })
+  return { order: draftOrder, orders: [draftOrder, ...orders], materials: nextMaterials }
+}
+
+export const setBottlingGate = (orders: BottlingOrder[], orderId: string, gateKey: BottlingGateKey, complete: boolean) => {
+  const order = orders.find((item) => item.id === orderId)
+  if (!order || ['completed', 'in_progress'].includes(order.status)) throw new Error('Bottling gates cannot be edited')
+  const gates = order.gates.map((gate) => gate.key === gateKey ? { key: gate.key, complete, ...(complete ? { verifiedAt: new Date().toISOString(), verifiedBy: 'Elena Martín' } : {}) } : gate)
+  const released = gates.every((gate) => gate.complete)
+  const updated: BottlingOrder = { ...order, gates, status: released ? 'ready' : 'preparation', ...(released ? { releasedAt: new Date().toISOString(), releasedBy: 'Elena Martín' } : { releasedAt: undefined, releasedBy: undefined }) }
+  return { order: updated, orders: orders.map((item) => item.id === updated.id ? updated : item) }
+}
+
+export const startBottlingOrder = (orders: BottlingOrder[], orderId: string) => {
+  const order = orders.find((item) => item.id === orderId)
+  if (!order || order.status !== 'ready' || !order.gates.every((gate) => gate.complete)) throw new Error('Bottling order is not released')
+  const updated: BottlingOrder = { ...order, status: 'in_progress' }
+  return { order: updated, orders: orders.map((item) => item.id === updated.id ? updated : item) }
+}
+
+export const completeBottlingOrder = (orders: BottlingOrder[], materials: PackagingMaterial[], input: CompleteBottlingOrderInput) => {
+  const order = orders.find((item) => item.id === input.orderId)
+  if (!order || !['ready', 'in_progress'].includes(order.status)) throw new Error('Bottling order cannot be completed')
+  if (!input.finishedProductLot.trim() || input.goodBottles <= 0 || input.rejectedBottles < 0 || input.actualVolume <= 0 || input.backLabelFrom <= 0) throw new Error('Invalid bottling completion')
+  const totalHandled = input.goodBottles + input.rejectedBottles
+  if (totalHandled > Math.ceil(order.targetBottles * 1.02) || input.actualVolume > order.targetVolume * 1.01) throw new Error('Completion exceeds released order')
+  const reservations = bottlingMaterialRequirements(order)
+  const usedByMaterial = new Map<string, number>([
+    [order.packaging.bottleId, totalHandled], [order.packaging.closureId, totalHandled], [order.packaging.capsuleId, totalHandled], [order.packaging.frontLabelId, totalHandled],
+    [order.packaging.backLabelId, input.goodBottles], [order.packaging.cartonId, Math.ceil(input.goodBottles / order.packaging.unitsPerCase)],
+  ])
+  const nextMaterials = materials.map((material) => {
+    const reserved = reservations.find((item) => item.materialId === material.id)?.quantity ?? 0
+    const used = usedByMaterial.get(material.id) ?? 0
+    return reserved || used ? { ...material, onHand: Math.max(0, material.onHand - used), reserved: Math.max(0, material.reserved - reserved) } : material
+  })
+  const updated: BottlingOrder = {
+    ...order, status: 'completed', completion: {
+      goodBottles: input.goodBottles, rejectedBottles: input.rejectedBottles, actualVolume: input.actualVolume, finishedProductLot: input.finishedProductLot.trim().toUpperCase(),
+      backLabelFrom: input.backLabelFrom, backLabelTo: input.backLabelFrom + input.goodBottles - 1, completedAt: new Date().toISOString(), completedBy: 'Elena Martín', notes: input.notes.trim(),
+    },
+  }
+  return { order: updated, orders: orders.map((item) => item.id === updated.id ? updated : item), materials: nextMaterials }
 }
