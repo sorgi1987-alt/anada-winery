@@ -50,6 +50,8 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - Camera recognition must be explicitly started and manual identifier entry must remain available when browser support or permission is absent.
 - DOCa Rioja rules must identify their version and source; missing evidence is `incomplete`, not eligible or failed.
 - Never present internal eligibility checks as official qualification, certification or authorization to use a protected mention.
+- Origin rules must preserve category-specific exceptions: never apply the Zone ten-year linkage rule to Vino de Pueblo.
+- Viñedo Singular yield limits must remain wine-type aware and missing documentary evidence must remain incomplete.
 
 ## Engineering conventions
 
@@ -65,4 +67,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 7A is prepared: the browser-authoritative winery workspace now includes a versioned DOCa Rioja ageing-rule engine, bottling-portfolio readiness, a three-state internal checker and a bilingual rulebook. These controls are decision support, never official certification. Phase 6 offline/scanner behavior, Phase 4D reconciled movements and the Phase 3B.1 health check remain live. Authentication, synchronization, protected operational reads and remote writes are still deferred. See `PHASES.md`.
+Phase 7B is prepared: the browser-authoritative winery workspace now includes versioned DOCa Rioja ageing and origin rule engines, independent bottling-portfolio assessments and three-state evidence controls for DOCa Rioja, Vino de Zona, Vino de Pueblo and Viñedo Singular. These controls are decision support, never official certification. Phase 6 offline/scanner behavior, Phase 4D reconciled movements and the Phase 3B.1 health check remain live. Authentication, synchronization, protected operational reads and remote writes are still deferred. See `PHASES.md`.

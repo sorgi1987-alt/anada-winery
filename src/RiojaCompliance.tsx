@@ -1,6 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { AlertTriangle, ArrowRight, BookOpen, Check, CircleDashed, Clock3, FileCheck2, Grape, ShieldCheck, Wine, X } from 'lucide-react'
 import { useLanguage } from './i18n'
+import { OriginEligibilityWorkspace } from './OriginEligibility'
+import { emptyOriginInput, type RiojaOriginCategory, type RiojaOriginInput } from './riojaOriginRules'
 import { ageingThresholds, evaluateRiojaAgeing, RIOJA_RULESET, type EligibilityCheck, type RiojaAgeingInput, type RiojaStillWineType } from './riojaRules'
 import type { BottlingOrder, RiojaAgeingMention } from './types'
 
@@ -16,8 +18,9 @@ const emptyAssessment = (wineType: RiojaStillWineType = 'tinto', mention: RiojaA
 
 export function RiojaCompliancePage({ orders }: RiojaCompliancePageProps) {
   const { t, locale } = useLanguage()
-  const [view, setView] = useState<'portfolio' | 'checker' | 'rulebook'>('portfolio')
+  const [view, setView] = useState<'portfolio' | 'checker' | 'origin' | 'rulebook'>('portfolio')
   const [draft, setDraft] = useState<RiojaAgeingInput>(() => ({ wineType: 'tinto', mention: 'crianza', alcohol: 11.5, totalMonths: 24, oakMonths: 12, bottleMonths: 6, oakCapacityLitres: 225 }))
+  const [originDraft, setOriginDraft] = useState<RiojaOriginInput>(() => emptyOriginInput('village', 'blanco'))
   const result = useMemo(() => evaluateRiojaAgeing(draft), [draft])
   const protectedOrders = orders.filter((order) => order.ageingMention !== 'generic').length
   const specificOrigin = orders.filter((order) => order.originMention !== 'rioja').length
@@ -26,14 +29,20 @@ export function RiojaCompliancePage({ orders }: RiojaCompliancePageProps) {
     setDraft(emptyAssessment(order.type, order.ageingMention))
     setView('checker')
   }
+  const assessOriginOrder = (order: BottlingOrder) => {
+    const category: RiojaOriginCategory = order.originMention === 'vino_de_pueblo' ? 'village' : order.originMention === 'vinedo_singular' ? 'single_vineyard' : 'rioja'
+    setOriginDraft(emptyOriginInput(category, order.type))
+    setView('origin')
+  }
 
   return <main className="compliance-page">
     <header className="page-header"><div><span className="eyebrow">{t('compliance.kicker')}</span><h1>{t('compliance.title')}</h1><p>{t('compliance.description')}</p></div><div className="compliance-version"><ShieldCheck /><span><strong>{RIOJA_RULESET.id}</strong><small>{t('compliance.reviewed')}</small></span></div></header>
     <section className="compliance-hero"><div><span className="compliance-hero-mark"><Grape /></span><span className="eyebrow">{t('compliance.internalControl')}</span><h2>{t('compliance.heroTitle')}</h2><p>{t('compliance.heroText')}</p></div><aside><AlertTriangle /><span><strong>{t('compliance.notCertification')}</strong><small>{t('compliance.notCertificationText')}</small></span></aside></section>
     <section className="compliance-metrics"><Metric icon={<FileCheck2 />} value={String(orders.length)} label={t('compliance.orders')} detail={t('compliance.inPortfolio')} /><Metric icon={<Wine />} value={String(protectedOrders)} label={t('compliance.protectedMentions')} detail={t('compliance.requireEvidence')} /><Metric icon={<Grape />} value={String(specificOrigin)} label={t('compliance.originClaims')} detail={t('compliance.nextCheckpoint')} /><Metric icon={<CircleDashed />} value="0" label={t('compliance.completeDossiers')} detail={t('compliance.evidenceDeferred')} /></section>
-    <div className="compliance-tabs" role="tablist">{(['portfolio', 'checker', 'rulebook'] as const).map((item) => <button key={item} className={view === item ? 'active' : ''} onClick={() => setView(item)}>{item === 'portfolio' ? <FileCheck2 /> : item === 'checker' ? <ShieldCheck /> : <BookOpen />}{t(`compliance.${item}`)}</button>)}</div>
-    {view === 'portfolio' && <Portfolio orders={orders} onAssess={assessOrder} />}
+    <div className="compliance-tabs" role="tablist">{(['portfolio', 'checker', 'origin', 'rulebook'] as const).map((item) => <button key={item} className={view === item ? 'active' : ''} onClick={() => setView(item)}>{item === 'portfolio' ? <FileCheck2 /> : item === 'checker' || item === 'origin' ? <ShieldCheck /> : <BookOpen />}{t(`compliance.${item}`)}</button>)}</div>
+    {view === 'portfolio' && <Portfolio orders={orders} onAssess={assessOrder} onAssessOrigin={assessOriginOrder} />}
     {view === 'checker' && <EligibilityChecker draft={draft} result={result} onChange={setDraft} />}
+    {view === 'origin' && <OriginEligibilityWorkspace draft={originDraft} onChange={setOriginDraft} />}
     {view === 'rulebook' && <Rulebook wineType={draft.wineType} onWineType={(wineType) => setDraft({ ...draft, wineType })} />}
     <footer className="compliance-source-note"><BookOpen /><span><strong>{t('compliance.sources')}</strong><small>{t('compliance.sourcesText')}</small></span><nav><a href={RIOJA_RULESET.classificationSource} target="_blank" rel="noreferrer">{t('compliance.classificationSource')}</a><a href={RIOJA_RULESET.alcoholSource} target="_blank" rel="noreferrer">{t('compliance.alcoholSource')}</a></nav><time>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${RIOJA_RULESET.reviewedAt}T12:00:00`))}</time></footer>
   </main>
@@ -41,9 +50,9 @@ export function RiojaCompliancePage({ orders }: RiojaCompliancePageProps) {
 
 function Metric({ icon, value, label, detail }: { icon: ReactNode; value: string; label: string; detail: string }) { return <article><span>{icon}</span><div><small>{label}</small><strong>{value}</strong><em>{detail}</em></div></article> }
 
-function Portfolio({ orders, onAssess }: { orders: BottlingOrder[]; onAssess: (order: BottlingOrder) => void }) {
+function Portfolio({ orders, onAssess, onAssessOrigin }: { orders: BottlingOrder[]; onAssess: (order: BottlingOrder) => void; onAssessOrigin: (order: BottlingOrder) => void }) {
   const { t, locale } = useLanguage()
-  return <section className="compliance-portfolio"><header><div><h2>{t('compliance.portfolioTitle')}</h2><p>{t('compliance.portfolioText')}</p></div><span><CircleDashed /> {t('compliance.awaitingEvidence', { count: orders.length })}</span></header><div>{orders.map((order) => <article key={order.id} className={order.type}><div className="compliance-order-bottle"><i /><span>{order.vintage}</span></div><div className="compliance-order-copy"><span className="eyebrow">{order.code} · {t(wineKey[order.type])}</span><h3>{order.wineName}</h3><p>{t(mentionKey[order.ageingMention])} · {order.originMention === 'rioja' ? 'DOCa Rioja' : order.originMention === 'vino_de_pueblo' ? t('compliance.villageWine') : t('compliance.singleVineyard')}</p><div><span><Clock3 /><small>{t('compliance.bottlingDate')}</small><strong>{new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(order.scheduledAt))}</strong></span><span><CircleDashed /><small>{t('compliance.ageingEvidence')}</small><strong>{t('compliance.notLinked')}</strong></span></div></div><button onClick={() => onAssess(order)}>{t('compliance.assess')} <ArrowRight /></button></article>)}</div></section>
+  return <section className="compliance-portfolio"><header><div><h2>{t('compliance.portfolioTitle')}</h2><p>{t('compliance.portfolioText')}</p></div><span><CircleDashed /> {t('compliance.awaitingEvidence', { count: orders.length })}</span></header><div>{orders.map((order) => <article key={order.id} className={order.type}><div className="compliance-order-bottle"><i /><span>{order.vintage}</span></div><div className="compliance-order-copy"><span className="eyebrow">{order.code} · {t(wineKey[order.type])}</span><h3>{order.wineName}</h3><p>{t(mentionKey[order.ageingMention])} · {order.originMention === 'rioja' ? 'DOCa Rioja' : order.originMention === 'vino_de_pueblo' ? t('compliance.villageWine') : t('compliance.singleVineyard')}</p><div><span><Clock3 /><small>{t('compliance.bottlingDate')}</small><strong>{new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(order.scheduledAt))}</strong></span><span><CircleDashed /><small>{t('compliance.ageingEvidence')}</small><strong>{t('compliance.notLinked')}</strong></span></div></div><div className="compliance-order-actions"><button onClick={() => onAssess(order)}>{t('compliance.assessAgeing')}</button><button onClick={() => onAssessOrigin(order)}>{t('compliance.assessOrigin')} <ArrowRight /></button></div></article>)}</div></section>
 }
 
 function EligibilityChecker({ draft, result, onChange }: { draft: RiojaAgeingInput; result: ReturnType<typeof evaluateRiojaAgeing>; onChange: (draft: RiojaAgeingInput) => void }) {

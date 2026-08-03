@@ -334,8 +334,26 @@ Status: deployment prepared.
 
 Completion gate: deploy version 0.20, open DOCa Rioja from the sidebar, verify the three bottling orders appear, run one passing and one blocked Crianza assessment, switch the matrix between red and white, and confirm the interface never describes an internal result as officially certified.
 
+### Phase 7B — Versioned origin eligibility
+
+Status: deployment prepared.
+
+- Explicit origin rule-set version `DOCa-RIOJA-ORIGIN-2026-08`, reviewed on 3 August 2026
+- Direct official sources for DOCa Rioja, Vino de Zona, Vino de Pueblo and Viñedo Singular
+- Separate provenance, winery-operation and documentary evidence groups
+- DOCa Rioja checks for authorised grapes, Rioja origin, in-region processing, qualification, traceability and guarantee seals
+- Vino de Zona and Vino de Pueblo controls for 85–100% declared origin and a maximum 15% neighbouring-municipality exception
+- Zone-specific ten-year linkage evidence when the neighbouring-origin exception is used
+- Viñedo Singular controls for exclusive parcel origin, same-winery processing, vineyard age, manual harvest, exclusive tenure, crop yield, 65% transformation yield, double tasting, prior declaration, grower card, specific back label and exclusive brand
+- Distinct maximum vineyard yields for red and white/rosé Viñedo Singular candidates
+- Bottling-portfolio actions to assess ageing and origin independently
+- Mobile-friendly numeric evidence and Pending / Yes / No controls
+- Passing examples for each origin figure without pre-filling actual operational evidence
+- Internal eligible, blocked and incomplete states; never official certification
+
+Completion gate: deploy version 0.21, open DOCa Rioja → Origin, load the complete examples for Vino de Zona and Viñedo Singular, confirm both pass, then reduce the Zone linkage to 9 years and increase a red Viñedo Singular yield above 5,000 kg/ha to confirm each blocks. Open an origin assessment from a bottling-order card and verify it starts with evidence incomplete.
+
 - Vintage/campaign rule versioning and annual campaign controls
-- Origin eligibility for DOCa Rioja, Vino de Zona, Vino de Pueblo and Viñedo Singular
 - Yield and documentary controls
 - Back-label tracking
 - Production costing and forecasting

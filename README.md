@@ -4,7 +4,7 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 7A adds a versioned DOCa Rioja ageing-rule workspace to the installable browser-authoritative application. It provides internal planning checks for Generic, Crianza, Reserva and Gran Reserva wines while separating missing evidence from actual rule failures. Results are explicitly non-certifying. Offline changes remain on the current device. Catalyst health connectivity is live and confirms the seven normalized Development tables, but there is still no shared server persistence, background synchronisation, authentication or regulatory certification.
+Phase 7B adds versioned DOCa Rioja origin eligibility to the existing ageing-rule workspace. It provides evidence-driven internal checks for DOCa Rioja, Vino de Zona, Vino de Pueblo and Viñedo Singular while separating missing evidence from known breaches. Results are explicitly non-certifying. Offline changes remain on the current device. Catalyst health connectivity is live and confirms the seven normalized Development tables, but there is still no shared server persistence, background synchronisation, authentication or regulatory certification.
 
 Implemented views:
 
@@ -100,6 +100,11 @@ Implemented views:
 - Separate red and white/rosé thresholds for Generic, Crianza, Reserva and Gran Reserva
 - Three-state internal eligibility checks distinguishing passed, blocked and missing evidence
 - Visual bottling-portfolio readiness and interactive bilingual rulebook
+- Versioned origin rules and official-source links for all four DOCa Rioja origin figures
+- Provenance, operational and documentary evidence groups
+- Neighbouring-municipality exceptions for Zone and Village wines
+- Viñedo Singular vineyard-age, manual-harvest, yield, transformation, tasting and exclusive-use controls
+- Independent ageing and origin assessments from bottling orders
 - Persistent source and destination vessel legs with child, merged and consumed lot identities
 - Persistent operator-attributed local production history
 - Explicit distinction between local attribution and authenticated electronic signatures
