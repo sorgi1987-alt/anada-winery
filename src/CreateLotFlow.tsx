@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   ArrowLeft, ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardCheck,
   Droplets, Grape, Leaf, MapPin, Save, Scale, Sparkles, Thermometer, Warehouse, X,
@@ -56,6 +56,19 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
     macerationHours: type === 'rosado' ? 18 : undefined,
     targetColorIntensity: type === 'rosado' ? 0.8 : undefined,
   })
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [onClose])
 
   const update = <K extends keyof NewLotInput>(key: K, value: NewLotInput[K]) => {
     setDraft((current) => ({ ...current, [key]: value }))
@@ -132,7 +145,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
                   <input type="number" min="2020" max="2035" required value={draft.vintage} onChange={(event) => update('vintage', Number(event.target.value))} />
                 </FlowField>
                 <FlowField label={t('flow.lotName')} wide>
-                  <input autoFocus required value={draft.name} onChange={(event) => update('name', event.target.value)} placeholder={isRed ? t('flow.redName') : isRose ? t('rose.namePlaceholder') : t('flow.whiteName')} />
+                  <input required value={draft.name} onChange={(event) => update('name', event.target.value)} placeholder={isRed ? t('flow.redName') : isRose ? t('rose.namePlaceholder') : t('flow.whiteName')} />
                 </FlowField>
                 <FlowField label={t('common.varieties')} icon={<Grape size={16} />} wide>
                   <input required value={draft.varieties} onChange={(event) => update('varieties', event.target.value)} />
