@@ -251,6 +251,8 @@ Status: deployment prepared.
 - Explicit source, received, residual and declared-loss reconciliation without volume creation
 - Persistent operator, operation time, notes, vessel legs and loss percentage in browser-local audit history
 - Consumed source identities retained for historical traceability but excluded from active operational views
+- Four clean reserve vats appended non-destructively when an existing demonstration cellar has no movement capacity
+- Clear unavailable-state guidance when a movement lacks the required empty destinations
 - Schema migration preserving all Phase 4C process history and adding movement history only when absent
 
 Completion gate: deploy the frontend, open Cellar movements, transfer `T-26-017` from `D-12` to empty vessel `D-01` with a declared 20 L loss, and confirm the destination contains the source volume minus 20 L while `D-12` is empty and the new movement is first in history.

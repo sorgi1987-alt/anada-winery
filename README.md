@@ -87,6 +87,7 @@ Implemented views:
 - Route-specific volume reconciliation and protected cool-fermentation controls
 - Visual cellar-movement workspace with full transfers, traceable splits and compatible merges
 - Capacity, empty-vessel, compatibility, residual-volume and declared-loss validation
+- Non-destructive clean-vat reserve migration and explicit unavailable-capacity guidance
 - Persistent source and destination vessel legs with child, merged and consumed lot identities
 - Persistent operator-attributed local production history
 - Explicit distinction between local attribution and authenticated electronic signatures

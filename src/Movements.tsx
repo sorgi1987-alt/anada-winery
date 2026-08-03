@@ -49,12 +49,16 @@ export function MovementsPage({ lots, tanks, movements, onTransfer, onSplit, onM
         <article><span><Warehouse /></span><div><small>{t('movements.emptyVessels')}</small><strong>{emptyTanks.length}</strong><em>{t('movements.availableNow')}</em></div></article>
       </section>
 
+      {emptyTanks.length === 0 && <section className="movement-capacity-alert"><Warehouse /><span><strong>{t('movements.noFreeTitle')}</strong><small>{t('movements.noFreeText')}</small></span></section>}
+
       <section className="movement-action-grid">
-        {(['transfer', 'split', 'merge'] as const).map((kind) => (
-          <button key={kind} onClick={() => setOpenKind(kind)}>
-            <span>{kindIcon(kind)}</span><div><small>{t(`movements.${kind}.kicker` as Parameters<typeof t>[0])}</small><strong>{t(kindKey(kind))}</strong><p>{t(`movements.${kind}.text` as Parameters<typeof t>[0])}</p></div><i><Plus /></i>
+        {(['transfer', 'split', 'merge'] as const).map((kind) => {
+          const requiredVessels = kind === 'split' ? 2 : 1
+          const unavailable = emptyTanks.length < requiredVessels
+          return <button key={kind} disabled={unavailable} title={unavailable ? t('movements.requiresVessels', { count: requiredVessels }) : undefined} onClick={() => setOpenKind(kind)}>
+            <span>{kindIcon(kind)}</span><div><small>{t(`movements.${kind}.kicker` as Parameters<typeof t>[0])}</small><strong>{t(kindKey(kind))}</strong><p>{t(`movements.${kind}.text` as Parameters<typeof t>[0])}</p>{unavailable && <em>{t('movements.requiresVessels', { count: requiredVessels })}</em>}</div><i><Plus /></i>
           </button>
-        ))}
+        })}
       </section>
 
       <section className="movement-history panel">

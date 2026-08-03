@@ -222,6 +222,13 @@ export const wineMovements: WineMovement[] = [
 
 export const roseTank: Tank = { id: 'D-07', capacity: 6000, volume: 4450, lot: 'R-26-003', type: 'rosado', stage: 'Cofermentación', temperature: 18.4, attention: 'normal' }
 
+export const movementReserveTanks: Tank[] = [
+  { id: 'D-21', capacity: 12000, volume: 0, attention: 'normal' },
+  { id: 'D-22', capacity: 10000, volume: 0, attention: 'normal' },
+  { id: 'D-23', capacity: 7500, volume: 0, attention: 'normal' },
+  { id: 'D-24', capacity: 6000, volume: 0, attention: 'normal' },
+]
+
 export const tanks: Tank[] = [
   { id: 'D-01', capacity: 10000, volume: 0, attention: 'normal' },
   { id: 'D-02', capacity: 10000, volume: 9200, lot: 'T-26-014', type: 'tinto', stage: 'Maceración', temperature: 23.4, attention: 'normal' },
@@ -234,6 +241,7 @@ export const tanks: Tank[] = [
   { id: 'D-12', capacity: 10000, volume: 7850, lot: 'T-26-017', type: 'tinto', stage: 'Fermentación', temperature: 24.8, attention: 'warning' },
   { id: 'D-13', capacity: 10000, volume: 9800, lot: 'T-26-019', type: 'tinto', stage: 'Encubado', temperature: 20.7, attention: 'critical' },
   { id: 'D-18', capacity: 12000, volume: 9100, lot: 'T-25-012', type: 'tinto', stage: 'Maloláctica', temperature: 19.1, attention: 'warning' },
+  ...movementReserveTanks,
 ]
 
 export const parcels: VineyardParcel[] = [

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { initialTasks, lots, productionEvents, tanks, wineMovements } from '../src/data'
+import { initialTasks, lots, movementReserveTanks, productionEvents, tanks, wineMovements } from '../src/data'
 import { mergeWine, splitWine, transferWine } from '../src/domain'
 import { migrateLegacyState } from '../src/store'
 import type { Tank, WineLot } from '../src/types'
@@ -101,18 +101,42 @@ test('a merge blocks incompatible wine types, vintages and process stages', () =
   }), /share wine type, vintage, process stage/i)
 })
 
-test('the v13 migration preserves process history and adds movement audit history', () => {
+test('the v14 migration preserves process history and adds movement audit history and reserve vats', () => {
   const legacyEvents = structuredClone(productionEvents)
+  const legacyTanks = structuredClone(tanks.filter((tank) => !movementReserveTanks.some((reserve) => reserve.id === tank.id)))
   const migrated = migrateLegacyState({
     schemaVersion: 12,
     lots: structuredClone(lots),
     tasks: structuredClone(initialTasks),
-    tanks: structuredClone(tanks),
+    tanks: legacyTanks,
     productionEvents: legacyEvents,
   })
 
-  assert.equal(migrated?.schemaVersion, 13)
+  assert.equal(migrated?.schemaVersion, 14)
   assert.equal(migrated?.productionEvents.length, legacyEvents.length)
   assert.equal(migrated?.movements.length, wineMovements.length)
   assert.equal(migrated?.movements[0].storageMode, 'browser-local')
+  assert.deepEqual(migrated?.tanks.slice(-4).map((tank) => tank.id), movementReserveTanks.map((tank) => tank.id))
+  assert.ok(migrated?.tanks.slice(-4).every((tank) => tank.volume === 0 && !tank.lot))
+})
+
+test('the v13 migration preserves existing movements and never overwrites a known reserve vat', () => {
+  const legacyTanks = structuredClone(tanks.filter((tank) => tank.id !== 'D-22' && tank.id !== 'D-23' && tank.id !== 'D-24'))
+  const d21 = legacyTanks.find((tank) => tank.id === 'D-21')!
+  Object.assign(d21, { volume: 1200, lot: 'TEST-LOT', type: 'tinto', stage: 'Conservación' })
+  const legacyMovements = structuredClone(wineMovements)
+  legacyMovements[0].notes = 'Existing user movement must survive migration.'
+  const migrated = migrateLegacyState({
+    schemaVersion: 13,
+    lots: structuredClone(lots),
+    tasks: structuredClone(initialTasks),
+    tanks: legacyTanks,
+    productionEvents: structuredClone(productionEvents),
+    movements: legacyMovements,
+  })
+
+  assert.equal(migrated?.schemaVersion, 14)
+  assert.equal(migrated?.movements[0].notes, legacyMovements[0].notes)
+  assert.equal(migrated?.tanks.find((tank) => tank.id === 'D-21')?.lot, 'TEST-LOT')
+  assert.deepEqual(movementReserveTanks.map((tank) => migrated?.tanks.filter((item) => item.id === tank.id).length), [1, 1, 1, 1])
 })
