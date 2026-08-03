@@ -4,7 +4,7 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 4C makes all four rosado and clarete templates executable alongside the completed red and white engines. Direct pressing, short skin maceration, saignée and traditional co-fermentation now expose their own operations, evidence and guarded transitions. Catalyst health connectivity is live and confirms the seven normalized Development tables, but operational authority intentionally remains in the browser. There is no shared server persistence, authentication or regulatory certification yet.
+Phase 4D adds executable physical cellar movements to the completed red, white, rosado and clarete engines. Full transfers, one-to-many splits and compatible many-to-one merges now reconcile vessel capacity, residual volume and declared loss while retaining traceable lot identities and operator-attributed history. Catalyst health connectivity is live and confirms the seven normalized Development tables, but operational authority intentionally remains in the browser. There is no shared server persistence, authentication or regulatory certification yet.
 
 Implemented views:
 
@@ -85,6 +85,9 @@ Implemented views:
 - Separate weighbridge evidence before clarete joint vatting
 - Skin-contact and target-colour gates before rosado/clarete separation
 - Route-specific volume reconciliation and protected cool-fermentation controls
+- Visual cellar-movement workspace with full transfers, traceable splits and compatible merges
+- Capacity, empty-vessel, compatibility, residual-volume and declared-loss validation
+- Persistent source and destination vessel legs with child, merged and consumed lot identities
 - Persistent operator-attributed local production history
 - Explicit distinction between local attribution and authenticated electronic signatures
 

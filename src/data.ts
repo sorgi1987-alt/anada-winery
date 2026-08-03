@@ -1,4 +1,4 @@
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -198,6 +198,25 @@ export const productionEvents: ProductionEvent[] = [
     id: 'production-event-rose-003', lotId: 'R-26-003', wineType: 'rosado', kind: 'operation', stageId: 'vatting', operationType: 'joint_vatting',
     performedAt: '2026-09-18T17:55:00+02:00', recordedAt: '2026-09-18T18:01:00+02:00', operator: 'Martín Ruiz',
     notes: 'Encubado conjunto después de conservar los pesajes por origen.', metrics: { separateWeightsConfirmed: true, mixingAfterWeighing: true, volumeBefore: 4450, volumeAfter: 4450 }, storageMode: 'browser-local',
+  },
+]
+
+export const wineMovements: WineMovement[] = [
+  {
+    id: 'movement-002', code: 'MOV-26-002', kind: 'transfer', wineType: 'blanco',
+    sourceLegs: [{ lotId: 'B-26-006', lotName: 'Viura de Nalda', vesselId: 'D-03', volumeBefore: 5240, movementVolume: 5240, volumeAfter: 0 }],
+    destinationLegs: [{ lotId: 'B-26-006', lotName: 'Viura de Nalda', vesselId: 'D-04', volumeBefore: 0, movementVolume: 5200, volumeAfter: 5200 }],
+    grossSourceVolume: 5240, receivedVolume: 5200, lossVolume: 40, lossPercentage: 0.76,
+    performedAt: '2026-09-25T08:40:00+02:00', recordedAt: '2026-09-25T08:44:00+02:00', operator: 'Martín Ruiz',
+    notes: 'Trasiego de mosto limpio después del desfangado.', storageMode: 'browser-local',
+  },
+  {
+    id: 'movement-001', code: 'MOV-26-001', kind: 'transfer', wineType: 'tinto',
+    sourceLegs: [{ lotId: 'T-25-012', lotName: 'Las Suertes', vesselId: 'D-17', volumeBefore: 9200, movementVolume: 9200, volumeAfter: 0 }],
+    destinationLegs: [{ lotId: 'T-25-012', lotName: 'Las Suertes', vesselId: 'D-18', volumeBefore: 0, movementVolume: 9100, volumeAfter: 9100 }],
+    grossSourceVolume: 9200, receivedVolume: 9100, lossVolume: 100, lossPercentage: 1.09,
+    performedAt: '2026-09-11T10:15:00+02:00', recordedAt: '2026-09-11T10:22:00+02:00', operator: 'Elena Martín',
+    notes: 'Trasiego previo al seguimiento maloláctico.', storageMode: 'browser-local',
   },
 ]
 

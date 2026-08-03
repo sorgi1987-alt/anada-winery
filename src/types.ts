@@ -77,6 +77,7 @@ export interface WineLot {
   readings: ReadingPoint[]
   activities?: LotActivity[]
   productionDetails?: ProductionDetails
+  operationalStatus?: 'active' | 'consumed'
 }
 
 export interface CellarTask {
@@ -151,11 +152,12 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 12
+  schemaVersion: 13
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
   productionEvents: ProductionEvent[]
+  movements: WineMovement[]
   parcels: VineyardParcel[]
   deliveries: GrapeDelivery[]
   samples: LabSample[]
@@ -389,6 +391,63 @@ export interface RoseStageGate {
   eligible: boolean
   reason: 'composition_required' | 'weighing_required' | 'protection_required' | 'pressing_required' | 'contact_required' | 'color_required' | 'vatting_required' | 'separation_required' | 'turbidity_required' | 'racking_required' | 'density_required' | 'lees_decision_required' | 'stability_required' | 'complete' | 'ready'
   value?: number
+}
+
+export type WineMovementKind = 'transfer' | 'split' | 'merge'
+
+export interface WineMovementLeg {
+  lotId: string
+  lotName: string
+  vesselId: string
+  volumeBefore: number
+  movementVolume: number
+  volumeAfter: number
+}
+
+export interface WineMovement {
+  id: string
+  code: string
+  kind: WineMovementKind
+  wineType: Exclude<WineType, 'espumoso'>
+  sourceLegs: WineMovementLeg[]
+  destinationLegs: WineMovementLeg[]
+  grossSourceVolume: number
+  receivedVolume: number
+  lossVolume: number
+  lossPercentage: number
+  performedAt: string
+  recordedAt: string
+  operator: string
+  notes: string
+  storageMode: 'browser-local'
+}
+
+export interface NewTransferInput {
+  lotId: string
+  destinationTankId: string
+  lossVolume: number
+  performedAt: string
+  operator: string
+  notes: string
+}
+
+export interface NewSplitInput {
+  lotId: string
+  destinations: Array<{ tankId: string; volume: number }>
+  lossVolume: number
+  performedAt: string
+  operator: string
+  notes: string
+}
+
+export interface NewMergeInput {
+  sources: Array<{ lotId: string; volume: number }>
+  destinationTankId: string
+  name: string
+  lossVolume: number
+  performedAt: string
+  operator: string
+  notes: string
 }
 
 export interface NewGrapeIntakeInput {

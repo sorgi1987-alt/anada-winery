@@ -1,5 +1,5 @@
 import { images, redProcess, roseProcesses, whiteProcess } from './data'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewTaskInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -1124,4 +1124,239 @@ export const advanceRoseStage = (
   const updatedLots = lots.map((item) => item.id === lot.id ? updatedLot : item)
   const updatedTanks = tanks.map((tank) => tank.lot === lot.id ? { ...tank, stage: nextStage.shortLabel, volume: lot.volume, attention: 'normal' as const } : tank)
   return { event, lot: updatedLot, lots: updatedLots, tanks: updatedTanks, tasks: [openingTask, ...tasks], events: [event, ...events] }
+}
+
+export const nextMovementCode = (movements: WineMovement[]) => {
+  const highest = movements.reduce((maximum, movement) => {
+    const match = movement.code.match(/^MOV-\d{2}-(\d+)$/)
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0)
+  return `MOV-${String(new Date().getFullYear()).slice(-2)}-${String(highest + 1).padStart(3, '0')}`
+}
+
+const movementLot = (lots: WineLot[], lotId: string): WineLot & { type: 'tinto' | 'blanco' | 'rosado' } => {
+  const lot = lots.find((item) => item.id === lotId)
+  if (!lot || lot.operationalStatus === 'consumed' || lot.volume <= 0 || lot.type === 'espumoso') throw new Error('Movement requires an active wine lot')
+  return lot as WineLot & { type: 'tinto' | 'blanco' | 'rosado' }
+}
+
+const movementTank = (tanks: Tank[], tankId: string) => {
+  const tank = tanks.find((item) => item.id === tankId)
+  if (!tank) throw new Error('Vessel not found')
+  return tank
+}
+
+const emptyDestinationTank = (tanks: Tank[], tankId: string) => {
+  const tank = movementTank(tanks, tankId)
+  if (tank.lot || tank.volume > 0) throw new Error('Destination vessel must be empty')
+  return tank
+}
+
+const validateSourceBalance = (lot: WineLot, tank: Tank) => {
+  if (Math.abs(tank.volume - lot.volume) > 0.01) throw new Error('Source lot and vessel volumes are inconsistent')
+}
+
+const validateMovementMeta = (performedAt: string, operator: string) => {
+  if (!performedAt || !operator.trim()) throw new Error('Movement requires time and operator')
+}
+
+const movementLoss = (lossVolume: number, grossVolume: number) => {
+  const loss = requiredNumber(lossVolume, 'Loss volume is required', 0, grossVolume)
+  if (loss >= grossVolume) throw new Error('Loss cannot consume the entire movement')
+  return loss
+}
+
+const movementRecord = (
+  movements: WineMovement[],
+  input: Omit<WineMovement, 'id' | 'code' | 'recordedAt' | 'storageMode' | 'lossPercentage'>,
+): WineMovement => ({
+  ...input,
+  id: nowId('movement'),
+  code: nextMovementCode(movements),
+  recordedAt: new Date().toISOString(),
+  lossPercentage: input.grossSourceVolume > 0 ? input.lossVolume / input.grossSourceVolume * 100 : 0,
+  storageMode: 'browser-local',
+})
+
+const movementActivity = (movement: WineMovement, detail: string): LotActivity => ({
+  id: `${movement.id}-${Math.random().toString(36).slice(2, 6)}`,
+  title: `Movimiento ${movement.code}`,
+  person: movement.operator,
+  time: 'Ahora',
+  detail,
+  recordedAt: movement.recordedAt,
+})
+
+export const transferWine = (lots: WineLot[], tanks: Tank[], movements: WineMovement[], input: NewTransferInput) => {
+  validateMovementMeta(input.performedAt, input.operator)
+  const lot = movementLot(lots, input.lotId)
+  const sourceTank = movementTank(tanks, lot.vessel)
+  if (sourceTank.lot !== lot.id) throw new Error('Source vessel assignment is inconsistent')
+  validateSourceBalance(lot, sourceTank)
+  if (input.destinationTankId === sourceTank.id) throw new Error('Source and destination vessels must differ')
+  const destinationTank = emptyDestinationTank(tanks, input.destinationTankId)
+  const loss = movementLoss(input.lossVolume, lot.volume)
+  const received = lot.volume - loss
+  if (received > destinationTank.capacity) throw new Error('Destination capacity is insufficient')
+
+  const movement = movementRecord(movements, {
+    kind: 'transfer', wineType: lot.type, grossSourceVolume: lot.volume, receivedVolume: received, lossVolume: loss,
+    sourceLegs: [{ lotId: lot.id, lotName: lot.name, vesselId: sourceTank.id, volumeBefore: lot.volume, movementVolume: lot.volume, volumeAfter: 0 }],
+    destinationLegs: [{ lotId: lot.id, lotName: lot.name, vesselId: destinationTank.id, volumeBefore: 0, movementVolume: received, volumeAfter: received }],
+    performedAt: input.performedAt, operator: input.operator.trim(), notes: input.notes.trim(),
+  })
+  const updatedLot: WineLot = {
+    ...lot, vessel: destinationTank.id, volume: received, operationalStatus: 'active',
+    activities: [movementActivity(movement, `${sourceTank.id} → ${destinationTank.id} · ${Math.round(received).toLocaleString('es-ES')} L · merma ${Math.round(loss).toLocaleString('es-ES')} L`), ...(lot.activities ?? [])],
+  }
+  const updatedLots = lots.map((item) => item.id === lot.id ? updatedLot : item)
+  const updatedTanks = tanks.map((tank) => {
+    if (tank.id === sourceTank.id) return { ...tank, volume: 0, lot: undefined, type: undefined, stage: undefined, temperature: undefined, attention: 'normal' as const }
+    if (tank.id === destinationTank.id) return { ...tank, volume: received, lot: lot.id, type: lot.type, stage: lot.process.find((stage) => stage.status === 'current')?.shortLabel ?? lot.stage, temperature: lot.temperature, attention: lot.attention }
+    return tank
+  })
+  return { movement, lot: updatedLot, lots: updatedLots, tanks: updatedTanks, movements: [movement, ...movements] }
+}
+
+const nextSplitLotId = (parentId: string, lots: WineLot[], offset: number) => {
+  const matcher = new RegExp(`^${parentId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-S(\\d+)$`)
+  const highest = lots.reduce((maximum, lot) => {
+    const match = lot.id.match(matcher)
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0)
+  return `${parentId}-S${String(highest + offset).padStart(2, '0')}`
+}
+
+export const splitWine = (lots: WineLot[], tanks: Tank[], movements: WineMovement[], input: NewSplitInput) => {
+  validateMovementMeta(input.performedAt, input.operator)
+  const lot = movementLot(lots, input.lotId)
+  const sourceTank = movementTank(tanks, lot.vessel)
+  if (sourceTank.lot !== lot.id) throw new Error('Source vessel assignment is inconsistent')
+  validateSourceBalance(lot, sourceTank)
+  if (!input.destinations.length) throw new Error('Split requires at least one destination')
+  const uniqueTankIds = new Set(input.destinations.map((destination) => destination.tankId))
+  if (uniqueTankIds.size !== input.destinations.length || uniqueTankIds.has(sourceTank.id)) throw new Error('Split destinations must be unique and differ from the source')
+  const destinations = input.destinations.map((destination) => {
+    const tank = emptyDestinationTank(tanks, destination.tankId)
+    const volume = requiredNumber(destination.volume, 'Destination volume is required', 0.01, tank.capacity)
+    return { tank, volume }
+  })
+  const destinationVolume = destinations.reduce((total, destination) => total + destination.volume, 0)
+  const loss = movementLoss(input.lossVolume, lot.volume)
+  const remaining = lot.volume - destinationVolume - loss
+  if (remaining < -0.01) throw new Error('Split allocations and loss exceed source volume')
+  const normalizedRemaining = Math.max(0, remaining)
+  if (destinations.length + (normalizedRemaining > 0 ? 1 : 0) < 2) throw new Error('Split must produce at least two active lots')
+
+  const provisionalMovement = movementRecord(movements, {
+    kind: 'split', wineType: lot.type, grossSourceVolume: destinationVolume + loss, receivedVolume: destinationVolume, lossVolume: loss,
+    sourceLegs: [{ lotId: lot.id, lotName: lot.name, vesselId: sourceTank.id, volumeBefore: lot.volume, movementVolume: destinationVolume + loss, volumeAfter: normalizedRemaining }],
+    destinationLegs: destinations.map((destination, index) => ({ lotId: nextSplitLotId(lot.id, lots, index + 1), lotName: `${lot.name} · ${index + 1}`, vesselId: destination.tank.id, volumeBefore: 0, movementVolume: destination.volume, volumeAfter: destination.volume })),
+    performedAt: input.performedAt, operator: input.operator.trim(), notes: input.notes.trim(),
+  })
+  const children = destinations.map((destination, index): WineLot => {
+    const leg = provisionalMovement.destinationLegs[index]
+    return {
+      ...structuredClone(lot), id: leg.lotId, name: leg.lotName, vessel: destination.tank.id, volume: destination.volume, operationalStatus: 'active',
+      readings: [...lot.readings, { time: 'División', temperature: lot.temperature ?? 0, density: lot.density ?? 0, volume: destination.volume, note: provisionalMovement.code, recordedAt: provisionalMovement.recordedAt }],
+      activities: [movementActivity(provisionalMovement, `${lot.id} → ${destination.tank.id} · ${Math.round(destination.volume).toLocaleString('es-ES')} L`), ...(lot.activities ?? [])],
+    }
+  })
+  const updatedSource: WineLot = {
+    ...lot, volume: normalizedRemaining, operationalStatus: normalizedRemaining > 0 ? 'active' : 'consumed',
+    activities: [movementActivity(provisionalMovement, `${destinations.length} fracciones · ${Math.round(destinationVolume).toLocaleString('es-ES')} L · merma ${Math.round(loss).toLocaleString('es-ES')} L`), ...(lot.activities ?? [])],
+  }
+  const updatedLots = [...children, ...lots.map((item) => item.id === lot.id ? updatedSource : item)]
+  const childByTank = new Map(children.map((child) => [child.vessel, child]))
+  const updatedTanks = tanks.map((tank) => {
+    if (tank.id === sourceTank.id) return normalizedRemaining > 0
+      ? { ...tank, volume: normalizedRemaining }
+      : { ...tank, volume: 0, lot: undefined, type: undefined, stage: undefined, temperature: undefined, attention: 'normal' as const }
+    const child = childByTank.get(tank.id)
+    return child ? { ...tank, volume: child.volume, lot: child.id, type: child.type, stage: child.process.find((stage) => stage.status === 'current')?.shortLabel ?? child.stage, temperature: child.temperature, attention: child.attention } : tank
+  })
+  return { movement: provisionalMovement, lots: updatedLots, tanks: updatedTanks, movements: [provisionalMovement, ...movements], createdLots: children, sourceLot: updatedSource }
+}
+
+const nextMergedLotId = (vintage: number, lots: WineLot[]) => {
+  const year = String(vintage).slice(-2)
+  const matcher = new RegExp(`^M-${year}-(\\d+)$`)
+  const highest = lots.reduce((maximum, lot) => {
+    const match = lot.id.match(matcher)
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0)
+  return `M-${year}-${String(highest + 1).padStart(3, '0')}`
+}
+
+const mergeCompatible = (reference: WineLot, candidate: WineLot) => {
+  const referenceStage = currentStage(reference)?.id
+  const candidateStage = currentStage(candidate)?.id
+  if (reference.type !== candidate.type) return false
+  if (reference.vintage !== candidate.vintage) return false
+  if (referenceStage !== candidateStage) return false
+  if (reference.type === 'rosado' && reference.productionDetails?.rose?.method !== candidate.productionDetails?.rose?.method) return false
+  return true
+}
+
+export const mergeWine = (lots: WineLot[], tanks: Tank[], movements: WineMovement[], input: NewMergeInput) => {
+  validateMovementMeta(input.performedAt, input.operator)
+  if (input.sources.length < 2) throw new Error('Merge requires at least two source lots')
+  const sourceIds = new Set(input.sources.map((source) => source.lotId))
+  if (sourceIds.size !== input.sources.length) throw new Error('Merge source lots must be unique')
+  const sources = input.sources.map((source) => {
+    const lot = movementLot(lots, source.lotId)
+    const tank = movementTank(tanks, lot.vessel)
+    if (tank.lot !== lot.id) throw new Error('Source vessel assignment is inconsistent')
+    validateSourceBalance(lot, tank)
+    const volume = requiredNumber(source.volume, 'Source volume is required', 0.01, lot.volume)
+    return { lot, tank, volume }
+  })
+  const reference = sources[0].lot
+  if (sources.some((source) => !mergeCompatible(reference, source.lot))) throw new Error('Merge lots must share wine type, vintage, process stage and rosado route')
+  const destination = emptyDestinationTank(tanks, input.destinationTankId)
+  if (sources.some((source) => source.tank.id === destination.id)) throw new Error('Merge destination must differ from every source vessel')
+  if (!input.name.trim()) throw new Error('Merged lot name is required')
+  const gross = sources.reduce((total, source) => total + source.volume, 0)
+  const loss = movementLoss(input.lossVolume, gross)
+  const received = gross - loss
+  if (received > destination.capacity) throw new Error('Destination capacity is insufficient')
+  const mergedLotId = nextMergedLotId(reference.vintage, lots)
+
+  const movement = movementRecord(movements, {
+    kind: 'merge', wineType: reference.type, grossSourceVolume: gross, receivedVolume: received, lossVolume: loss,
+    sourceLegs: sources.map((source) => ({ lotId: source.lot.id, lotName: source.lot.name, vesselId: source.tank.id, volumeBefore: source.lot.volume, movementVolume: source.volume, volumeAfter: source.lot.volume - source.volume })),
+    destinationLegs: [{ lotId: mergedLotId, lotName: input.name.trim(), vesselId: destination.id, volumeBefore: 0, movementVolume: received, volumeAfter: received }],
+    performedAt: input.performedAt, operator: input.operator.trim(), notes: input.notes.trim(),
+  })
+  const weightedMetric = (metric: 'temperature' | 'density') => {
+    const measured = sources.filter((source) => source.lot[metric] !== undefined)
+    const denominator = measured.reduce((total, source) => total + source.volume, 0)
+    return denominator > 0 ? measured.reduce((total, source) => total + (source.lot[metric] ?? 0) * source.volume, 0) / denominator : undefined
+  }
+  const temperature = weightedMetric('temperature')
+  const density = weightedMetric('density')
+  const mergedLot: WineLot = {
+    ...structuredClone(reference), id: mergedLotId, name: input.name.trim(), vessel: destination.id, volume: received, temperature, density,
+    varieties: [...new Set(sources.map((source) => source.lot.varieties))].join(' · '), origin: [...new Set(sources.map((source) => source.lot.origin))].join(' / '),
+    attention: 'normal', attentionText: undefined, nextAction: 'Revisar lote combinado', nextTime: 'Hoy', operationalStatus: 'active',
+    readings: [{ time: 'Combinación', temperature: temperature ?? 0, density: density ?? 0, volume: received, note: movement.code, recordedAt: movement.recordedAt }],
+    activities: [movementActivity(movement, `${sources.length} lotes → ${destination.id} · ${Math.round(received).toLocaleString('es-ES')} L · merma ${Math.round(loss).toLocaleString('es-ES')} L`)],
+  }
+  const sourceUpdates = new Map(sources.map((source) => {
+    const remaining = source.lot.volume - source.volume
+    const updated: WineLot = {
+      ...source.lot, volume: remaining, operationalStatus: remaining > 0 ? 'active' : 'consumed',
+      activities: [movementActivity(movement, `${source.tank.id} → ${destination.id} · ${Math.round(source.volume).toLocaleString('es-ES')} L`), ...(source.lot.activities ?? [])],
+    }
+    return [source.lot.id, updated]
+  }))
+  const updatedLots = [mergedLot, ...lots.map((lot) => sourceUpdates.get(lot.id) ?? lot)]
+  const updatedTanks = tanks.map((tank) => {
+    if (tank.id === destination.id) return { ...tank, volume: received, lot: mergedLot.id, type: mergedLot.type, stage: mergedLot.process.find((stage) => stage.status === 'current')?.shortLabel ?? mergedLot.stage, temperature, attention: 'normal' as const }
+    const source = sources.find((item) => item.tank.id === tank.id)
+    if (!source) return tank
+    const remaining = source.lot.volume - source.volume
+    return remaining > 0 ? { ...tank, volume: remaining } : { ...tank, volume: 0, lot: undefined, type: undefined, stage: undefined, temperature: undefined, attention: 'normal' as const }
+  })
+  return { movement, lot: mergedLot, lots: updatedLots, tanks: updatedTanks, movements: [movement, ...movements], sourceLots: [...sourceUpdates.values()] }
 }

@@ -223,7 +223,7 @@ Completion gate passed: a density of 0.994 is retained in the white process hist
 
 ### Phase 4C — Executable rosado and clarete processes
 
-Status: deployment prepared.
+Status: completed.
 
 - Four independent executable routes: direct press, short skin maceration, saignée and traditional clarete co-fermentation
 - Route-and-stage operation matrices that prevent red or white operations leaking into rosado work
@@ -236,12 +236,27 @@ Status: deployment prepared.
 - Bilingual visual route identity, operation sheets and attributed browser-local history
 - Schema migration preserving completed red and white process histories
 
-Completion gate: deploy the frontend, open `R-26-003`, record a colour check of 0.82 UA/cm with 18 hours of skin contact, then advance the clarete to separation and pressing.
+Completion gate passed: `R-26-003` retains its colour and skin-contact evidence and advances through the guarded clarete separation route.
+
+### Phase 4D — Reconciled cellar movements
+
+Status: deployment prepared.
+
+- Dedicated bilingual, visual cellar-movement workspace designed for desktop and touch use
+- Full-lot transfers that atomically clear the source vessel and fill an empty destination
+- One-to-many splits with new traceable child-lot identities and optional residual source volume
+- Many-to-one merges with a new combined-lot identity and weighted temperature and density
+- Compatibility gates for wine type, vintage, current process stage and rosado route
+- Empty-destination, unique-vessel and vessel-capacity validation before inventory changes
+- Explicit source, received, residual and declared-loss reconciliation without volume creation
+- Persistent operator, operation time, notes, vessel legs and loss percentage in browser-local audit history
+- Consumed source identities retained for historical traceability but excluded from active operational views
+- Schema migration preserving all Phase 4C process history and adding movement history only when absent
+
+Completion gate: deploy the frontend, open Cellar movements, transfer `T-26-017` from `D-12` to empty vessel `D-01` with a declared 20 L loss, and confirm the destination contains the source volume minus 20 L while `D-12` is empty and the new movement is first in history.
 
 ### Later Phase 4 checkpoints
 
-- Splits, merges and physical blend movements
-- Cross-vessel transfer and loss reconciliation
 - Authenticated audit trail and electronic sign-off after access control is enabled
 
 ## Phase 5 — Harvest and traceability

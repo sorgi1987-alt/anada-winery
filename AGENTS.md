@@ -24,6 +24,9 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - Topping-up volume must not exceed the measured headspace of the selected filled barrels.
 - Blend formulas must total exactly 100% and cannot mix incompatible red and white component lots.
 - Formula approval reserves component volume but never implies that a physical cellar transfer has occurred.
+- Every physical transfer, split or merge must reconcile source volume into destination volume, retained residual volume and explicit loss without creating wine.
+- Split child lots and merged lots require new traceable identities; fully used source identities remain historical records and must not appear as active stock.
+- Physical merges require compatible wine type, vintage, current process stage and rosado route, and every destination vessel must be empty and large enough before inventory changes.
 - Weighted blend analytics are indicative; pH must be confirmed by laboratory analysis.
 - A bottling order may only be created from an approved blend and may start only after every release gate is verified.
 - Packaging reservations include the configured operating allowance and must never exceed unreserved supplier-lot stock.
@@ -55,4 +58,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 4C is prepared: red, white, rosado and clarete lots now have distinct executable operation matrices, guarded transitions, process-specific reconciliations and attributed browser-local histories. Rosado/clarete gates preserve route identity, separate weighing, post-weighbridge mixing, planned skin contact, target colour and transformation yield. Phase 3B.1 health connectivity is live, but the browser repository remains authoritative. Authentication, protected operational reads and remote writes are still deferred. See `PHASES.md`.
+Phase 4D is prepared: red, white, rosado and clarete lots retain their distinct executable process engines, and a dedicated cellar-movement workspace now supports reconciled full transfers, traceable splits and compatible merges. Capacity, destination occupancy, residual volume and declared loss are validated before browser-local inventory changes. Phase 3B.1 health connectivity is live, but the browser repository remains authoritative. Authentication, protected operational reads and remote writes are still deferred. See `PHASES.md`.

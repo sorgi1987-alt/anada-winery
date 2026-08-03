@@ -134,10 +134,10 @@ test('rosado-only operations cannot be recorded on red or white lots', () => {
   }
 })
 
-test('the v12 migration preserves v11 events and adds rosado history only when missing', () => {
+test('the current migration preserves v11 events and adds rosado history only when missing', () => {
   const priorEvents = structuredClone(productionEvents.filter((event) => event.wineType !== 'rosado'))
   const migrated = migrateLegacyState({ schemaVersion: 11, lots: structuredClone(lots), tasks: structuredClone(initialTasks), tanks: structuredClone(tanks), productionEvents: priorEvents })
-  assert.equal(migrated?.schemaVersion, 12)
+  assert.equal(migrated?.schemaVersion, 13)
   assert.equal(migrated?.productionEvents.filter((event) => event.wineType === 'tinto').length, priorEvents.filter((event) => event.wineType === 'tinto').length)
   assert.equal(migrated?.productionEvents.filter((event) => event.wineType === 'blanco').length, priorEvents.filter((event) => event.wineType === 'blanco').length)
   assert.equal(migrated?.productionEvents.filter((event) => event.wineType === 'rosado').length, 3)
