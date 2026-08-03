@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import QRCode from 'qrcode'
 import { barrels, bottlingOrders, deliveries, lots, parcels, tanks } from '../src/data'
-import { buildScannerRegistry, parseScanPayload, resolveScanCode, scanPayload, searchScannerRegistry } from '../src/scanner'
+import { buildScannerRegistry, parseScanPayload, resolveScanCode, scanPayload, searchScannerRegistry } from '../src/scanRegistry'
 
 const registry = buildScannerRegistry({ lots, tanks, barrels, parcels, deliveries, bottlingOrders })
 

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { useLanguage } from './i18n'
 import { useNavigate } from './router'
-import { buildScannerRegistry, resolveScanCode, scanPayload, searchScannerRegistry, type ScanEntity, type ScanEntityType } from './scanner'
+import { buildScannerRegistry, resolveScanCode, scanPayload, searchScannerRegistry, type ScanEntity, type ScanEntityType } from './scanRegistry'
 import type { Barrel, BottlingOrder, GrapeDelivery, Tank, VineyardParcel, WineLot } from './types'
 
 interface ScannerPageProps {

@@ -308,7 +308,7 @@ Status: deployment prepared.
 - Scanner registry and generated QR-image tests
 - Browser-local and offline-safe lookup; no claim of server synchronisation or authenticated identity
 
-Completion gate: deploy through Slate, confirm version 0.19, generate and print at least one label, scan it in Chrome on the Pixel and verify the exact record opens. Then disable connectivity and confirm manual identifier lookup still works. Where native camera recognition is unavailable, confirm the interface explains the manual fallback instead of presenting a false success state.
+Completion gate: deploy through Slate, confirm version 0.19.1, generate and print at least one label, scan it in Chrome on the Pixel and verify the exact record opens. Then disable connectivity and confirm manual identifier lookup still works. Where native camera recognition is unavailable, confirm the interface explains the manual fallback instead of presenting a false success state.
 
 - Authenticated scanner events and server-side asset resolution
 - Capacitor authentication validation
