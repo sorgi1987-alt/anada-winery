@@ -3,7 +3,7 @@ import {
   Activity, ArrowLeft, ArrowRightLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
   Factory, FlaskConical, Gauge, GitMerge, Grape, Grid2X2, Home, Languages, Leaf, List, MapPin, Menu, Moon,
-  Download, MoreHorizontal, Package, Plus, Save, ScanLine, Search, Settings2, ShieldCheck,
+  Download, MoreHorizontal, Package, Plus, Save, ScanLine, Search, Settings2,
   Sparkles, Sprout, Sun, Thermometer, Undo2, Warehouse,
   Waypoints, Wifi, WifiOff, Wine, X,
 } from 'lucide-react'
@@ -40,7 +40,6 @@ const TraceabilityPage = lazy(() => import('./Traceability').then((module) => ({
 const ReportsPage = lazy(() => import('./Reports').then((module) => ({ default: module.ReportsPage })))
 const AdministrationPage = lazy(() => import('./Administration').then((module) => ({ default: module.AdministrationPage })))
 const ScannerPage = lazy(() => import('./Scanner').then((module) => ({ default: module.ScannerPage })))
-const RiojaCompliancePage = lazy(() => import('./RiojaCompliance').then((module) => ({ default: module.RiojaCompliancePage })))
 
 const typeIcon: Record<WineType, ReactNode> = {
   tinto: <Wine size={18} />,
@@ -61,7 +60,6 @@ const navItems = [
   { labelKey: 'nav.bottling' as const, path: '/bottling', icon: Package },
   { labelKey: 'nav.traceability' as const, path: '/traceability', icon: Waypoints },
   { labelKey: 'nav.scan' as const, path: '/scan', icon: ScanLine },
-  { labelKey: 'nav.compliance' as const, path: '/compliance', icon: ShieldCheck },
   { labelKey: 'nav.reports' as const, path: '/reports', icon: BarChart3 },
 ]
 
@@ -98,7 +96,7 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 14, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
+    browserWineryRepository.save({ schemaVersion: 15, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings })
   }, [demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, settings])
 
   const toggleCellarMode = () => {
@@ -439,7 +437,6 @@ function App() {
   else if (pathname === '/bottling') currentPage = <BottlingPage orders={bottlingOrders} materials={packagingMaterials} trials={blendTrials} onCreateOrder={addBottlingOrder} onToggleGate={updateBottlingGate} onStartOrder={startBottling} onCompleteOrder={finishBottling} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
   else if (pathname === '/scan') currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
-  else if (pathname === '/compliance') currentPage = <RiojaCompliancePage orders={bottlingOrders} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
   else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
@@ -504,8 +501,8 @@ function Welcome() {
           {t('welcome.enter')} <ArrowUpRight size={18} />
         </button>
         <div className="welcome-meta">
-          <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.21</span>
+          <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
+          <span>Añada 0.22</span>
         </div>
       </section>
     </main>
@@ -910,7 +907,7 @@ function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRe
       <section className={`lot-hero lot-${lot.type}`} style={{ backgroundImage: `url(${lot.image})` }}>
         <div className="lot-hero-overlay" />
         <div className="lot-hero-content">
-          <div className="lot-hero-top"><span className="lot-type-chip glass">{typeIcon[lot.type]} {t(wineLabelKey[lot.type])}</span><span className="doca-chip"><ShieldCheck size={15} /> {t('detail.eligibility')}</span></div>
+          <div className="lot-hero-top"><span className="lot-type-chip glass">{typeIcon[lot.type]} {t(wineLabelKey[lot.type])}</span></div>
           <div><span className="eyebrow light">{lot.id} · {t('common.vintage')} {lot.vintage}</span><h1>{lot.name}</h1><p>{lot.varieties}</p><span className="hero-origin"><MapPin size={15} /> {lot.origin}</span></div>
         </div>
       </section>
@@ -986,7 +983,7 @@ function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRe
             <span><i>07</i><small>{t('detail.turbidityTarget')}</small><strong>{roseDetails.turbidityTarget} NTU</strong><em>{t('detail.forSettling')}</em></span>
             <span><i>08</i><small>{t('rose.estimatedYield')}</small><strong>{lot.productionDetails ? Math.round(lot.volume / lot.productionDetails.receivedKg * 100) : 0}%</strong><em>{t('rose.maximumYield')}</em></span>
           </div>
-          <div className="rose-compliance-note"><ShieldCheck size={19} /><span><strong>{t('rose.internalCheck')}</strong><small>{t('rose.internalCheckText')}</small></span></div>
+          <div className="rose-compliance-note"><ClipboardCheck size={19} /><span><strong>{t('rose.processCheck')}</strong><small>{t('rose.processCheckText')}</small></span></div>
         </section>
       )}
     </main>

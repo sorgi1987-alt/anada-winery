@@ -54,7 +54,7 @@ test('cool alcoholic fermentation is gated until the newest density is dry', () 
   assert.equal(advanced.events[0].kind, 'transition')
 })
 
-test('pressing reconciles fractions and enforces the internal 70 L per 100 kg checkpoint', () => {
+test('pressing reconciles fractions without exceeding available lot volume', () => {
   const lot = whiteAt('press', { volume: 6000 })
   const common = {
     lotId: lot.id,
@@ -65,8 +65,8 @@ test('pressing reconciles fractions and enforces the internal 70 L per 100 kg ch
   }
   assert.throws(() => recordWhiteOperation([lot], cellarTanks(), [], [], {
     ...common,
-    metrics: { freeRunVolume: 5000, pressVolume: 601, pressFraction: 'Yema + primera prensa' },
-  }), /70 L\/100 kg/i)
+    metrics: { freeRunVolume: 5700, pressVolume: 301, pressFraction: 'Yema + primera prensa' },
+  }), /available lot volume/i)
 
   const recorded = recordWhiteOperation([lot], cellarTanks(), [], [], {
     ...common,
@@ -132,7 +132,7 @@ test('white-only operations cannot be recorded on a red lot', () => {
 test('the current migration preserves v10 process history and adds missing white demo events', () => {
   const redHistory = structuredClone(productionEvents.filter((event) => event.wineType === 'tinto'))
   const migrated = migrateLegacyState({ schemaVersion: 10, lots: structuredClone(lots), tasks: structuredClone(initialTasks), tanks: structuredClone(tanks), productionEvents: redHistory })
-  assert.equal(migrated?.schemaVersion, 14)
+  assert.equal(migrated?.schemaVersion, 15)
   assert.equal(migrated?.productionEvents.filter((event) => event.wineType === 'tinto').length, redHistory.length)
   assert.equal(migrated?.productionEvents.filter((event) => event.wineType === 'blanco').length, 3)
 })

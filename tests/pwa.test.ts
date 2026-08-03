@@ -66,3 +66,13 @@ test('single mobile page actions use the full-width cellar touch target', () => 
   assert.match(styles, /\.page-header-action:not\(\.report-export-actions\)\{display:grid;grid-template-columns:minmax\(0,1fr\)\}/)
   assert.match(styles, /\.page-header-action:not\(\.report-export-actions\) \.primary-button\{width:100%;max-width:none;min-height:56px/)
 })
+
+test('the active application excludes the retired DOCa eligibility workspace', () => {
+  const app = readFileSync('src/App.tsx', 'utf8')
+  const bottling = readFileSync('src/Bottling.tsx', 'utf8')
+
+  assert.equal(existsSync('src/RiojaCompliance.tsx'), false)
+  assert.equal(existsSync('src/OriginEligibility.tsx'), false)
+  assert.doesNotMatch(app, /RiojaCompliance|OriginEligibility|\/compliance/)
+  assert.doesNotMatch(bottling, /RiojaAgeingMention|ageingMention|originMention/)
+})

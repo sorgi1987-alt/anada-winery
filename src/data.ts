@@ -428,33 +428,33 @@ export const packagingMaterials: PackagingMaterial[] = [
   { id: 'pack-closure-002', code: 'COR-045-02', type: 'closure', name: 'Corcho técnico blanco', supplier: 'Diam', lotNumber: 'DI-26-1190', onHand: 5200, reserved: 2993, reorderPoint: 2000, unit: 'units' },
   { id: 'pack-capsule-001', code: 'CAP-BUR-01', type: 'capsule', name: 'Cápsula borgoña mate', supplier: 'Ramondín', lotNumber: 'RA-2608-97', onHand: 14800, reserved: 4080, reorderPoint: 4000, unit: 'units' },
   { id: 'pack-capsule-002', code: 'CAP-CRM-02', type: 'capsule', name: 'Cápsula crema mate', supplier: 'Ramondín', lotNumber: 'RA-2609-12', onHand: 4600, reserved: 2993, reorderPoint: 1800, unit: 'units' },
-  { id: 'pack-front-001', code: 'ETQ-CS-25', type: 'front_label', name: 'Crianza Selección 2025', supplier: 'Gráficas Larrad', lotNumber: 'GL-26188', onHand: 14000, reserved: 4080, reorderPoint: 3000, unit: 'units' },
+  { id: 'pack-front-001', code: 'ETQ-SB-25', type: 'front_label', name: 'Selección de Bodega 2025', supplier: 'Gráficas Larrad', lotNumber: 'GL-26188', onHand: 14000, reserved: 4080, reorderPoint: 3000, unit: 'units' },
   { id: 'pack-front-002', code: 'ETQ-BP-25', type: 'front_label', name: 'Blanco de Parcela 2025', supplier: 'Gráficas Larrad', lotNumber: 'GL-26204', onHand: 5100, reserved: 2993, reorderPoint: 1800, unit: 'units' },
-  { id: 'pack-back-001', code: 'CR-RIO-26-A', type: 'back_label', name: 'Contraetiqueta DOCa Rioja · Crianza', supplier: 'Consejo Regulador', lotNumber: 'DOC-26-CR-A', onHand: 15000, reserved: 4080, reorderPoint: 3000, unit: 'units', riojaSeries: 'CR-26-A · 105221–120220' },
-  { id: 'pack-back-002', code: 'GE-RIO-26-B', type: 'back_label', name: 'Contraetiqueta DOCa Rioja · Genérico', supplier: 'Consejo Regulador', lotNumber: 'DOC-26-GE-B', onHand: 5000, reserved: 2993, reorderPoint: 1800, unit: 'units', riojaSeries: 'GE-26-B · 220001–225000' },
+  { id: 'pack-back-001', code: 'ETQ-TR-26-A', type: 'back_label', name: 'Etiqueta trasera · Selección 2025', supplier: 'Gráficas Larrad', lotNumber: 'GL-26211', onHand: 15000, reserved: 4080, reorderPoint: 3000, unit: 'units', controlledSeries: 'TR-26-A · 105221–120220' },
+  { id: 'pack-back-002', code: 'ETQ-TR-26-B', type: 'back_label', name: 'Etiqueta trasera · Blanco 2025', supplier: 'Gráficas Larrad', lotNumber: 'GL-26212', onHand: 5000, reserved: 2993, reorderPoint: 1800, unit: 'units', controlledSeries: 'TR-26-B · 220001–225000' },
   { id: 'pack-carton-001', code: 'CAJ-06-01', type: 'carton', name: 'Caja 6 botellas · kraft', supplier: 'Cartonajes Ebro', lotNumber: 'CE-260911', onHand: 2300, reserved: 680, reorderPoint: 600, unit: 'units' },
   { id: 'pack-carton-002', code: 'CAJ-06-02', type: 'carton', name: 'Caja 6 botellas · blanca', supplier: 'Cartonajes Ebro', lotNumber: 'CE-260917', onHand: 920, reserved: 499, reorderPoint: 400, unit: 'units' },
 ]
 
 export const bottlingOrders: BottlingOrder[] = [
   {
-    id: 'bottling-order-006', code: 'EMB-26-006', sourceTrialId: 'blend-trial-historical-006', sourceCode: 'ENS-26-000', wineName: 'Crianza Selección', type: 'tinto', vintage: 2025,
-    ageingMention: 'crianza', originMention: 'rioja', targetVolume: 4000, targetBottles: 5334, scheduledAt: '2026-09-12T08:00:00+02:00', line: 'Línea 1', status: 'completed',
+    id: 'bottling-order-006', code: 'EMB-26-006', sourceTrialId: 'blend-trial-historical-006', sourceCode: 'ENS-26-000', wineName: 'Selección de Bodega', type: 'tinto', vintage: 2025,
+    targetVolume: 4000, targetBottles: 5334, scheduledAt: '2026-09-12T08:00:00+02:00', line: 'Línea 1', status: 'completed',
     packaging: { bottleSize: 0.75, unitsPerCase: 6, bottleId: 'pack-bottle-001', closureId: 'pack-closure-001', capsuleId: 'pack-capsule-001', frontLabelId: 'pack-front-001', backLabelId: 'pack-back-001', cartonId: 'pack-carton-001' },
     gates: ['wine_release', 'pre_bottling_lab', 'stabilisation', 'filtration', 'artwork', 'line_sanitation'].map((key) => ({ key: key as BottlingOrder['gates'][number]['key'], complete: true, verifiedAt: '2026-09-11T16:00:00+02:00', verifiedBy: 'Elena Martín' })),
     createdAt: '2026-09-02T10:10:00+02:00', createdBy: 'Elena Martín', releasedAt: '2026-09-11T16:10:00+02:00', releasedBy: 'Elena Martín',
-    completion: { goodBottles: 5220, rejectedBottles: 42, actualVolume: 3951, finishedProductLot: 'PT-CS25-260912', backLabelFrom: 100001, backLabelTo: 105220, completedAt: '2026-09-12T15:42:00+02:00', completedBy: 'Martín Ruiz', notes: 'Arranque estable; 42 botellas rechazadas en control de nivel y cierre.' },
+    completion: { goodBottles: 5220, rejectedBottles: 42, actualVolume: 3951, finishedProductLot: 'PT-SB25-260912', labelSerialFrom: 100001, labelSerialTo: 105220, completedAt: '2026-09-12T15:42:00+02:00', completedBy: 'Martín Ruiz', notes: 'Arranque estable; 42 botellas rechazadas en control de nivel y cierre.' },
   },
   {
-    id: 'bottling-order-007', code: 'EMB-26-007', sourceTrialId: 'blend-trial-003', sourceCode: 'ENS-26-003', wineName: 'Crianza Selección', type: 'tinto', vintage: 2025,
-    ageingMention: 'crianza', originMention: 'rioja', targetVolume: 3000, targetBottles: 4000, scheduledAt: '2026-09-22T07:30:00+02:00', line: 'Línea 1', status: 'ready',
+    id: 'bottling-order-007', code: 'EMB-26-007', sourceTrialId: 'blend-trial-003', sourceCode: 'ENS-26-003', wineName: 'Selección de Bodega', type: 'tinto', vintage: 2025,
+    targetVolume: 3000, targetBottles: 4000, scheduledAt: '2026-09-22T07:30:00+02:00', line: 'Línea 1', status: 'ready',
     packaging: { bottleSize: 0.75, unitsPerCase: 6, bottleId: 'pack-bottle-001', closureId: 'pack-closure-001', capsuleId: 'pack-capsule-001', frontLabelId: 'pack-front-001', backLabelId: 'pack-back-001', cartonId: 'pack-carton-001' },
     gates: ['wine_release', 'pre_bottling_lab', 'stabilisation', 'filtration', 'artwork', 'line_sanitation'].map((key) => ({ key: key as BottlingOrder['gates'][number]['key'], complete: true, verifiedAt: '2026-09-20T12:00:00+02:00', verifiedBy: 'Elena Martín' })),
     createdAt: '2026-09-14T09:25:00+02:00', createdBy: 'Elena Martín', releasedAt: '2026-09-20T12:15:00+02:00', releasedBy: 'Elena Martín',
   },
   {
     id: 'bottling-order-008', code: 'EMB-26-008', sourceTrialId: 'blend-trial-historical-008', sourceCode: 'ENS-26-005', wineName: 'Blanco de Parcela', type: 'blanco', vintage: 2025,
-    ageingMention: 'generic', originMention: 'vino_de_pueblo', targetVolume: 2200, targetBottles: 2934, scheduledAt: '2026-09-24T08:00:00+02:00', line: 'Línea 1', status: 'preparation',
+    targetVolume: 2200, targetBottles: 2934, scheduledAt: '2026-09-24T08:00:00+02:00', line: 'Línea 1', status: 'preparation',
     packaging: { bottleSize: 0.75, unitsPerCase: 6, bottleId: 'pack-bottle-002', closureId: 'pack-closure-002', capsuleId: 'pack-capsule-002', frontLabelId: 'pack-front-002', backLabelId: 'pack-back-002', cartonId: 'pack-carton-002' },
     gates: [
       { key: 'wine_release', complete: false }, { key: 'pre_bottling_lab', complete: false }, { key: 'stabilisation', complete: true, verifiedAt: '2026-09-19T09:00:00+02:00', verifiedBy: 'Lucía Sáenz' },
@@ -487,7 +487,7 @@ export const traceabilityEntities: TraceabilityEntity[] = [
   { id: 'trace-finished-001', type: 'finished_lot', code: 'PT-CS25-260912', name: 'Crianza Selección 2025', subtitle: 'Producto terminado · 5.220 botellas', occurredAt: '2026-09-12T15:42:00+02:00', status: 'verified', quantity: 5220, unit: 'bottles', image: images.cellar, metadata: { Contraetiquetas: '100001–105220', Mención: 'Crianza', Formato: '75 cl', Ubicación: 'Almacén PT-A' } },
   { id: 'pack-bottle-001', type: 'packaging_lot', code: 'VE-260914-B7', name: 'Bordelesa Élite 75 cl', subtitle: 'Verallia · lote de proveedor', occurredAt: '2026-09-09T09:10:00+02:00', status: 'verified', quantity: 18500, unit: 'units', metadata: { Material: 'Botella', Proveedor: 'Verallia', Referencia: 'ENV-075-01', Recepción: '2026-09-09' } },
   { id: 'pack-closure-001', type: 'packaging_lot', code: 'AM-26-4481', name: 'Corcho natural 44 × 24', subtitle: 'Amorim · lote de proveedor', occurredAt: '2026-09-08T11:20:00+02:00', status: 'attention', quantity: 15200, unit: 'units', metadata: { Material: 'Cierre', Proveedor: 'Amorim', Referencia: 'COR-044-01', Recepción: '2026-09-08' } },
-  { id: 'pack-back-001', type: 'packaging_lot', code: 'DOC-26-CR-A', name: 'Contraetiqueta DOCa Rioja · Crianza', subtitle: 'Serie CR-26-A', occurredAt: '2026-09-07T10:00:00+02:00', status: 'verified', quantity: 15000, unit: 'units', metadata: { Material: 'Contraetiqueta / precinta', Serie: 'CR-26-A', Numeración: '105221–120220', Referencia: 'CR-RIO-26-A' } },
+  { id: 'pack-back-001', type: 'packaging_lot', code: 'GL-26211', name: 'Etiqueta trasera · Selección 2025', subtitle: 'Serie TR-26-A', occurredAt: '2026-09-07T10:00:00+02:00', status: 'verified', quantity: 15000, unit: 'units', metadata: { Material: 'Etiqueta trasera', Serie: 'TR-26-A', Numeración: '105221–120220', Referencia: 'ETQ-TR-26-A' } },
   { id: 'pack-front-001', type: 'packaging_lot', code: 'GL-26188', name: 'Etiqueta Crianza Selección 2025', subtitle: 'Gráficas Larrad · lote de proveedor', occurredAt: '2026-09-09T12:00:00+02:00', status: 'verified', quantity: 14000, unit: 'units', metadata: { Material: 'Etiqueta', Proveedor: 'Gráficas Larrad', Referencia: 'ETQ-CS-25', Aprobación: 'Registro interno aprobado' } },
 ]
 
@@ -516,7 +516,7 @@ export const traceabilityLinks: TraceabilityLink[] = [
   { id: 'trace-link-022', sourceId: 'pack-back-001', targetId: 'trace-finished-001', relation: 'packaged_with', quantity: 5220, unit: 'units', occurredAt: '2026-09-12T15:42:00+02:00', evidence: 'Numeración 100001–105220', status: 'verified', verifiedBy: 'Elena Martín' },
   { id: 'trace-link-023', sourceId: 'pack-bottle-001', targetId: 'trace-order-007', relation: 'packaged_with', quantity: 4080, unit: 'units', occurredAt: '2026-09-20T12:15:00+02:00', evidence: 'Reserva de material EMB-26-007', status: 'verified', verifiedBy: 'Elena Martín' },
   { id: 'trace-link-024', sourceId: 'pack-closure-001', targetId: 'trace-order-007', relation: 'packaged_with', quantity: 4080, unit: 'units', occurredAt: '2026-09-20T12:15:00+02:00', evidence: 'Reserva de material EMB-26-007', status: 'verified', verifiedBy: 'Elena Martín' },
-  { id: 'trace-link-025', sourceId: 'pack-back-001', targetId: 'trace-order-007', relation: 'packaged_with', quantity: 4080, unit: 'units', occurredAt: '2026-09-20T12:15:00+02:00', evidence: 'Reserva serie CR-26-A', status: 'verified', verifiedBy: 'Elena Martín' },
+  { id: 'trace-link-025', sourceId: 'pack-back-001', targetId: 'trace-order-007', relation: 'packaged_with', quantity: 4080, unit: 'units', occurredAt: '2026-09-20T12:15:00+02:00', evidence: 'Reserva serie TR-26-A', status: 'verified', verifiedBy: 'Elena Martín' },
 ]
 
 export const recallSimulations: RecallSimulation[] = [

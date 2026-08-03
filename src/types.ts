@@ -152,7 +152,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 14
+  schemaVersion: 15
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -662,8 +662,6 @@ export interface BlendTastingInput {
 }
 
 export type BottlingOrderStatus = 'draft' | 'preparation' | 'ready' | 'in_progress' | 'completed' | 'hold'
-export type RiojaAgeingMention = 'generic' | 'crianza' | 'reserva' | 'gran_reserva'
-export type RiojaOriginMention = 'rioja' | 'vino_de_pueblo' | 'vinedo_singular'
 export type BottlingGateKey = 'wine_release' | 'pre_bottling_lab' | 'stabilisation' | 'filtration' | 'artwork' | 'line_sanitation'
 export type PackagingMaterialType = 'bottle' | 'closure' | 'capsule' | 'front_label' | 'back_label' | 'carton'
 
@@ -685,7 +683,7 @@ export interface PackagingMaterial {
   reserved: number
   reorderPoint: number
   unit: 'units'
-  riojaSeries?: string
+  controlledSeries?: string
 }
 
 export interface BottlingPackaging {
@@ -704,8 +702,8 @@ export interface BottlingCompletion {
   rejectedBottles: number
   actualVolume: number
   finishedProductLot: string
-  backLabelFrom: number
-  backLabelTo: number
+  labelSerialFrom?: number
+  labelSerialTo?: number
   completedAt: string
   completedBy: string
   notes: string
@@ -719,8 +717,8 @@ export interface BottlingOrder {
   wineName: string
   type: Extract<WineType, 'tinto' | 'blanco'>
   vintage: number
-  ageingMention: RiojaAgeingMention
-  originMention: RiojaOriginMention
+  labelClaim?: string
+  originClaim?: string
   targetVolume: number
   targetBottles: number
   scheduledAt: string
@@ -739,8 +737,6 @@ export interface NewBottlingOrderInput {
   sourceTrialId: string
   wineName: string
   vintage: number
-  ageingMention: RiojaAgeingMention
-  originMention: RiojaOriginMention
   targetVolume: number
   scheduledAt: string
   line: string
@@ -755,7 +751,7 @@ export interface CompleteBottlingOrderInput {
   rejectedBottles: number
   actualVolume: number
   finishedProductLot: string
-  backLabelFrom: number
+  labelSerialFrom?: number
   notes: string
 }
 

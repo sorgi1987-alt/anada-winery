@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardCheck,
   Droplets, Grape, Leaf, MapPin, Save, Scale, Sparkles, Thermometer, Warehouse, X,
 } from 'lucide-react'
-import { nextLotCode, roseEligibilityIssues } from './domain'
+import { nextLotCode, roseConfigurationIssues } from './domain'
 import { useLanguage } from './i18n'
 import type { NewLotInput, NewTaskInput, RoseMethod, Tank, WineLot } from './types'
 
@@ -90,7 +90,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
       if (draft.density < 0.98 || draft.density > 1.2) return t('flow.errorDensity')
       if (draft.temperature < 0 || draft.temperature > 40) return t('flow.errorTemperature')
       if (type === 'rosado') {
-        const issue = roseEligibilityIssues(draft)[0]
+        const issue = roseConfigurationIssues(draft)[0]
         if (issue) return t(roseIssueTranslation[issue as keyof typeof roseIssueTranslation])
       }
     }
@@ -203,9 +203,9 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
                         ? <option value="cofermentation">{t('rose.methodCofermentation')}</option>
                         : <><option value="direct_press">{t('rose.methodDirect')}</option><option value="short_maceration">{t('rose.methodMaceration')}</option><option value="saignee">{t('rose.methodSaignee')}</option></>}
                     </select></label>
-                    <label><span>{t('rose.redPercentage')}</span><div><input type="number" min="25" max="100" value={draft.redGrapePercentage} onChange={(event) => update('redGrapePercentage', Number(event.target.value))} /><i>%</i></div></label>
-                    <label><span>{t('rose.colorTarget')}</span><div><input type="number" min="0.1" max="1.8" step="0.01" value={draft.targetColorIntensity} onChange={(event) => update('targetColorIntensity', numberValue(event.target.value))} /><i>UA/cm</i></div></label>
-                    {draft.roseMethod !== 'direct_press' && <label><span>{t('rose.macerationHours')}</span><div><input type="number" min="1" max="48" value={draft.macerationHours} onChange={(event) => update('macerationHours', Number(event.target.value))} /><i>h</i></div></label>}
+                    <label><span>{t('rose.redPercentage')}</span><div><input type="number" min="0.01" max="100" step="0.01" value={draft.redGrapePercentage} onChange={(event) => update('redGrapePercentage', Number(event.target.value))} /><i>%</i></div></label>
+                    <label><span>{t('rose.colorTarget')}</span><div><input type="number" min="0.01" max="10" step="0.01" value={draft.targetColorIntensity} onChange={(event) => update('targetColorIntensity', numberValue(event.target.value))} /><i>UA/cm</i></div></label>
+                    {draft.roseMethod !== 'direct_press' && <label><span>{t('rose.macerationHours')}</span><div><input type="number" min="1" max="168" value={draft.macerationHours} onChange={(event) => update('macerationHours', Number(event.target.value))} /><i>h</i></div></label>}
                     <label><span>{t('detail.turbidityTarget')}</span><div><input type="number" min="20" max="300" value={draft.turbidityTarget} onChange={(event) => update('turbidityTarget', Number(event.target.value))} /><i>NTU</i></div></label>
                     <label className="rose-wide-field"><span>{t('rose.pressFraction')}</span><select value={draft.pressFraction} onChange={(event) => update('pressFraction', event.target.value)}>{['Mosto yema', 'Primera prensada', 'Mosto yema + primera prensada'].map((option) => <option key={option} value={option}>{d(option)}</option>)}</select></label>
                     <label className="rose-wide-field"><span>{t('rose.protection')}</span><select value={draft.protection} onChange={(event) => update('protection', event.target.value)}>{['Inertizado con CO₂', 'Inertizado con N₂', 'Protección antioxidante'].map((option) => <option key={option} value={option}>{d(option)}</option>)}</select></label>
@@ -239,7 +239,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
                 <ReviewValue label={t('common.occupancy')} value={selectedTank ? `${Math.round(draft.volume / selectedTank.capacity * 100)}%` : '—'} />
                 {isRose && draft.roseMethod && <><ReviewValue label={t('rose.style')} value={draft.roseStyle === 'clarete' ? t('rose.styleClarete') : t('rose.styleRose')} /><ReviewValue label={t('rose.method')} value={t(roseMethodLabelKey[draft.roseMethod])} /></>}
               </div>
-              {isRose && <div className="rose-eligibility-card"><CheckCircle2 size={20} /><div><strong>{t('rose.eligibilityOk')}</strong><p>{t('rose.eligibilityOkText', { red: draft.redGrapePercentage ?? 0, yield: yieldPercentage })}</p></div></div>}
+              {isRose && <div className="rose-eligibility-card"><CheckCircle2 size={20} /><div><strong>{t('rose.configurationOk')}</strong><p>{t('rose.configurationOkText', { red: draft.redGrapePercentage ?? 0, yield: yieldPercentage })}</p></div></div>}
               <div className="next-steps-card"><CheckCircle2 size={20} /><div><strong>{t('flow.autoCreate')}</strong><p>{t('flow.autoCreateText')}</p></div></div>
             </section>
           )}

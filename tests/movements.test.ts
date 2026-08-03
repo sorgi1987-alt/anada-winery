@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { initialTasks, lots, movementReserveTanks, productionEvents, tanks, wineMovements } from '../src/data'
+import { bottlingOrders, initialTasks, lots, movementReserveTanks, packagingMaterials, productionEvents, tanks, wineMovements } from '../src/data'
 import { mergeWine, splitWine, transferWine } from '../src/domain'
 import { migrateLegacyState } from '../src/store'
 import type { Tank, WineLot } from '../src/types'
@@ -101,7 +101,7 @@ test('a merge blocks incompatible wine types, vintages and process stages', () =
   }), /share wine type, vintage, process stage/i)
 })
 
-test('the v14 migration preserves process history and adds movement audit history and reserve vats', () => {
+test('the v15 migration preserves process history and adds movement audit history and reserve vats', () => {
   const legacyEvents = structuredClone(productionEvents)
   const legacyTanks = structuredClone(tanks.filter((tank) => !movementReserveTanks.some((reserve) => reserve.id === tank.id)))
   const migrated = migrateLegacyState({
@@ -112,7 +112,7 @@ test('the v14 migration preserves process history and adds movement audit histor
     productionEvents: legacyEvents,
   })
 
-  assert.equal(migrated?.schemaVersion, 14)
+  assert.equal(migrated?.schemaVersion, 15)
   assert.equal(migrated?.productionEvents.length, legacyEvents.length)
   assert.equal(migrated?.movements.length, wineMovements.length)
   assert.equal(migrated?.movements[0].storageMode, 'browser-local')
@@ -135,8 +135,37 @@ test('the v13 migration preserves existing movements and never overwrites a know
     movements: legacyMovements,
   })
 
-  assert.equal(migrated?.schemaVersion, 14)
+  assert.equal(migrated?.schemaVersion, 15)
   assert.equal(migrated?.movements[0].notes, legacyMovements[0].notes)
   assert.equal(migrated?.tanks.find((tank) => tank.id === 'D-21')?.lot, 'TEST-LOT')
   assert.deepEqual(movementReserveTanks.map((tank) => migrated?.tanks.filter((item) => item.id === tank.id).length), [1, 1, 1, 1])
+})
+
+test('the v15 scope reset preserves legacy DOCa metadata without keeping it operational', () => {
+  const legacyMaterials = structuredClone(packagingMaterials) as unknown as Array<Record<string, unknown>>
+  legacyMaterials[8].riojaSeries = legacyMaterials[8].controlledSeries
+  delete legacyMaterials[8].controlledSeries
+  const legacyOrders = structuredClone(bottlingOrders) as unknown as Array<Record<string, unknown>>
+  legacyOrders[0].ageingMention = 'crianza'
+  legacyOrders[0].originMention = 'rioja'
+  const completion = legacyOrders[0].completion as Record<string, unknown>
+  completion.backLabelFrom = completion.labelSerialFrom
+  completion.backLabelTo = completion.labelSerialTo
+  delete completion.labelSerialFrom
+  delete completion.labelSerialTo
+
+  const migrated = migrateLegacyState({
+    schemaVersion: 14,
+    lots: structuredClone(lots),
+    tasks: structuredClone(initialTasks),
+    tanks: structuredClone(tanks),
+    packagingMaterials: legacyMaterials,
+    bottlingOrders: legacyOrders,
+  })
+
+  assert.equal(migrated?.schemaVersion, 15)
+  assert.equal(migrated?.packagingMaterials[8].controlledSeries, packagingMaterials[8].controlledSeries)
+  assert.equal(migrated?.bottlingOrders[0].labelClaim, 'crianza')
+  assert.equal(migrated?.bottlingOrders[0].originClaim, 'rioja')
+  assert.equal(migrated?.bottlingOrders[0].completion?.labelSerialFrom, bottlingOrders[0].completion?.labelSerialFrom)
 })

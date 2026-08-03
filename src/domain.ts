@@ -17,7 +17,7 @@ const roseOpeningActions: Record<RoseMethod, string> = {
 
 export const roseOpeningAction = (method: RoseMethod) => roseOpeningActions[method]
 
-export const roseEligibilityIssues = (input: NewLotInput) => {
+export const roseConfigurationIssues = (input: NewLotInput) => {
   if (input.type !== 'rosado') return []
   const issues: string[] = []
   const redPercentage = input.redGrapePercentage ?? 0
@@ -26,18 +26,18 @@ export const roseEligibilityIssues = (input: NewLotInput) => {
   const macerationHours = input.macerationHours ?? 0
   const estimatedYield = input.receivedKg > 0 ? input.volume / input.receivedKg * 100 : 0
 
-  if (redPercentage < 25 || redPercentage > 100) issues.push('red_percentage')
+  if (redPercentage <= 0 || redPercentage > 100) issues.push('red_percentage')
   if (redPercentage < 100 && !input.blendAfterWeighing) issues.push('blend_after_weighing')
-  if (colorIntensity < 0.1 || colorIntensity > 1.8) issues.push('color_intensity')
-  if (estimatedYield > 70) issues.push('yield')
+  if (colorIntensity <= 0 || colorIntensity > 10) issues.push('color_intensity')
+  if (estimatedYield > 100) issues.push('yield')
   if (input.roseStyle === 'clarete' && method !== 'cofermentation') issues.push('clarete_method')
-  if (method !== 'direct_press' && (macerationHours <= 0 || macerationHours > 48)) issues.push('maceration_hours')
+  if (method !== 'direct_press' && (macerationHours <= 0 || macerationHours > 168)) issues.push('maceration_hours')
   return issues
 }
 
 export const validateRoseInput = (input: NewLotInput) => {
-  const issues = roseEligibilityIssues(input)
-  if (issues.length) throw new Error(`Rosado eligibility checks failed: ${issues.join(', ')}`)
+  const issues = roseConfigurationIssues(input)
+  if (issues.length) throw new Error(`Rosado configuration checks failed: ${issues.join(', ')}`)
 }
 
 export const nextLotCode = (type: NewLotInput['type'], vintage: number, lots: WineLot[]) => {
@@ -106,7 +106,7 @@ export const createLot = (input: NewLotInput): WineLot => {
       rose: isRose ? {
         style: input.roseStyle ?? 'rosado',
         method: input.roseMethod ?? 'direct_press',
-        redGrapePercentage: input.redGrapePercentage ?? 25,
+        redGrapePercentage: input.redGrapePercentage ?? 100,
         blendAfterWeighing: input.blendAfterWeighing ?? true,
         macerationHours: input.macerationHours ?? 0,
         pressFraction: input.pressFraction ?? 'Mosto yema',
@@ -423,7 +423,7 @@ export const createBottlingOrder = (input: NewBottlingOrderInput, trials: BlendT
   const targetBottles = Math.floor(input.targetVolume / input.bottleSize)
   const draftOrder: BottlingOrder = {
     id: nowId('bottling-order'), code: nextBottlingCode(orders), sourceTrialId: trial.id, sourceCode: trial.code, wineName: input.wineName.trim(), type: trial.type,
-    vintage: input.vintage, ageingMention: input.ageingMention, originMention: input.originMention, targetVolume: input.targetVolume, targetBottles, scheduledAt: input.scheduledAt,
+    vintage: input.vintage, targetVolume: input.targetVolume, targetBottles, scheduledAt: input.scheduledAt,
     line: input.line.trim(), status: 'preparation', packaging, gates: bottlingGateKeys.map((key) => ({ key, complete: key === 'wine_release', ...(key === 'wine_release' ? { verifiedAt: new Date().toISOString(), verifiedBy: 'Elena Martín' } : {}) })),
     createdAt: new Date().toISOString(), createdBy: 'Elena Martín',
   }
@@ -458,7 +458,7 @@ export const startBottlingOrder = (orders: BottlingOrder[], orderId: string) => 
 export const completeBottlingOrder = (orders: BottlingOrder[], materials: PackagingMaterial[], input: CompleteBottlingOrderInput) => {
   const order = orders.find((item) => item.id === input.orderId)
   if (!order || !['ready', 'in_progress'].includes(order.status)) throw new Error('Bottling order cannot be completed')
-  if (!input.finishedProductLot.trim() || input.goodBottles <= 0 || input.rejectedBottles < 0 || input.actualVolume <= 0 || input.backLabelFrom <= 0) throw new Error('Invalid bottling completion')
+  if (!input.finishedProductLot.trim() || input.goodBottles <= 0 || input.rejectedBottles < 0 || input.actualVolume <= 0 || (input.labelSerialFrom !== undefined && input.labelSerialFrom <= 0)) throw new Error('Invalid bottling completion')
   const totalHandled = input.goodBottles + input.rejectedBottles
   if (totalHandled > Math.ceil(order.targetBottles * 1.02) || input.actualVolume > order.targetVolume * 1.01) throw new Error('Completion exceeds released order')
   const reservations = bottlingMaterialRequirements(order)
@@ -474,7 +474,8 @@ export const completeBottlingOrder = (orders: BottlingOrder[], materials: Packag
   const updated: BottlingOrder = {
     ...order, status: 'completed', completion: {
       goodBottles: input.goodBottles, rejectedBottles: input.rejectedBottles, actualVolume: input.actualVolume, finishedProductLot: input.finishedProductLot.trim().toUpperCase(),
-      backLabelFrom: input.backLabelFrom, backLabelTo: input.backLabelFrom + input.goodBottles - 1, completedAt: new Date().toISOString(), completedBy: 'Elena Martín', notes: input.notes.trim(),
+      ...(input.labelSerialFrom !== undefined ? { labelSerialFrom: input.labelSerialFrom, labelSerialTo: input.labelSerialFrom + input.goodBottles - 1 } : {}),
+      completedAt: new Date().toISOString(), completedBy: 'Elena Martín', notes: input.notes.trim(),
     },
   }
   return { order: updated, orders: orders.map((item) => item.id === updated.id ? updated : item), materials: nextMaterials }
@@ -797,8 +798,9 @@ export const recordWhiteOperation = (
     const freeRun = requiredNumber(metrics.freeRunVolume, 'Free-run volume is required', 0, 1000000)
     const press = requiredNumber(metrics.pressVolume, 'Press volume is required', 0, 1000000)
     volumeAfter = freeRun + press
-    const maximumOutput = lot.productionDetails?.receivedKg !== undefined ? lot.productionDetails.receivedKg * 0.7 : lot.volume
-    if (volumeAfter <= 0 || volumeAfter > maximumOutput + 0.01) throw new Error('Press output exceeds the internal 70 L/100 kg checkpoint')
+    const physicalMaximum = lot.productionDetails?.receivedKg !== undefined ? lot.productionDetails.receivedKg : lot.volume
+    const maximumOutput = Math.min(lot.volume, physicalMaximum)
+    if (volumeAfter <= 0 || volumeAfter > maximumOutput + 0.01) throw new Error('Press output exceeds the available lot volume')
   }
   if (input.type === 'turbidity_check') requiredNumber(metrics.turbidity, 'Turbidity is required', 0, 5000)
   if (input.type === 'clean_must_racking') {
@@ -936,7 +938,7 @@ const roseNextActions: Record<string, string> = {
 const roseColorReady = (lot: WineLot, value: number | undefined) => {
   if (value === undefined) return false
   const target = lot.productionDetails?.rose?.targetColorIntensity ?? 0.8
-  return value >= Math.max(0.1, target - 0.15) && value <= Math.min(1.8, target + 0.15)
+  return value >= Math.max(0.01, target - 0.15) && value <= Math.min(10, target + 0.15)
 }
 
 export const roseStageGate = (lot: WineLot, events: ProductionEvent[]): RoseStageGate => {
@@ -1032,9 +1034,9 @@ export const recordRoseOperation = (
   const metrics = { ...input.metrics, volumeBefore: lot.volume }
   let volumeAfter = metrics.volumeAfter ?? lot.volume
   if (input.type === 'composition_check') {
-    const redPercentage = requiredNumber(metrics.redGrapePercentage, 'Red-grape percentage is required', 25, 100)
+    const redPercentage = requiredNumber(metrics.redGrapePercentage, 'Red-grape percentage is required', 0.01, 100)
     if (redPercentage < 100 && !metrics.mixingAfterWeighing) throw new Error('Mixed grapes must be combined after weighing')
-    requiredNumber(metrics.colorIntensity, 'Target colour intensity is required', 0.1, 1.8)
+    requiredNumber(metrics.colorIntensity, 'Target colour intensity is required', 0.01, 10)
   }
   if (input.type === 'separate_weighing' && (!metrics.separateWeightsConfirmed || !metrics.mixingAfterWeighing)) throw new Error('Separate weighbridge records and later mixing are required')
   if (input.type === 'must_protection' && !metrics.protection?.trim()) throw new Error('Must protection is required')
@@ -1043,17 +1045,17 @@ export const recordRoseOperation = (
     const freeRun = requiredNumber(metrics.freeRunVolume, 'Free-run volume is required', 0, 1000000)
     const press = requiredNumber(metrics.pressVolume, 'Press volume is required', 0, 1000000)
     volumeAfter = freeRun + press
-    const yieldLimit = lot.productionDetails?.receivedKg !== undefined ? lot.productionDetails.receivedKg * 0.7 : lot.volume
-    const maximumOutput = Math.min(lot.volume, yieldLimit)
-    if (volumeAfter <= 0 || volumeAfter > maximumOutput + 0.01) throw new Error('Separated output exceeds available volume or the internal 70 L/100 kg checkpoint')
+    const physicalMaximum = lot.productionDetails?.receivedKg !== undefined ? lot.productionDetails.receivedKg : lot.volume
+    const maximumOutput = Math.min(lot.volume, physicalMaximum)
+    if (volumeAfter <= 0 || volumeAfter > maximumOutput + 0.01) throw new Error('Separated output exceeds available lot volume')
   }
   if (input.type === 'skin_contact_check') {
-    requiredNumber(metrics.skinContactHours, 'Skin-contact time is required', 0, 48)
-    requiredNumber(metrics.colorIntensity, 'Colour intensity is required', 0.1, 1.8)
+    requiredNumber(metrics.skinContactHours, 'Skin-contact time is required', 0, 168)
+    requiredNumber(metrics.colorIntensity, 'Colour intensity is required', 0.01, 10)
   }
   if (input.type === 'color_check') {
-    requiredNumber(metrics.colorIntensity, 'Colour intensity is required', 0.1, 1.8)
-    if (metrics.skinContactHours !== undefined) requiredNumber(metrics.skinContactHours, 'Skin-contact time is outside the accepted range', 0, 48)
+    requiredNumber(metrics.colorIntensity, 'Colour intensity is required', 0.01, 10)
+    if (metrics.skinContactHours !== undefined) requiredNumber(metrics.skinContactHours, 'Skin-contact time is outside the accepted range', 0, 168)
   }
   if (input.type === 'gentle_cap_management') requiredNumber(metrics.durationMinutes, 'Duration is required', 1, 60)
   if (input.type === 'turbidity_check') requiredNumber(metrics.turbidity, 'Turbidity is required', 0, 5000)
@@ -1070,7 +1072,7 @@ export const recordRoseOperation = (
   if (input.type === 'lees_decision' && !metrics.leesDecision) throw new Error('Lees decision is required')
   if (input.type === 'stability_check') requiredNumber(metrics.conductivityDrop, 'Conductivity drop is required', 0, 1000)
   if (metrics.temperature !== undefined) requiredNumber(metrics.temperature, 'Temperature is outside the accepted entry range', 0, 35)
-  if (metrics.colorIntensity !== undefined) requiredNumber(metrics.colorIntensity, 'Colour intensity is outside the internal Rioja range', 0.1, 1.8)
+  if (metrics.colorIntensity !== undefined) requiredNumber(metrics.colorIntensity, 'Colour intensity is outside the accepted entry range', 0.01, 10)
   metrics.volumeAfter = volumeAfter
 
   const recordedAt = new Date().toISOString()
