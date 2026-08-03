@@ -40,6 +40,7 @@ const TraceabilityPage = lazy(() => import('./Traceability').then((module) => ({
 const ReportsPage = lazy(() => import('./Reports').then((module) => ({ default: module.ReportsPage })))
 const AdministrationPage = lazy(() => import('./Administration').then((module) => ({ default: module.AdministrationPage })))
 const ScannerPage = lazy(() => import('./Scanner').then((module) => ({ default: module.ScannerPage })))
+const RiojaCompliancePage = lazy(() => import('./RiojaCompliance').then((module) => ({ default: module.RiojaCompliancePage })))
 
 const typeIcon: Record<WineType, ReactNode> = {
   tinto: <Wine size={18} />,
@@ -60,6 +61,7 @@ const navItems = [
   { labelKey: 'nav.bottling' as const, path: '/bottling', icon: Package },
   { labelKey: 'nav.traceability' as const, path: '/traceability', icon: Waypoints },
   { labelKey: 'nav.scan' as const, path: '/scan', icon: ScanLine },
+  { labelKey: 'nav.compliance' as const, path: '/compliance', icon: ShieldCheck },
   { labelKey: 'nav.reports' as const, path: '/reports', icon: BarChart3 },
 ]
 
@@ -437,6 +439,7 @@ function App() {
   else if (pathname === '/bottling') currentPage = <BottlingPage orders={bottlingOrders} materials={packagingMaterials} trials={blendTrials} onCreateOrder={addBottlingOrder} onToggleGate={updateBottlingGate} onStartOrder={startBottling} onCompleteOrder={finishBottling} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
   else if (pathname === '/scan') currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
+  else if (pathname === '/compliance') currentPage = <RiojaCompliancePage orders={bottlingOrders} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
   else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
@@ -502,7 +505,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.19.1</span>
+          <span>Añada 0.20</span>
         </div>
       </section>
     </main>

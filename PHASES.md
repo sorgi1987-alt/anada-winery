@@ -317,8 +317,25 @@ Completion gate: deploy through Slate, confirm version 0.19.1, generate and prin
 
 ## Phase 7 — Rioja compliance and intelligence
 
-- Vintage/campaign rule versioning
-- Origin and ageing eligibility
+### Phase 7A — Versioned ageing eligibility
+
+Status: deployment prepared.
+
+- Explicit internal rule-set version `DOCa-RIOJA-2025-08`, reviewed on 3 August 2026
+- Traceable official sources for DOCa Rioja ageing classification and minimum alcoholic strength changes
+- Separate rules for red and white/rosé wines
+- Generic, Crianza, Reserva and Gran Reserva thresholds for alcoholic strength, total ageing, oak, bottle and 225 L barrel evidence where applicable
+- Three-state assessment: internally eligible, blocked by a known value, or incomplete because evidence is absent
+- Visual bottling-portfolio view exposing protected mentions whose evidence is not yet linked
+- Interactive planning checker and bilingual ageing matrix
+- Responsive cellar and mobile presentation
+- Explicit statement that internal checks do not replace the current specification, official qualification or Regulatory Council certification
+- No authenticated approvals, official submissions or server-side evidence in this checkpoint
+
+Completion gate: deploy version 0.20, open DOCa Rioja from the sidebar, verify the three bottling orders appear, run one passing and one blocked Crianza assessment, switch the matrix between red and white, and confirm the interface never describes an internal result as officially certified.
+
+- Vintage/campaign rule versioning and annual campaign controls
+- Origin eligibility for DOCa Rioja, Vino de Zona, Vino de Pueblo and Viñedo Singular
 - Yield and documentary controls
 - Back-label tracking
 - Production costing and forecasting

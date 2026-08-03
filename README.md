@@ -4,7 +4,7 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 6B adds a cellar-focused QR/barcode workspace to the installable browser-authoritative application. Operators can identify local lots and physical assets by camera or manual code, take contextual actions and print typed QR labels without connectivity. Offline changes remain on the current device. Catalyst health connectivity is live and confirms the seven normalized Development tables, but there is still no shared server persistence, background synchronisation, authentication or regulatory certification.
+Phase 7A adds a versioned DOCa Rioja ageing-rule workspace to the installable browser-authoritative application. It provides internal planning checks for Generic, Crianza, Reserva and Gran Reserva wines while separating missing evidence from actual rule failures. Results are explicitly non-certifying. Offline changes remain on the current device. Catalyst health connectivity is live and confirms the seven normalized Development tables, but there is still no shared server persistence, background synchronisation, authentication or regulatory certification.
 
 Implemented views:
 
@@ -96,6 +96,10 @@ Implemented views:
 - Exact typed lookup for lots, vessels, barrels, parcels, deliveries and bottling orders
 - Contextual scanner actions for records, readings, movements, traceability and replacement labels
 - Multi-select printable 86 × 54 mm QR labels
+- Versioned DOCa Rioja ageing-rule engine with official source references
+- Separate red and white/rosé thresholds for Generic, Crianza, Reserva and Gran Reserva
+- Three-state internal eligibility checks distinguishing passed, blocked and missing evidence
+- Visual bottling-portfolio readiness and interactive bilingual rulebook
 - Persistent source and destination vessel legs with child, merged and consumed lot identities
 - Persistent operator-attributed local production history
 - Explicit distinction between local attribution and authenticated electronic signatures

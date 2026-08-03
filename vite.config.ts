@@ -8,7 +8,7 @@ const pwaPrecache = (): Plugin => ({
   generateBundle(_options, bundle) {
     const bundledFiles = Object.keys(bundle).filter((file) => file !== 'sw.js' && !file.endsWith('.map')).map((file) => `./${file}`)
     const publicFiles = ['./', './index.html', './manifest.webmanifest', './anada-mark.svg', './anada-192.png', './anada-512.png', './anada-apple-touch.png', './offline.html']
-    this.emitFile({ type: 'asset', fileName: 'sw.js', source: createServiceWorker([...publicFiles, ...bundledFiles], '0.19.1') })
+    this.emitFile({ type: 'asset', fileName: 'sw.js', source: createServiceWorker([...publicFiles, ...bundledFiles], '0.20.0') })
   },
 })
 
