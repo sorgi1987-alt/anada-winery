@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#3a0b1d" />
+    <title>Añada · Sin conexión</title>
+    <style>
+      *{box-sizing:border-box}body{min-height:100vh;margin:0;padding:24px;display:grid;place-items:center;color:#24191d;background:#f7f3ed;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{width:min(460px,100%);padding:34px;border:1px solid #dfd4cc;border-radius:26px;background:#fff;box-shadow:0 22px 60px rgba(58,11,29,.12)}.mark{width:58px;height:58px;display:grid;place-items:center;border-radius:17px;color:#fff;background:#5a122b;font-size:25px;font-weight:800}small{display:block;margin-top:24px;color:#7b626c;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}h1{margin:7px 0 10px;font-size:31px;letter-spacing:-.04em}p{margin:0;color:#71636a;font-size:14px;line-height:1.55}button{width:100%;min-height:48px;margin-top:24px;border:0;border-radius:14px;color:#fff;background:#5a122b;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}[hidden]{display:none}
+    </style>
+  </head>
+  <body><main class="card"><span class="mark">A</span><section data-language="es"><small>Modo bodega</small><h1>Sin conexión</h1><p>La interfaz instalada seguirá disponible. Vuelve a intentarlo para recuperar esta pantalla desde la caché local.</p><button onclick="location.reload()">Reintentar</button></section><section data-language="en" hidden><small>Cellar mode</small><h1>Offline</h1><p>The installed interface remains available. Try again to recover this screen from the local cache.</p><button onclick="location.reload()">Try again</button></section></main><script>if(navigator.language?.toLowerCase().startsWith('en')){document.documentElement.lang='en';document.querySelector('[data-language="es"]').hidden=true;document.querySelector('[data-language="en"]').hidden=false}</script></body>
+</html>

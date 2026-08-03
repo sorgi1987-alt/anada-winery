@@ -240,7 +240,7 @@ Completion gate passed: `R-26-003` retains its colour and skin-contact evidence 
 
 ### Phase 4D — Reconciled cellar movements
 
-Status: deployment prepared.
+Status: completed.
 
 - Dedicated bilingual, visual cellar-movement workspace designed for desktop and touch use
 - Full-lot transfers that atomically clear the source vessel and fill an empty destination
@@ -255,7 +255,7 @@ Status: deployment prepared.
 - Clear unavailable-state guidance when a movement lacks the required empty destinations
 - Schema migration preserving all Phase 4C process history and adding movement history only when absent
 
-Completion gate: deploy the frontend, open Cellar movements, transfer `T-26-017` from `D-12` to empty vessel `D-01` with a declared 20 L loss, and confirm the destination contains the source volume minus 20 L while `D-12` is empty and the new movement is first in history.
+Completion gate passed: movement destinations are available after the non-destructive reserve-vat migration and physical operations reconcile source, destination, residual volume and loss.
 
 ### Later Phase 4 checkpoints
 
@@ -271,7 +271,27 @@ Completion gate: deploy the frontend, open Cellar movements, transfer `T-26-017`
 
 ## Phase 6 — Mobile and offline
 
-- Installable PWA and offline queue
+Phase 6A is intentionally advanced ahead of the authenticated Phase 5 backend work so the existing browser-authoritative application can be installed and used safely in low-connectivity cellar conditions.
+
+### Phase 6A — Installable PWA and offline shell
+
+Status: deployment prepared.
+
+- Standalone PWA manifest with branded 192 px, 512 px, maskable and Apple touch icons
+- Direct shortcuts to Today, Cellar, Movements and Tasks
+- Versioned service-worker cache generated from every production application chunk
+- Offline navigation fallback and runtime caching for representative images and fonts
+- Cache replacement with an explicit in-app update action
+- Online/offline indicator in the persistent cellar header
+- Clear offline banner confirming that changes remain on the current device
+- Install action where the browser exposes it and bilingual manual iOS installation guidance
+- Visual PWA readiness, installation, cache and connectivity controls in Administration
+- Service worker restricted to GET navigation and static assets; operational mutations are never intercepted
+- Authentication, background synchronization, conflict resolution and remote writes remain deferred
+
+Completion gate: deploy through Slate, open Añada once while online, install it from Chrome/Edge or add it to the iOS home screen, then disable connectivity and confirm that Today, Cellar and Movements reopen while a local reading remains available after restarting the installed app.
+
+- Authenticated offline synchronization queue
 - Conflict resolution and synchronisation
 - QR/barcode scanning
 - Capacitor authentication validation

@@ -4,7 +4,7 @@ Añada is a visual winery-production application for small and medium-sized Rioj
 
 ## Current status
 
-Phase 4D adds executable physical cellar movements to the completed red, white, rosado and clarete engines. Full transfers, one-to-many splits and compatible many-to-one merges now reconcile vessel capacity, residual volume and declared loss while retaining traceable lot identities and operator-attributed history. Catalyst health connectivity is live and confirms the seven normalized Development tables, but operational authority intentionally remains in the browser. There is no shared server persistence, authentication or regulatory certification yet.
+Phase 6A makes the completed browser-authoritative winery workspace installable on desktop, iOS and Android and resilient to low-connectivity cellar conditions. The full production shell is version-cached, online state is explicit, and offline changes remain on the current device. Catalyst health connectivity is live and confirms the seven normalized Development tables, but there is still no shared server persistence, background synchronisation, authentication or regulatory certification.
 
 Implemented views:
 
@@ -88,6 +88,10 @@ Implemented views:
 - Visual cellar-movement workspace with full transfers, traceable splits and compatible merges
 - Capacity, empty-vessel, compatibility, residual-volume and declared-loss validation
 - Non-destructive clean-vat reserve migration and explicit unavailable-capacity guidance
+- Installable standalone PWA with branded desktop, Android and Apple icons
+- Versioned offline application shell covering every production code chunk
+- Online/offline status, local-write guidance and controlled update activation
+- Direct installed-app shortcuts to Today, Cellar, Movements and Tasks
 - Persistent source and destination vessel legs with child, merged and consumed lot identities
 - Persistent operator-attributed local production history
 - Explicit distinction between local attribution and authenticated electronic signatures
@@ -108,6 +112,7 @@ Use the URL printed by Vite. The entry route is `/#/welcome`. Hash routing is in
 ```bash
 npm run typecheck
 npm run test:process
+npm run test:pwa
 npm run test:backend
 npm run build
 npm run preview

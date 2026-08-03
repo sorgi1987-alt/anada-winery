@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   BellRing, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CloudOff,
-  Database, FlaskConical, Gauge, Grape, HardDrive, Info, LockKeyhole, RefreshCw, Server,
-  Save, ShieldCheck, SlidersHorizontal, Thermometer, Trash2, Users, Warehouse,
+  Database, Download, FlaskConical, Gauge, Grape, HardDrive, Info, LockKeyhole, RefreshCw, Server,
+  Save, ShieldCheck, SlidersHorizontal, Smartphone, Thermometer, Trash2, Users, Warehouse, Wifi, WifiOff,
 } from 'lucide-react'
 import { catalystFoundation, checkCatalystReadService, type CatalystConnectionResult } from './catalyst'
 import { images } from './data'
 import { useLanguage } from './i18n'
+import type { PwaStatus } from './pwa'
 import type { WinerySettings } from './types'
 
 type AdministrationView = 'winery' | 'campaign' | 'operations' | 'system'
@@ -14,11 +15,12 @@ type AdministrationView = 'winery' | 'campaign' | 'operations' | 'system'
 interface AdministrationPageProps {
   settings: WinerySettings
   recordCount: number
+  pwa: PwaStatus
   onSave: (settings: WinerySettings) => void
   onResetData: () => void
 }
 
-export function AdministrationPage({ settings, recordCount, onSave, onResetData }: AdministrationPageProps) {
+export function AdministrationPage({ settings, recordCount, pwa, onSave, onResetData }: AdministrationPageProps) {
   const { t, locale } = useLanguage()
   const [view, setView] = useState<AdministrationView>('winery')
   const [draft, setDraft] = useState(settings)
@@ -108,7 +110,17 @@ export function AdministrationPage({ settings, recordCount, onSave, onResetData 
         </AdminSection>}
 
         {view === 'system' && <AdminSection icon={<Database />} title={t('admin.systemData')} text={t('admin.systemIntro')}>
-          <div className="integration-cards"><IntegrationCard icon={<HardDrive />} title={t('admin.browserRepository')} status={t('admin.active')} detail={t('admin.browserRepositoryText')} tone="success" /><IntegrationCard icon={<Database />} title={t('admin.catalystDataStore')} status={t('admin.schemaReady')} detail={t('admin.catalystDataStoreText')} tone="success" /><IntegrationCard icon={<LockKeyhole />} title={t('admin.authentication')} status={t('admin.deferred')} detail={t('admin.authenticationText')} tone="pending" /><IntegrationCard icon={<RefreshCw />} title={t('admin.externalSystems')} status={t('admin.notConfigured')} detail={t('admin.externalSystemsText')} tone="neutral" /></div>
+          <div className="integration-cards"><IntegrationCard icon={<HardDrive />} title={t('admin.browserRepository')} status={t('admin.active')} detail={t('admin.browserRepositoryText')} tone="success" /><IntegrationCard icon={<Smartphone />} title={t('pwa.app')} status={pwa.installed ? t('pwa.installed') : pwa.serviceWorkerReady ? t('pwa.ready') : t('common.pending')} detail={t('pwa.integrationText')} tone={pwa.installed || pwa.serviceWorkerReady ? 'success' : 'pending'} /><IntegrationCard icon={<Database />} title={t('admin.catalystDataStore')} status={t('admin.schemaReady')} detail={t('admin.catalystDataStoreText')} tone="success" /><IntegrationCard icon={<LockKeyhole />} title={t('admin.authentication')} status={t('admin.deferred')} detail={t('admin.authenticationText')} tone="pending" /><IntegrationCard icon={<RefreshCw />} title={t('admin.externalSystems')} status={t('admin.notConfigured')} detail={t('admin.externalSystemsText')} tone="neutral" /></div>
+          <section className={`pwa-foundation-card ${pwa.online ? 'online' : 'offline'}`}>
+            <header><span><Smartphone /><span><small>{t('pwa.kicker')}</small><strong>{t('pwa.title')}</strong></span></span><em>{pwa.installed ? t('pwa.installed') : t('pwa.ready')}</em></header>
+            <div className="pwa-capability-grid">
+              <article><span><Download /></span><span><small>{t('pwa.appShell')}</small><strong>{pwa.serviceWorkerReady ? t('pwa.cached') : t('pwa.preparing')}</strong></span></article>
+              <article><span>{pwa.online ? <Wifi /> : <WifiOff />}</span><span><small>{t('pwa.connectivity')}</small><strong>{pwa.online ? t('pwa.online') : t('pwa.offline')}</strong></span></article>
+              <article><span><HardDrive /></span><span><small>{t('pwa.offlineWrites')}</small><strong>{t('pwa.thisDevice')}</strong></span></article>
+            </div>
+            <footer><span><ShieldCheck /><span><strong>{t('pwa.localAuthority')}</strong><small>{t('pwa.localAuthorityText')}</small></span></span><div>{pwa.updateAvailable && <button type="button" className="secondary-button" onClick={pwa.activateUpdate}><RefreshCw /> {t('pwa.update')}</button>}{pwa.installAvailable && <button type="button" className="primary-button" onClick={() => void pwa.install()}><Download /> {t('pwa.install')}</button>}</div></footer>
+            {!pwa.installed && !pwa.installAvailable && <div className="pwa-install-help"><Info /><span><strong>{t('pwa.installHelp')}</strong><small>{t('pwa.installHelpText')}</small></span></div>}
+          </section>
           <section className="catalyst-foundation-card">
             <header><span><Database /><span><small>{t('admin.catalystFoundation')}</small><strong>{t('admin.developmentSchema')}</strong></span></span><em>{t('admin.schemaVersion', { version: catalystFoundation.schemaVersion })}</em></header>
             <div className="catalyst-foundation-steps">

@@ -43,6 +43,9 @@ Añada is a Spanish-first winery production application for small and medium Rio
 - Internal Rioja controls never imply official wine qualification, label authorisation or regulatory approval.
 - Regulatory eligibility is indicative until it has been validated against the relevant DOCa rules and vintage.
 - All future mutations require an audit trail and user attribution.
+- Offline operation remains browser-local until authenticated synchronization exists; never describe local persistence as a synchronized queue.
+- The service worker may cache navigation and static assets but must never intercept non-GET requests or operational API mutations.
+- PWA cache names must be versioned and old application caches removed only after a replacement worker activates.
 
 ## Engineering conventions
 
@@ -58,4 +61,4 @@ Añada is a Spanish-first winery production application for small and medium Rio
 
 ## Current phase
 
-Phase 4D is prepared: red, white, rosado and clarete lots retain their distinct executable process engines, and a dedicated cellar-movement workspace now supports reconciled full transfers, traceable splits and compatible merges. Capacity, destination occupancy, residual volume and declared loss are validated before browser-local inventory changes. Phase 3B.1 health connectivity is live, but the browser repository remains authoritative. Authentication, protected operational reads and remote writes are still deferred. See `PHASES.md`.
+Phase 6A is prepared: the complete browser-authoritative winery workspace is installable as a standalone PWA, precaches every production chunk, reports connectivity honestly and retains device-local operations while offline. Phase 4D movements remain reconciled and the Phase 3B.1 health check remains live. Authentication, synchronization, protected operational reads and remote writes are still deferred. See `PHASES.md`.

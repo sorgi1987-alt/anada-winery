@@ -3,9 +3,9 @@ import {
   Activity, ArrowLeft, ArrowRightLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
   Factory, FlaskConical, Gauge, GitMerge, Grape, Grid2X2, Home, Languages, Leaf, List, MapPin, Menu, Moon,
-  MoreHorizontal, Package, Plus, Save, Search, Settings2, ShieldCheck,
+  Download, MoreHorizontal, Package, Plus, Save, Search, Settings2, ShieldCheck,
   Sparkles, Sprout, Sun, Thermometer, Undo2, Warehouse,
-  Waypoints, Wine, X,
+  Waypoints, Wifi, WifiOff, Wine, X,
 } from 'lucide-react'
 import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
@@ -17,6 +17,7 @@ import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { RedProcessControl } from './RedProcess'
+import { usePwaStatus, type PwaStatus } from './pwa'
 import { browserWineryRepository } from './store'
 import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement, WineType } from './types'
 
@@ -64,6 +65,7 @@ function App() {
   const { pathname } = useHashLocation()
   const { t, d } = useLanguage()
   const navigate = useNavigate()
+  const pwa = usePwaStatus()
   const [initialState] = useState(() => browserWineryRepository.load())
   const [demoLots, setDemoLots] = useState<WineLot[]>(initialState.lots)
   const [tasks, setTasks] = useState<CellarTask[]>(initialState.tasks)
@@ -433,7 +435,7 @@ function App() {
   else if (pathname === '/bottling') currentPage = <BottlingPage orders={bottlingOrders} materials={packagingMaterials} trials={blendTrials} onCreateOrder={addBottlingOrder} onToggleGate={updateBottlingGate} onStartOrder={startBottling} onCompleteOrder={finishBottling} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
-  else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} onSave={saveWinerySettings} onResetData={resetDemoData} />
+  else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
 
   return (
@@ -449,6 +451,7 @@ function App() {
           window.setTimeout(() => setToast(null), 3200)
         }}
         settings={settings}
+        pwa={pwa}
       >
         <Suspense fallback={<div className="module-loading"><Package size={24} /><span>{t('common.loading')}</span></div>}>{currentPage}</Suspense>
       </Shell>
@@ -497,7 +500,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.13</span>
+          <span>Añada 0.18</span>
         </div>
       </section>
     </main>
@@ -532,9 +535,10 @@ interface ShellProps {
   onQuickReading: () => void
   onNotifications: () => void
   settings: WinerySettings
+  pwa: PwaStatus
 }
 
-function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onQuickReading, onNotifications, settings }: ShellProps) {
+function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onQuickReading, onNotifications, settings, pwa }: ShellProps) {
   const location = useHashLocation()
   const { t } = useLanguage()
   const pageItem = navItems.find((item) => location.pathname.startsWith(item.path))
@@ -579,6 +583,10 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
             <span className="mobile-page-title">{page}</span>
           </div>
           <div className="topbar-actions">
+            <span className={`connectivity-pill ${pwa.online ? 'online' : 'offline'}`} title={pwa.online ? t('pwa.online') : t('pwa.offline')}>
+              {pwa.online ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{pwa.online ? t('pwa.online') : t('pwa.offline')}</span>
+            </span>
+            {pwa.installAvailable && <button className="mode-button pwa-install-button" onClick={() => void pwa.install()}><Download size={17} /><span>{t('pwa.install')}</span></button>}
             <button className="mode-button" onClick={toggleCellarMode}>
               {cellarMode ? <Sun size={17} /> : <Moon size={17} />}
               <span>{cellarMode ? t('shell.light') : t('shell.cellar')}</span>
@@ -588,6 +596,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
             <span className="avatar top-avatar">EM</span>
           </div>
         </header>
+        {!pwa.online && <div className="offline-notice" role="status"><WifiOff /><span><strong>{t('pwa.offlineTitle')}</strong><small>{t('pwa.offlineText')}</small></span></div>}
         <div className="page-content">{children}</div>
       </section>
 
