@@ -662,15 +662,19 @@ h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -0.0
 
 /* The production configurator becomes a native-feeling full-screen workflow on phones. */
 @media (max-width: 680px) {
-  .lot-flow-layer{z-index:1200;align-items:stretch;background:var(--surface)}
+  .lot-flow-layer{z-index:1200;width:100%;max-width:100%;align-items:stretch;overflow-x:clip;background:var(--surface)}
   .lot-flow-layer .sheet-scrim{display:none}
-  .lot-flow-layer .lot-flow{height:100dvh;max-height:none;border:0;border-radius:0;grid-template-rows:auto auto minmax(0,1fr) auto;box-shadow:none;animation:none;overscroll-behavior:contain}
+  .lot-flow-layer .lot-flow{width:100%;min-width:0;max-width:100%;height:100dvh;max-height:none;flex:1 1 100%;border:0;border-radius:0;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;box-shadow:none;animation:none;overflow-x:clip;overscroll-behavior:contain}
+  .lot-flow-layer .lot-flow>*,.lot-flow-layer .flow-section,.lot-flow-layer .form-grid,.lot-flow-layer .flow-field{width:100%;min-width:0;max-width:100%}
   .lot-flow-layer .lot-flow-head{min-height:calc(64px + env(safe-area-inset-top));padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--surface)}
+  .lot-flow-layer .lot-flow-head>div,.lot-flow-layer .lot-flow-head>div>span:nth-child(2){min-width:0}
+  .lot-flow-layer .lot-flow-head strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lot-flow-layer .lot-flow-head .icon-button{width:44px;height:44px;flex:0 0 44px}
-  .lot-flow-layer .flow-progress{min-height:54px;padding:10px 20px}
+  .lot-flow-layer .flow-progress{min-height:54px;padding:10px 20px;grid-template-columns:repeat(3,minmax(0,1fr));overflow:hidden}
   .lot-flow-layer .flow-progress span{justify-content:center}
+  .lot-flow-layer .flow-progress i{flex:0 0 28px}
   .lot-flow-layer .flow-progress span:not(:last-child)::after{left:calc(50% + 18px);right:calc(-50% + 18px);top:14px}
-  .lot-flow-layer .lot-flow-body{padding:20px 16px 28px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .lot-flow-layer .lot-flow-body{padding:20px 16px 28px;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   .lot-flow-layer .flow-title h2{font-size:24px;line-height:1.12}
   .lot-flow-layer .flow-title p{font-size:12px;line-height:1.5}
   .lot-flow-layer .form-grid{gap:14px}
@@ -678,7 +682,7 @@ h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -0.0
   .lot-flow-layer .flow-field>span{font-size:12px}
   .lot-flow-layer .flow-field>span small{font-size:10px}
   .lot-flow-layer .flow-field>div{min-height:54px;border-radius:14px}
-  .lot-flow-layer .flow-field input,.lot-flow-layer .flow-field select{font-size:16px}
+  .lot-flow-layer .flow-field input,.lot-flow-layer .flow-field select{max-width:100%;font-size:16px}
   .lot-flow-layer .specific-process-card,.lot-flow-layer .specific-process-card.rosado{gap:12px;padding:15px}
   .lot-flow-layer .specific-process-card>select,.lot-flow-layer .specific-fields select,.lot-flow-layer .rose-specific-fields select,.lot-flow-layer .rose-specific-fields>label>div{min-height:48px;font-size:16px}
   .lot-flow-layer .rose-specific-fields>label{gap:6px;font-size:12px}
@@ -687,8 +691,8 @@ h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -0.0
   .lot-flow-layer .review-grid>span{min-height:72px;justify-content:center}
   .lot-flow-layer .review-grid small{font-size:10px}
   .lot-flow-layer .review-grid strong{font-size:13px}
-  .lot-flow-layer .lot-flow-actions{min-height:calc(72px + env(safe-area-inset-bottom));padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--surface) 96%,transparent);box-shadow:0 -8px 24px rgba(42,7,18,.08)}
-  .lot-flow-layer .lot-flow-actions button{min-height:50px;font-size:12px}
+  .lot-flow-layer .lot-flow-actions{min-height:calc(72px + env(safe-area-inset-bottom));padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:color-mix(in srgb,var(--surface) 96%,transparent);box-shadow:0 -8px 24px rgba(42,7,18,.08)}
+  .lot-flow-layer .lot-flow-actions button{width:100%;min-width:0;max-width:100%;min-height:50px;padding-inline:10px;font-size:12px}
 }
 
 @media (max-width: 1220px) {

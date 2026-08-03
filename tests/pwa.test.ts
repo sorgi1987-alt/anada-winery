@@ -44,7 +44,11 @@ test('the generated service worker precaches chunks and never intercepts mutatio
 test('the production configurator uses a full-screen touch contract on phones', () => {
   const styles = readFileSync('src/styles.css', 'utf8')
   const flow = readFileSync('src/CreateLotFlow.tsx', 'utf8')
-  assert.match(styles, /\.lot-flow-layer \.lot-flow\{height:100dvh;max-height:none/)
+  assert.match(styles, /\.lot-flow-layer \.lot-flow\{width:100%;min-width:0;max-width:100%;height:100dvh;max-height:none/)
+  assert.match(styles, /grid-template-columns:minmax\(0,1fr\)/)
+  assert.match(styles, /\.lot-flow-layer \.flow-progress\{[^}]+grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
+  assert.match(styles, /\.lot-flow-layer \.lot-flow-actions\{[^}]+display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/)
+  assert.match(styles, /\.lot-flow-layer \.lot-flow-actions button\{width:100%;min-width:0;max-width:100%/)
   assert.match(styles, /\.lot-flow-layer \.flow-field input,[^}]+font-size:16px/)
   assert.match(styles, /env\(safe-area-inset-bottom\)/)
   assert.match(styles, /-webkit-overflow-scrolling:touch/)
