@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ArrowLeft, ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardCheck,
   Droplets, Grape, Leaf, MapPin, Save, Scale, Sparkles, Thermometer, Warehouse, X,
@@ -113,7 +114,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
   const typeLabel = isRed ? t('wine.red') : isRose ? t('wine.roseClarete') : t('wine.white')
   const TypeIcon = isRed ? Grape : isRose ? Sparkles : Leaf
 
-  return (
+  return createPortal((
     <div className="sheet-layer lot-flow-layer" role="dialog" aria-modal="true" aria-label={t('flow.createLot')}>
       <button className="sheet-scrim" onClick={onClose} aria-label={t('common.close')} />
       <form className="lot-flow" onSubmit={submit}>
@@ -251,7 +252,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
         </div>
       </form>
     </div>
-  )
+  ), document.body)
 }
 
 function FlowField({ label, hint, suffix, icon, wide = false, children }: { label: string; hint?: string; suffix?: string; icon?: ReactNode; wide?: boolean; children: ReactNode }) {
