@@ -58,3 +58,9 @@ test('the production configurator uses a full-screen touch contract on phones', 
   assert.match(flow, /\), document\.body\)/)
   assert.doesNotMatch(flow, /<input autoFocus required value=\{draft\.name\}/)
 })
+
+test('single mobile page actions use the full-width cellar touch target', () => {
+  const styles = readFileSync('src/styles.css', 'utf8')
+  assert.match(styles, /\.page-header-action:not\(\.report-export-actions\)\{display:grid\}/)
+  assert.match(styles, /\.page-header-action:not\(\.report-export-actions\) \.primary-button\{width:100%;min-height:56px/)
+})
