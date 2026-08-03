@@ -61,6 +61,8 @@ test('the production configurator uses a full-screen touch contract on phones', 
 
 test('single mobile page actions use the full-width cellar touch target', () => {
   const styles = readFileSync('src/styles.css', 'utf8')
-  assert.match(styles, /\.page-header-action:not\(\.report-export-actions\)\{display:grid\}/)
-  assert.match(styles, /\.page-header-action:not\(\.report-export-actions\) \.primary-button\{width:100%;min-height:56px/)
+  assert.match(styles, /\.page-header\{width:100%;min-width:0;[^}]+grid-template-columns:minmax\(0,1fr\)[^}]+justify-content:stretch/)
+  assert.match(styles, /\.page-header-action\{width:100%;justify-self:stretch\}/)
+  assert.match(styles, /\.page-header-action:not\(\.report-export-actions\)\{display:grid;grid-template-columns:minmax\(0,1fr\)\}/)
+  assert.match(styles, /\.page-header-action:not\(\.report-export-actions\) \.primary-button\{width:100%;max-width:none;min-height:56px/)
 })
