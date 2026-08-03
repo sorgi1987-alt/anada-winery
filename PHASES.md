@@ -278,7 +278,7 @@ Phase 6A is intentionally advanced ahead of the authenticated Phase 5 backend wo
 Status: deployment prepared.
 
 - Standalone PWA manifest with branded 192 px, 512 px, maskable and Apple touch icons
-- Direct shortcuts to Today, Cellar, Movements and Tasks
+- Direct shortcuts to Today, Cellar, Movements, Tasks and Scanner
 - Versioned service-worker cache generated from every production application chunk
 - Offline navigation fallback and runtime caching for representative images and fonts
 - Cache replacement with an explicit in-app update action
@@ -293,7 +293,24 @@ Completion gate: deploy through Slate, open Añada once while online, install it
 
 - Authenticated offline synchronization queue
 - Conflict resolution and synchronisation
-- QR/barcode scanning
+### Phase 6B — Cellar QR scanner and physical labels
+
+Status: deployment prepared.
+
+- Dedicated touch-first Scanner route and persistent mobile centre action
+- Explicit camera activation with rear-camera preference and native QR/barcode recognition where the browser supports it
+- Always-available manual identifier entry for unsupported cameras, denied permissions and damaged labels
+- Deterministic `ANADA:<ENTITY-TYPE>:<CODE>` label contract, with exact typed matching and no silent guessing
+- Searchable local registry for wine lots, vessels, barrels, vineyard parcels, grape deliveries and bottling orders
+- Clear unknown and ambiguous-code states requiring the operator to select a record
+- Contextual actions to open the record, capture a lot reading, start a movement, inspect traceability or prepare a replacement label
+- Multi-select printable QR-label workspace with physical 86 × 54 mm label layouts
+- Scanner registry and generated QR-image tests
+- Browser-local and offline-safe lookup; no claim of server synchronisation or authenticated identity
+
+Completion gate: deploy through Slate, confirm version 0.19, generate and print at least one label, scan it in Chrome on the Pixel and verify the exact record opens. Then disable connectivity and confirm manual identifier lookup still works. Where native camera recognition is unavailable, confirm the interface explains the manual fallback instead of presenting a false success state.
+
+- Authenticated scanner events and server-side asset resolution
 - Capacitor authentication validation
 - iOS and Android packaging
 - Push notifications

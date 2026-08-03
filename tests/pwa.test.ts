@@ -17,7 +17,7 @@ test('the web app manifest supports standalone installation and cellar shortcuts
   assert.equal(manifest.start_url, './#/dashboard')
   assert.ok(manifest.icons.some((icon) => icon.sizes === '192x192'))
   assert.ok(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose === 'maskable'))
-  assert.deepEqual(manifest.shortcuts.map((shortcut) => shortcut.url), ['./#/dashboard', './#/cellar', './#/movements', './#/tasks'])
+  assert.deepEqual(manifest.shortcuts.map((shortcut) => shortcut.url), ['./#/dashboard', './#/cellar', './#/movements', './#/tasks', './#/scan'])
 })
 
 test('the install icons are real PNG assets at the declared dimensions', () => {

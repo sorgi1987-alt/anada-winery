@@ -22,6 +22,7 @@
     { "name": "Hoy", "short_name": "Hoy", "url": "./#/dashboard", "icons": [{ "src": "./anada-192.png", "sizes": "192x192" }] },
     { "name": "Bodega", "short_name": "Bodega", "url": "./#/cellar", "icons": [{ "src": "./anada-192.png", "sizes": "192x192" }] },
     { "name": "Movimientos", "short_name": "Movimientos", "url": "./#/movements", "icons": [{ "src": "./anada-192.png", "sizes": "192x192" }] },
-    { "name": "Tareas", "short_name": "Tareas", "url": "./#/tasks", "icons": [{ "src": "./anada-192.png", "sizes": "192x192" }] }
+    { "name": "Tareas", "short_name": "Tareas", "url": "./#/tasks", "icons": [{ "src": "./anada-192.png", "sizes": "192x192" }] },
+    { "name": "Escanear", "short_name": "Escanear", "url": "./#/scan", "icons": [{ "src": "./anada-192.png", "sizes": "192x192" }] }
   ]
 }

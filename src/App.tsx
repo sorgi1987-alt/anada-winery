@@ -3,7 +3,7 @@ import {
   Activity, ArrowLeft, ArrowRightLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
   Factory, FlaskConical, Gauge, GitMerge, Grape, Grid2X2, Home, Languages, Leaf, List, MapPin, Menu, Moon,
-  Download, MoreHorizontal, Package, Plus, Save, Search, Settings2, ShieldCheck,
+  Download, MoreHorizontal, Package, Plus, Save, ScanLine, Search, Settings2, ShieldCheck,
   Sparkles, Sprout, Sun, Thermometer, Undo2, Warehouse,
   Waypoints, Wifi, WifiOff, Wine, X,
 } from 'lucide-react'
@@ -39,6 +39,7 @@ const BottlingPage = lazy(() => import('./Bottling').then((module) => ({ default
 const TraceabilityPage = lazy(() => import('./Traceability').then((module) => ({ default: module.TraceabilityPage })))
 const ReportsPage = lazy(() => import('./Reports').then((module) => ({ default: module.ReportsPage })))
 const AdministrationPage = lazy(() => import('./Administration').then((module) => ({ default: module.AdministrationPage })))
+const ScannerPage = lazy(() => import('./Scanner').then((module) => ({ default: module.ScannerPage })))
 
 const typeIcon: Record<WineType, ReactNode> = {
   tinto: <Wine size={18} />,
@@ -58,6 +59,7 @@ const navItems = [
   { labelKey: 'nav.blending' as const, path: '/blending', icon: GitMerge },
   { labelKey: 'nav.bottling' as const, path: '/bottling', icon: Package },
   { labelKey: 'nav.traceability' as const, path: '/traceability', icon: Waypoints },
+  { labelKey: 'nav.scan' as const, path: '/scan', icon: ScanLine },
   { labelKey: 'nav.reports' as const, path: '/reports', icon: BarChart3 },
 ]
 
@@ -434,6 +436,7 @@ function App() {
   else if (pathname === '/blending') currentPage = <BlendingPage candidates={blendCandidates} trials={blendTrials} onCreateTrial={addBlendTrial} onRecordTasting={saveBlendTasting} onApproveTrial={approveBlend} />
   else if (pathname === '/bottling') currentPage = <BottlingPage orders={bottlingOrders} materials={packagingMaterials} trials={blendTrials} onCreateOrder={addBottlingOrder} onToggleGate={updateBottlingGate} onStartOrder={startBottling} onCompleteOrder={finishBottling} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
+  else if (pathname === '/scan') currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
   else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
@@ -445,7 +448,6 @@ function App() {
         toggleCellarMode={toggleCellarMode}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
-        onQuickReading={() => setReadingLotId('T-26-017')}
         onNotifications={() => {
           setToast(t('toast.alerts'))
           window.setTimeout(() => setToast(null), 3200)
@@ -500,7 +502,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ShieldCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.18.5</span>
+          <span>Añada 0.19</span>
         </div>
       </section>
     </main>
@@ -532,13 +534,12 @@ interface ShellProps {
   toggleCellarMode: () => void
   menuOpen: boolean
   setMenuOpen: (open: boolean) => void
-  onQuickReading: () => void
   onNotifications: () => void
   settings: WinerySettings
   pwa: PwaStatus
 }
 
-function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onQuickReading, onNotifications, settings, pwa }: ShellProps) {
+function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, pwa }: ShellProps) {
   const location = useHashLocation()
   const { t } = useLanguage()
   const pageItem = navItems.find((item) => location.pathname.startsWith(item.path))
@@ -603,7 +604,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
       <nav className="mobile-nav" aria-label={t('nav.mobile')}>
         <MobileNavItem to="/dashboard" icon={<Home />} label={t('nav.today')} />
         <MobileNavItem to="/harvest" icon={<Sprout />} label={t('nav.harvest')} />
-        <button className="mobile-quick" onClick={onQuickReading} aria-label={t('detail.registerReading')}><Plus /></button>
+        <NavLink to="/scan" className={({ isActive }) => isActive ? 'mobile-quick active' : 'mobile-quick'} aria-label={t('scanner.scan')}><ScanLine /></NavLink>
         <MobileNavItem to="/cellar" icon={<Warehouse />} label={t('nav.cellar')} />
         <MobileNavItem to="/tasks" icon={<ClipboardCheck />} label={t('nav.tasks')} />
       </nav>
