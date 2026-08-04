@@ -67,6 +67,17 @@ test('single mobile page actions use the full-width cellar touch target', () => 
   assert.match(styles, /\.page-header-action:not\(\.report-export-actions\) \.primary-button\{width:100%;max-width:none;min-height:56px/)
 })
 
+test('supply creation uses the established responsive modal contract', () => {
+  const styles = readFileSync('src/styles.css', 'utf8')
+  const supplies = readFileSync('src/Supplies.tsx', 'utf8')
+  assert.equal((supplies.match(/className="movement-sheet-layer"/g) ?? []).length, 3)
+  assert.equal((supplies.match(/className="movement-sheet supply-sheet"/g) ?? []).length, 3)
+  assert.match(supplies, /className="movement-form-grid supply-form-grid"/)
+  assert.match(styles, /\.movement-sheet-layer\{position:fixed;z-index:1200;inset:0;padding:24px;display:grid;place-items:center/)
+  assert.match(styles, /\.movement-sheet-layer\{padding:0;align-items:end\}/)
+  assert.match(styles, /\.movement-sheet-body \.supply-form-grid\{padding:0;grid-template-columns:1fr\}/)
+})
+
 test('the active application excludes the retired DOCa eligibility workspace', () => {
   const app = readFileSync('src/App.tsx', 'utf8')
   const bottling = readFileSync('src/Bottling.tsx', 'utf8')
