@@ -16,6 +16,19 @@ The schema was provisioned on 1 August 2026. Tables are global and server-contro
 
 Catalyst also manages `ROWID`, `CREATORID`, `CREATEDTIME` and `MODIFIEDTIME` on every table.
 
+## Planned supply registers (not provisioned)
+
+Version 0.23 keeps these records as separate collections in the browser repository. When authenticated synchronization is enabled, they should map to four separate winery-scoped tables rather than one combined inventory table:
+
+| Planned table | Purpose |
+| --- | --- |
+| `Anada_Suppliers` | Supplier identity, fiscal ID, contact, status and approval metadata |
+| `Anada_ProductMasters` | Reusable commercial product definition, category, manufacturer, unit and document references |
+| `Anada_ProductLots` | One physical supplier lot, receipt, expiry, location, release status and current quantity |
+| `Anada_ProductStockTransactions` | Append-only receipt, release, rejection, recall, adjustment, transfer, consumption and disposal events |
+
+These tables must not be exposed to the Slate client until winery membership, role checks, audit attribution and conflict handling are in place.
+
 ## Safety boundary
 
 - Browser persistence remains authoritative during Phase 3B.1.

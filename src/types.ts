@@ -192,6 +192,15 @@ export interface Supplier {
   notes: string
 }
 
+export interface NewSupplierInput {
+  name: string
+  taxId: string
+  contactName: string
+  email: string
+  phone: string
+  notes: string
+}
+
 export type ProductCategory = 'yeast' | 'nutrient' | 'enzyme' | 'sulphur' | 'acid' | 'fining' | 'stabilisation' | 'filtration' | 'cleaning'
 export type ProductUnit = 'kg' | 'g' | 'L' | 'mL' | 'units'
 
@@ -206,6 +215,16 @@ export interface ProductMaster {
   technicalSheetRef?: string
   safetySheetRef?: string
   active: boolean
+}
+
+export interface NewProductMasterInput {
+  name: string
+  category: ProductCategory
+  manufacturer: string
+  defaultUnit: ProductUnit
+  storageInstructions: string
+  technicalSheetRef?: string
+  safetySheetRef?: string
 }
 
 export type ProductLotStatus = 'quarantine' | 'approved' | 'rejected' | 'expired' | 'recalled'

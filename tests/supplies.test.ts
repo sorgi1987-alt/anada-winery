@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { productLots, productMasters, productStockTransactions, suppliers } from '../src/data'
-import { changeProductLotStatus, effectiveProductLotStatus, receiveProductLot } from '../src/domain'
+import { changeProductLotStatus, createProductMaster, createSupplier, effectiveProductLotStatus, receiveProductLot } from '../src/domain'
 import { migrateLegacyState } from '../src/store'
 
 test('a receipt creates one quarantined physical lot and one stock transaction', () => {
@@ -62,4 +62,22 @@ test('expired approved or quarantined lots are unavailable without overwriting t
   const lot = { ...productLots[0], status: 'approved' as const, expiresAt: '2026-01-01' }
   assert.equal(effectiveProductLotStatus(lot, '2026-08-04'), 'expired')
   assert.equal(lot.status, 'approved')
+})
+
+test('suppliers are created as separate active master records with unique fiscal identity', () => {
+  const result = createSupplier({ name: 'Bodega Técnica Rioja', taxId: 'B12345678', contactName: 'Lucía Pérez', email: 'COMPRAS@BTR.ES', phone: '941000000', notes: '' }, suppliers)
+  assert.equal(result.supplier.status, 'active')
+  assert.equal(result.supplier.email, 'compras@btr.es')
+  assert.match(result.supplier.code, /^PROV-\d{3}$/)
+  assert.equal(result.suppliers[0], result.supplier)
+  assert.throws(() => createSupplier({ name: 'Otra razón social', taxId: suppliers[0].taxId.toLowerCase(), contactName: 'Ana', email: 'ana@example.com', phone: '', notes: '' }, suppliers), /tax ID already exists/)
+})
+
+test('product masters are created separately from physical stock lots', () => {
+  const result = createProductMaster({ name: 'Levadura Test', category: 'yeast', manufacturer: 'Ensayos Rioja', defaultUnit: 'kg', storageInstructions: 'Conservar en frío', technicalSheetRef: 'FT-001', safetySheetRef: '' }, productMasters)
+  assert.equal(result.product.active, true)
+  assert.equal(result.product.category, 'yeast')
+  assert.match(result.product.code, /^PROD-\d{3}$/)
+  assert.equal(productLots.some((lot) => lot.productId === result.product.id), false)
+  assert.throws(() => createProductMaster({ name: result.product.name.toLowerCase(), category: 'yeast', manufacturer: result.product.manufacturer.toUpperCase(), defaultUnit: 'kg', storageInstructions: 'Frío' }, result.products), /already exists/)
 })

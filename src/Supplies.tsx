@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { AlertTriangle, Beaker, Check, ChevronRight, ClipboardCheck, FileText, FlaskConical, PackageCheck, Plus, Search, ShieldAlert, Truck, X } from 'lucide-react'
 import { useLanguage } from './i18n'
 import { effectiveProductLotStatus } from './domain'
-import type { NewProductLotInput, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, Supplier } from './types'
+import type { NewProductLotInput, NewProductMasterInput, NewSupplierInput, ProductCategory, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductUnit, Supplier } from './types'
 
 type View = 'lots' | 'products' | 'suppliers'
 
@@ -12,6 +12,8 @@ interface SuppliesPageProps {
   lots: ProductLot[]
   transactions: ProductStockTransaction[]
   onReceive: (input: NewProductLotInput) => void
+  onCreateProduct: (input: NewProductMasterInput) => void
+  onCreateSupplier: (input: NewSupplierInput) => void
   onStatus: (lotId: string, status: Extract<ProductLotStatus, 'approved' | 'rejected' | 'recalled'>, notes: string) => void
 }
 
@@ -23,11 +25,13 @@ const categoryKey = {
   yeast: 'supplies.category.yeast', nutrient: 'supplies.category.nutrient', enzyme: 'supplies.category.enzyme', sulphur: 'supplies.category.sulphur', acid: 'supplies.category.acid', fining: 'supplies.category.fining', stabilisation: 'supplies.category.stabilisation', filtration: 'supplies.category.filtration', cleaning: 'supplies.category.cleaning',
 } as const satisfies Record<ProductMaster['category'], string>
 
-export function SuppliesPage({ suppliers, products, lots, transactions, onReceive, onStatus }: SuppliesPageProps) {
+export function SuppliesPage({ suppliers, products, lots, transactions, onReceive, onCreateProduct, onCreateSupplier, onStatus }: SuppliesPageProps) {
   const { t, locale } = useLanguage()
   const [view, setView] = useState<View>('lots')
   const [query, setQuery] = useState('')
   const [receiving, setReceiving] = useState(false)
+  const [creatingProduct, setCreatingProduct] = useState(false)
+  const [creatingSupplier, setCreatingSupplier] = useState(false)
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null)
   const selectedLot = lots.find((lot) => lot.id === selectedLotId)
   const productById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products])
@@ -41,8 +45,11 @@ export function SuppliesPage({ suppliers, products, lots, transactions, onReceiv
   const quarantined = lots.filter((lot) => effectiveProductLotStatus(lot) === 'quarantine').length
   const approvedLots = lots.filter((lot) => effectiveProductLotStatus(lot) === 'approved').length
 
+  const openPrimaryAction = () => view === 'lots' ? setReceiving(true) : view === 'products' ? setCreatingProduct(true) : setCreatingSupplier(true)
+  const primaryActionLabel = view === 'lots' ? t('supplies.receive') : view === 'products' ? t('supplies.newProduct') : t('supplies.newSupplier')
+
   return <main className="page-content supplies-page">
-    <header className="page-header"><div><span className="eyebrow">{t('supplies.kicker')}</span><h1>{t('supplies.title')}</h1><p>{t('supplies.description')}</p></div><div className="page-header-action"><button className="primary-button" onClick={() => setReceiving(true)}><Plus /> {t('supplies.receive')}</button></div></header>
+    <header className="page-header"><div><span className="eyebrow">{t('supplies.kicker')}</span><h1>{t('supplies.title')}</h1><p>{t('supplies.description')}</p></div><div className="page-header-action"><button className="primary-button" onClick={openPrimaryAction}><Plus /> {primaryActionLabel}</button></div></header>
     <section className="supplies-hero"><div><span className="supplies-hero-mark"><FlaskConical /></span><h2>{t('supplies.heroTitle')}</h2><p>{t('supplies.heroText')}</p></div><aside><ClipboardCheck /><span><strong>{t('supplies.localRegister')}</strong><small>{t('supplies.localRegisterText')}</small></span></aside></section>
     <section className="supplies-metrics">
       <Metric icon={<PackageCheck />} value={String(lots.length)} label={t('supplies.receivedLots')} detail={t('supplies.traceableLots')} />
@@ -61,8 +68,44 @@ export function SuppliesPage({ suppliers, products, lots, transactions, onReceiv
     {view === 'products' && <section className="master-grid">{products.filter((product) => !normalized || [product.code, product.name, product.manufacturer].some((value) => value.toLowerCase().includes(normalized))).map((product) => <article key={product.id} className="master-card"><span className="master-icon"><Beaker /></span><div><small>{product.code} · {t(categoryKey[product.category])}</small><h3>{product.name}</h3><p>{product.manufacturer}</p></div><dl><div><dt>{t('supplies.unit')}</dt><dd>{product.defaultUnit}</dd></div><div><dt>{t('supplies.storage')}</dt><dd>{product.storageInstructions}</dd></div></dl><footer>{product.technicalSheetRef && <span><FileText /> {product.technicalSheetRef}</span>}{product.safetySheetRef && <span><AlertTriangle /> {product.safetySheetRef}</span>}</footer></article>)}</section>}
     {view === 'suppliers' && <section className="master-grid suppliers">{suppliers.filter((supplier) => !normalized || [supplier.code, supplier.name, supplier.contactName].some((value) => value.toLowerCase().includes(normalized))).map((supplier) => <article key={supplier.id} className="master-card supplier-card"><span className="master-icon"><Truck /></span><div><small>{supplier.code} · {supplier.taxId}</small><h3>{supplier.name}</h3><p>{supplier.contactName}</p></div><dl><div><dt>{t('supplies.contact')}</dt><dd>{supplier.email}</dd></div><div><dt>{t('supplies.statusLabel')}</dt><dd className={supplier.status}>{t(`supplies.supplier.${supplier.status}`)}</dd></div></dl></article>)}</section>}
     {receiving && <ReceiveLotSheet products={products} suppliers={suppliers} onClose={() => setReceiving(false)} onSave={(input) => { onReceive(input); setReceiving(false) }} />}
+    {creatingProduct && <ProductSheet onClose={() => setCreatingProduct(false)} onSave={(input) => { onCreateProduct(input); setCreatingProduct(false) }} />}
+    {creatingSupplier && <SupplierSheet onClose={() => setCreatingSupplier(false)} onSave={(input) => { onCreateSupplier(input); setCreatingSupplier(false) }} />}
     {selectedLot && <LotDrawer lot={selectedLot} product={productById.get(selectedLot.productId)} supplier={supplierById.get(selectedLot.supplierId)} transactions={transactions.filter((transaction) => transaction.productLotId === selectedLot.id)} onClose={() => setSelectedLotId(null)} onStatus={(status, notes) => { onStatus(selectedLot.id, status, notes); setSelectedLotId(null) }} />}
   </main>
+}
+
+const productCategories: ProductCategory[] = ['yeast', 'nutrient', 'enzyme', 'sulphur', 'acid', 'fining', 'stabilisation', 'filtration', 'cleaning']
+const productUnits: ProductUnit[] = ['kg', 'g', 'L', 'mL', 'units']
+
+function SupplierSheet({ onClose, onSave }: { onClose: () => void; onSave: (input: NewSupplierInput) => void }) {
+  const { t } = useLanguage()
+  const [draft, setDraft] = useState<NewSupplierInput>({ name: '', taxId: '', contactName: '', email: '', phone: '', notes: '' })
+  const [error, setError] = useState('')
+  const submit = (event: FormEvent) => { event.preventDefault(); try { onSave(draft) } catch (reason) { setError(reason instanceof Error ? reason.message : t('supplies.formError')) } }
+  return <div className="drawer-scrim" onMouseDown={onClose}><form className="supply-sheet" onMouseDown={(event) => event.stopPropagation()} onSubmit={submit}><header><div><span className="eyebrow">{t('supplies.supplierKicker')}</span><h2>{t('supplies.supplierTitle')}</h2><p>{t('supplies.supplierText')}</p></div><button type="button" onClick={onClose} aria-label={t('common.close')}><X /></button></header><div className="supply-form-grid">
+    <label className="wide"><span>{t('supplies.supplierName')}</span><input required autoFocus value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
+    <label><span>{t('supplies.taxId')}</span><input required value={draft.taxId} onChange={(event) => setDraft({ ...draft, taxId: event.target.value })} /></label>
+    <label><span>{t('supplies.contactName')}</span><input required value={draft.contactName} onChange={(event) => setDraft({ ...draft, contactName: event.target.value })} /></label>
+    <label><span>{t('supplies.email')}</span><input required type="email" value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></label>
+    <label><span>{t('supplies.phone')}</span><input type="tel" value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} /></label>
+    <label className="wide"><span>{t('supplies.notes')}</span><textarea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} /></label>
+  </div>{error && <p className="form-error"><AlertTriangle /> {error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button className="primary-button"><Truck /> {t('supplies.saveSupplier')}</button></footer></form></div>
+}
+
+function ProductSheet({ onClose, onSave }: { onClose: () => void; onSave: (input: NewProductMasterInput) => void }) {
+  const { t } = useLanguage()
+  const [draft, setDraft] = useState<NewProductMasterInput>({ name: '', category: 'yeast', manufacturer: '', defaultUnit: 'kg', storageInstructions: '', technicalSheetRef: '', safetySheetRef: '' })
+  const [error, setError] = useState('')
+  const submit = (event: FormEvent) => { event.preventDefault(); try { onSave(draft) } catch (reason) { setError(reason instanceof Error ? reason.message : t('supplies.formError')) } }
+  return <div className="drawer-scrim" onMouseDown={onClose}><form className="supply-sheet" onMouseDown={(event) => event.stopPropagation()} onSubmit={submit}><header><div><span className="eyebrow">{t('supplies.productKicker')}</span><h2>{t('supplies.productTitle')}</h2><p>{t('supplies.productText')}</p></div><button type="button" onClick={onClose} aria-label={t('common.close')}><X /></button></header><div className="supply-form-grid">
+    <label className="wide"><span>{t('supplies.productName')}</span><input required autoFocus value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
+    <label><span>{t('supplies.category')}</span><select value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as ProductCategory })}>{productCategories.map((category) => <option key={category} value={category}>{t(categoryKey[category])}</option>)}</select></label>
+    <label><span>{t('supplies.manufacturer')}</span><input required value={draft.manufacturer} onChange={(event) => setDraft({ ...draft, manufacturer: event.target.value })} /></label>
+    <label><span>{t('supplies.defaultUnit')}</span><select value={draft.defaultUnit} onChange={(event) => setDraft({ ...draft, defaultUnit: event.target.value as ProductUnit })}>{productUnits.map((unit) => <option key={unit} value={unit}>{unit}</option>)}</select></label>
+    <label><span>{t('supplies.storageInstructions')}</span><input required value={draft.storageInstructions} onChange={(event) => setDraft({ ...draft, storageInstructions: event.target.value })} /></label>
+    <label><span>{t('supplies.technicalSheet')}</span><input value={draft.technicalSheetRef} onChange={(event) => setDraft({ ...draft, technicalSheetRef: event.target.value })} /></label>
+    <label><span>{t('supplies.safetySheet')}</span><input value={draft.safetySheetRef} onChange={(event) => setDraft({ ...draft, safetySheetRef: event.target.value })} /></label>
+  </div>{error && <p className="form-error"><AlertTriangle /> {error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button className="primary-button"><Beaker /> {t('supplies.saveProduct')}</button></footer></form></div>
 }
 
 function Metric({ icon, value, label, detail, attention = false }: { icon: ReactNode; value: string; label: string; detail: string; attention?: boolean }) {

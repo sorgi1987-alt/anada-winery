@@ -35,7 +35,7 @@ Build the first legally meaningful input-to-wine traceability slice.
 
 Status: deployment prepared for version 0.23.
 
-- Visual bilingual supply workspace with product lots, product masters and suppliers
+- Visual bilingual supply workspace with styled segmented navigation and creation workflows for product and supplier masters
 - Separate product, supplier and physical supplier-lot identities
 - Yeast, nutrient, enzyme, sulphur, acid, fining, stabilisation, filtration and cleaning categories
 - Receipt date, quantity, unit, expiry, storage location and certificate reference

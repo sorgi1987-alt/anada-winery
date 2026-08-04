@@ -1,7 +1,44 @@
 import { images, redProcess, roseProcesses, whiteProcess } from './data'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductLotInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductLotInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+const nextMasterCode = (prefix: string, codes: string[]) => {
+  const sequence = codes.reduce((maximum, code) => {
+    const match = code.match(new RegExp(`^${prefix}-(\\d+)$`))
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0) + 1
+  return `${prefix}-${String(sequence).padStart(3, '0')}`
+}
+
+export const createSupplier = (input: NewSupplierInput, suppliers: Supplier[]) => {
+  const name = input.name.trim()
+  const taxId = input.taxId.trim().toUpperCase()
+  const email = input.email.trim().toLowerCase()
+  if (!name || !taxId || !input.contactName.trim() || !email) throw new Error('Name, tax ID, contact and email are required')
+  if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('A valid email is required')
+  if (suppliers.some((supplier) => supplier.taxId.trim().toUpperCase() === taxId)) throw new Error('A supplier with this tax ID already exists')
+  if (suppliers.some((supplier) => supplier.name.trim().toLowerCase() === name.toLowerCase())) throw new Error('A supplier with this name already exists')
+  const supplier: Supplier = {
+    id: nowId('supplier'), code: nextMasterCode('PROV', suppliers.map((item) => item.code)), name, taxId,
+    contactName: input.contactName.trim(), email, phone: input.phone.trim(), status: 'active', approvedAt: new Date().toISOString(), notes: input.notes.trim(),
+  }
+  return { supplier, suppliers: [supplier, ...suppliers] }
+}
+
+export const createProductMaster = (input: NewProductMasterInput, products: ProductMaster[]) => {
+  const name = input.name.trim()
+  const manufacturer = input.manufacturer.trim()
+  const storageInstructions = input.storageInstructions.trim()
+  if (!name || !manufacturer || !storageInstructions) throw new Error('Name, manufacturer and storage instructions are required')
+  if (products.some((product) => product.name.trim().toLowerCase() === name.toLowerCase() && product.manufacturer.trim().toLowerCase() === manufacturer.toLowerCase())) throw new Error('This product already exists for the manufacturer')
+  const product: ProductMaster = {
+    id: nowId('product'), code: nextMasterCode('PROD', products.map((item) => item.code)), name, category: input.category, manufacturer,
+    defaultUnit: input.defaultUnit, storageInstructions, ...(input.technicalSheetRef?.trim() ? { technicalSheetRef: input.technicalSheetRef.trim() } : {}),
+    ...(input.safetySheetRef?.trim() ? { safetySheetRef: input.safetySheetRef.trim() } : {}), active: true,
+  }
+  return { product, products: [product, ...products] }
+}
 
 export const receiveProductLot = (input: NewProductLotInput, products: ProductMaster[], suppliers: Supplier[], lots: ProductLot[], transactions: ProductStockTransaction[]) => {
   const product = products.find((item) => item.id === input.productId && item.active)
