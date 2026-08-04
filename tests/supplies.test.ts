@@ -50,7 +50,7 @@ test('release and recall remain separate attributed stock events', () => {
 test('the v16 migration adds supply masters and lots without changing legacy wine records', () => {
   const legacyLot = { id: 'LEGACY-LOT' }
   const migrated = migrateLegacyState({ schemaVersion: 15, lots: [legacyLot], tasks: [], tanks: [] })
-  assert.equal(migrated?.schemaVersion, 17)
+  assert.equal(migrated?.schemaVersion, 16)
   assert.equal(migrated?.lots[0], legacyLot)
   assert.ok(migrated?.suppliers.length)
   assert.ok(migrated?.productMasters.length)
