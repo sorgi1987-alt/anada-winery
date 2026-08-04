@@ -11,7 +11,7 @@ import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
 import { BlendingPage } from './Blending'
 import { images, lots as seedLots } from './data'
-import { advanceRedStage, advanceRoseStage, advanceWhiteStage, approveBlendTrial, assignLotToTank, changeProductLotStatus, completeBottlingOrder, consumeProductLot, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createProductMaster, createRecallSimulation, createSupplier, createTask, mergeWine, receiveGrapeDelivery, receiveProductLot, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, recordRoseOperation, recordWhiteOperation, setBottlingGate, splitWine, startBottlingOrder, transferWine } from './domain'
+import { advanceRedStage, advanceRoseStage, advanceWhiteStage, approveBlendTrial, assignLotToTank, adjustProductStock, changeProductLotStatus, completeBottlingOrder, consumeProductLot, correctProductConsumption, disposeProductStock, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createProductMaster, createRecallSimulation, createSupplier, createTask, mergeWine, receiveGrapeDelivery, receiveProductLot, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, recordRoseOperation, recordWhiteOperation, setBottlingGate, splitWine, startBottlingOrder, transferProductStock, transferWine } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
 import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
@@ -20,7 +20,7 @@ import { RedProcessControl } from './RedProcess'
 import { usePwaStatus, type PwaStatus } from './pwa'
 import { ProductUsePanel } from './ProductUse'
 import { browserWineryRepository } from './store'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement, WineType } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -103,7 +103,7 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 16, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings })
+    browserWineryRepository.save({ schemaVersion: 17, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings })
   }, [demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings])
 
   const toggleCellarMode = () => {
@@ -433,6 +433,12 @@ function App() {
     window.setTimeout(() => setToast(null), 4200)
   }
 
+
+  const adjustInputStock = (input: ProductStockAdjustmentInput) => { const result = adjustProductStock(input, productLots, productStockTransactions); setProductLots(result.lots); setProductStockTransactions(result.transactions) }
+  const transferInputStock = (input: ProductLocationTransferInput) => { const result = transferProductStock(input, productLots, productStockTransactions); setProductLots(result.lots); setProductStockTransactions(result.transactions) }
+  const disposeInputStock = (input: ProductDisposalInput) => { const result = disposeProductStock(input, productLots, productStockTransactions); setProductLots(result.lots); setProductStockTransactions(result.transactions) }
+  const correctInputConsumption = (input: ProductConsumptionCorrectionInput) => { const result = correctProductConsumption(input, demoLots, productLots, productMasters, productStockTransactions, productionEvents, traceabilityEntities, traceabilityLinks); if ('wineLots' in result) setDemoLots(result.wineLots); setProductLots(result.productLots); setProductStockTransactions(result.transactions); setProductionEvents(result.events); setTraceabilityEntities(result.entities); setTraceabilityLinks(result.links) }
+
   const saveWinerySettings = (nextSettings: WinerySettings) => {
     setSettings(nextSettings)
     setToast(t('toast.settingsSaved'))
@@ -488,7 +494,7 @@ function App() {
   else if (pathname === '/ageing') currentPage = <AgeingPage barrels={barrels} operations={barrelOperations} lots={activeLots} onCreateBarrel={addBarrel} onRecordOperation={saveBarrelOperation} />
   else if (pathname === '/blending') currentPage = <BlendingPage candidates={blendCandidates} trials={blendTrials} onCreateTrial={addBlendTrial} onRecordTasting={saveBlendTasting} onApproveTrial={approveBlend} />
   else if (pathname === '/bottling') currentPage = <BottlingPage orders={bottlingOrders} materials={packagingMaterials} trials={blendTrials} onCreateOrder={addBottlingOrder} onToggleGate={updateBottlingGate} onStartOrder={startBottling} onCompleteOrder={finishBottling} />
-  else if (pathname === '/supplies') currentPage = <SuppliesPage suppliers={suppliers} products={productMasters} lots={productLots} transactions={productStockTransactions} onReceive={receiveInputLot} onCreateProduct={addProductMaster} onCreateSupplier={addSupplier} onStatus={updateInputLotStatus} />
+  else if (pathname === '/supplies') currentPage = <SuppliesPage suppliers={suppliers} products={productMasters} lots={productLots} transactions={productStockTransactions} onReceive={receiveInputLot} onCreateProduct={addProductMaster} onCreateSupplier={addSupplier} onStatus={updateInputLotStatus} onAdjust={adjustInputStock} onTransfer={transferInputStock} onDispose={disposeInputStock} onCorrectConsumption={correctInputConsumption} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
   else if (pathname === '/scan') currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
@@ -556,7 +562,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.23</span>
+          <span>Añada 0.25</span>
         </div>
       </section>
     </main>

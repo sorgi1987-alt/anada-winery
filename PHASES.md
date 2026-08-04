@@ -58,6 +58,8 @@ Completion gate: receive a yeast lot, approve it, consume part of it in fermenta
 
 ### Phase 8B.2B — Stock corrections and location control
 
+Status: implemented for version 0.25.
+
 - Attributed quantity adjustments with mandatory reasons
 - Storage-location transfers without changing ownership or product identity
 - Disposal and stock-zero closure events

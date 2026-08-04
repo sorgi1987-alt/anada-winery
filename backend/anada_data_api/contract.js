@@ -1,6 +1,6 @@
 'use strict'
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 
 const TABLES = Object.freeze([
   Object.freeze({ name: 'Anada_Wineries', id: '11922000000093921' }),

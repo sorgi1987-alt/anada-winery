@@ -43,3 +43,8 @@ These tables must not be exposed to the Slate client until winery membership, ro
 The authorized CORS hostname is `anada-winery-web-ucfcgorv.onslate.eu` (configuration ID `11922000000096932`); CORS is enabled and iframe access is disabled. API Gateway remains disabled.
 
 Deploy the `anada_data_api` health route using the CLI-generated function configuration and verify the Slate-origin connection check. Authenticated membership is still required before exposing operational reads. Remote writes only follow after audit attribution and conflict policy are implemented.
+
+
+## Schema v17 — Product stock control
+
+Physical product lots now retain auditable per-location balances. Adjustment, transfer, disposal, closure and consumption-reversal transactions are immutable and linked to their source records.

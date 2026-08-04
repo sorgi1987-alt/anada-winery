@@ -115,3 +115,21 @@ test('active process menus cannot bypass stock traceability for additions', () =
   assert.equal(Object.values(whiteOperationTypesByStage).flat().includes('inoculation'), false)
   assert.equal(Object.values(roseOperationTypesByMethod).flatMap((stages) => Object.values(stages).flat()).includes('inoculation'), false)
 })
+
+test('stock adjustments, transfers and disposals reconcile immutable location balances', async () => {
+  const { adjustProductStock, transferProductStock, disposeProductStock } = await import('../src/domain')
+  const base = { ...productLots.find((lot) => lot.status === 'approved')!, locationBalances: [{ location: 'A', quantity: 10 }], location: 'A', quantityOnHand: 10 }
+  const adjusted = adjustProductStock({ productLotId: base.id, quantity: 2, reason: 'Physical count', performedAt: '2026-08-04T12:00:00+02:00', operator: 'Elena', notes: '' }, [base], [])
+  assert.equal(adjusted.lot.quantityOnHand, 12)
+  const transferred = transferProductStock({ productLotId: base.id, fromLocation: 'A', toLocation: 'B', quantity: 4, performedAt: '2026-08-04T12:05:00+02:00', operator: 'Elena', notes: '' }, adjusted.lots, adjusted.transactions)
+  assert.equal(transferred.lot.locationBalances.reduce((sum, item) => sum + item.quantity, 0), 12)
+  const disposed = disposeProductStock({ productLotId: base.id, location: 'B', quantity: 4, reason: 'Damaged packaging', performedAt: '2026-08-04T12:10:00+02:00', operator: 'Elena', notes: '' }, transferred.lots, transferred.transactions)
+  assert.equal(disposed.lot.quantityOnHand, 8)
+  assert.equal(disposed.transaction.type, 'disposal')
+})
+
+test('v17 migration preserves v16 supplies and creates idempotent location balances', () => {
+  const migrated = migrateLegacyState({ schemaVersion: 16, lots: wineLots, tasks: [], tanks: [], productLots, productStockTransactions })
+  assert.equal(migrated?.schemaVersion, 17)
+  assert.ok(migrated?.productLots.every((lot) => lot.locationBalances.length > 0))
+})

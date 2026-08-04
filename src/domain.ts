@@ -1,5 +1,5 @@
 import { images, redProcess, roseProcesses, whiteProcess } from './data'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -58,7 +58,7 @@ export const receiveProductLot = (input: NewProductLotInput, products: ProductMa
   const lot: ProductLot = {
     id: nowId('product-lot'), code: `INS-${year}-${String(sequence).padStart(3, '0')}`, productId: product.id, supplierId: supplier.id,
     supplierLot: input.supplierLot.trim(), receivedAt: input.receivedAt, ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}), quantityReceived: input.quantity,
-    quantityOnHand: input.quantity, unit: input.unit, location: input.location.trim(), status: 'quarantine', ...(input.certificateRef?.trim() ? { certificateRef: input.certificateRef.trim() } : {}), notes: input.notes.trim(),
+    quantityOnHand: input.quantity, unit: input.unit, location: input.location.trim(), locationBalances: [{ location: input.location.trim(), quantity: input.quantity }], status: 'quarantine', ...(input.certificateRef?.trim() ? { certificateRef: input.certificateRef.trim() } : {}), notes: input.notes.trim(),
   }
   const transaction: ProductStockTransaction = {
     id: nowId('stock'), productLotId: lot.id, type: 'receipt', quantity: input.quantity, unit: input.unit, occurredAt: input.receivedAt, recordedAt,
@@ -99,7 +99,9 @@ export const consumeProductLot = (
     performedAt: input.performedAt, recordedAt, operator: input.operator.trim(), notes: input.notes.trim(), storageMode: 'browser-local',
     metrics: { product: product.name, productId: product.id, productLotId: productLot.id, supplierLot: productLot.supplierLot, additionAmount: input.quantity, additionUnit: productLot.unit, volumeBefore: wineLot.volume, volumeAfter: wineLot.volume },
   }
-  const updatedProductLot: ProductLot = { ...productLot, quantityOnHand: Number((productLot.quantityOnHand - input.quantity).toFixed(3)) }
+  const sourceLocation = productLot.locationBalances?.find((item) => item.quantity >= input.quantity)?.location ?? productLot.location
+  const balances = productLot.locationBalances?.length ? productLot.locationBalances : [{ location: productLot.location, quantity: productLot.quantityOnHand }]
+  const updatedProductLot: ProductLot = { ...productLot, quantityOnHand: Number((productLot.quantityOnHand - input.quantity).toFixed(3)), locationBalances: balances.map((item) => item.location === sourceLocation ? { ...item, quantity: Number((item.quantity - input.quantity).toFixed(3)) } : item) }
   const transaction: ProductStockTransaction = {
     id: nowId('stock'), productLotId: productLot.id, type: 'consumption', quantity: input.quantity, unit: productLot.unit,
     occurredAt: input.performedAt, recordedAt, operator: input.operator.trim(), fromLocation: productLot.location, reference: wineLot.id,
@@ -138,6 +140,73 @@ export const consumeProductLot = (
     productLots: productLots.map((lot) => lot.id === productLot.id ? updatedProductLot : lot),
     transactions: [transaction, ...transactions], events: [event, ...events], entities: nextEntities, links: [link, ...links],
   }
+}
+
+const normalizeLocation = (value: string) => value.trim().replace(/\s+/g, ' ')
+const balancesFor = (lot: ProductLot) => lot.locationBalances?.length ? lot.locationBalances : [{ location: lot.location, quantity: lot.quantityOnHand }]
+const replaceLot = (lots: ProductLot[], updated: ProductLot) => lots.map((lot) => lot.id === updated.id ? updated : lot)
+
+export const adjustProductStock = (input: ProductStockAdjustmentInput, lots: ProductLot[], transactions: ProductStockTransaction[]) => {
+  const lot = lots.find((item) => item.id === input.productLotId)
+  if (!lot) throw new Error('Product lot not found')
+  if (!input.reason.trim()) throw new Error('An adjustment reason is required')
+  if (!input.quantity) throw new Error('Adjustment quantity cannot be zero')
+  if (['rejected', 'closed'].includes(lot.status)) throw new Error('Rejected or closed lots cannot be adjusted')
+  const resulting = Number((lot.quantityOnHand + input.quantity).toFixed(3))
+  if (resulting < 0) throw new Error('Adjustment cannot create negative stock')
+  const balances = balancesFor(lot)
+  const target = balances.find((item) => item.location === lot.location) ?? balances[0]
+  const updatedBalances = balances.map((item) => item.location === target.location ? { ...item, quantity: Number((item.quantity + input.quantity).toFixed(3)) } : item)
+  const updated = { ...lot, quantityOnHand: resulting, locationBalances: updatedBalances }
+  const transaction: ProductStockTransaction = { id: nowId('stock-adjustment'), productLotId: lot.id, type: 'adjustment', quantity: input.quantity, unit: lot.unit, occurredAt: input.performedAt, recordedAt: new Date().toISOString(), operator: input.operator.trim(), toLocation: target.location, reason: input.reason.trim(), notes: input.notes.trim() }
+  return { lot: updated, lots: replaceLot(lots, updated), transaction, transactions: [transaction, ...transactions] }
+}
+
+export const transferProductStock = (input: ProductLocationTransferInput, lots: ProductLot[], transactions: ProductStockTransaction[]) => {
+  const lot = lots.find((item) => item.id === input.productLotId)
+  if (!lot) throw new Error('Product lot not found')
+  if (lot.status === 'closed') throw new Error('Closed lots cannot be transferred')
+  const fromLocation = normalizeLocation(input.fromLocation); const toLocation = normalizeLocation(input.toLocation)
+  if (!fromLocation || !toLocation || fromLocation.toLowerCase() === toLocation.toLowerCase()) throw new Error('Source and destination locations must differ')
+  if (input.quantity <= 0) throw new Error('Transfer quantity must be greater than zero')
+  const balances = balancesFor(lot); const source = balances.find((item) => item.location.toLowerCase() === fromLocation.toLowerCase())
+  if (!source || source.quantity < input.quantity) throw new Error('Insufficient stock at the source location')
+  const destination = balances.find((item) => item.location.toLowerCase() === toLocation.toLowerCase())
+  let updatedBalances = balances.map((item) => item === source ? { ...item, quantity: Number((item.quantity - input.quantity).toFixed(3)) } : item)
+  updatedBalances = destination ? updatedBalances.map((item) => item === destination ? { ...item, quantity: Number((item.quantity + input.quantity).toFixed(3)) } : item) : [...updatedBalances, { location: toLocation, quantity: input.quantity }]
+  const updated = { ...lot, location: toLocation, locationBalances: updatedBalances }
+  const transaction: ProductStockTransaction = { id: nowId('stock-transfer'), productLotId: lot.id, type: 'transfer', quantity: input.quantity, unit: lot.unit, occurredAt: input.performedAt, recordedAt: new Date().toISOString(), operator: input.operator.trim(), fromLocation, toLocation, notes: input.notes.trim() }
+  return { lot: updated, lots: replaceLot(lots, updated), transaction, transactions: [transaction, ...transactions] }
+}
+
+export const disposeProductStock = (input: ProductDisposalInput, lots: ProductLot[], transactions: ProductStockTransaction[]) => {
+  const lot = lots.find((item) => item.id === input.productLotId)
+  if (!lot) throw new Error('Product lot not found')
+  if (!input.reason.trim()) throw new Error('A disposal reason is required')
+  if (input.quantity <= 0) throw new Error('Disposal quantity must be greater than zero')
+  if (lot.status === 'closed') throw new Error('Closed lots cannot be disposed')
+  const location = normalizeLocation(input.location); const balances = balancesFor(lot); const source = balances.find((item) => item.location.toLowerCase() === location.toLowerCase())
+  if (!source || source.quantity < input.quantity) throw new Error('Disposal exceeds available stock at this location')
+  const resulting = Number((lot.quantityOnHand - input.quantity).toFixed(3))
+  const updated = { ...lot, quantityOnHand: resulting, locationBalances: balances.map((item) => item === source ? { ...item, quantity: Number((item.quantity - input.quantity).toFixed(3)) } : item), ...(resulting === 0 ? { status: 'closed' as const } : {}) }
+  const disposal: ProductStockTransaction = { id: nowId('stock-disposal'), productLotId: lot.id, type: 'disposal', quantity: input.quantity, unit: lot.unit, occurredAt: input.performedAt, recordedAt: new Date().toISOString(), operator: input.operator.trim(), fromLocation: location, reference: input.reference?.trim(), reason: input.reason.trim(), notes: input.notes.trim() }
+  const closure: ProductStockTransaction | undefined = resulting === 0 ? { id: nowId('stock-closure'), productLotId: lot.id, type: 'closure', quantity: 0, unit: lot.unit, occurredAt: input.performedAt, recordedAt: new Date().toISOString(), operator: input.operator.trim(), relatedTransactionId: disposal.id, reason: 'Zero balance closure', notes: '' } : undefined
+  return { lot: updated, lots: replaceLot(lots, updated), transaction: disposal, transactions: closure ? [closure, disposal, ...transactions] : [disposal, ...transactions] }
+}
+
+export const correctProductConsumption = (input: ProductConsumptionCorrectionInput, wineLots: WineLot[], productLots: ProductLot[], productMasters: ProductMaster[], transactions: ProductStockTransaction[], events: ProductionEvent[], entities: TraceabilityEntity[], links: TraceabilityLink[]) => {
+  const original = transactions.find((item) => item.id === input.transactionId && item.type === 'consumption')
+  if (!original) throw new Error('Consumption transaction not found')
+  if (original.status === 'reversed' || transactions.some((item) => item.type === 'consumption_reversal' && item.relatedTransactionId === original.id)) throw new Error('Consumption has already been reversed')
+  if (!input.reason.trim()) throw new Error('A correction reason is required')
+  const lot = productLots.find((item) => item.id === original.productLotId); if (!lot) throw new Error('Product lot not found')
+  const location = original.fromLocation ?? lot.location; const balances = balancesFor(lot)
+  const restored = { ...lot, quantityOnHand: Number((lot.quantityOnHand + original.quantity).toFixed(3)), locationBalances: balances.some((item) => item.location === location) ? balances.map((item) => item.location === location ? { ...item, quantity: Number((item.quantity + original.quantity).toFixed(3)) } : item) : [...balances, { location, quantity: original.quantity }] }
+  const reversal: ProductStockTransaction = { id: nowId('stock-reversal'), productLotId: lot.id, type: 'consumption_reversal', quantity: original.quantity, unit: original.unit, occurredAt: input.performedAt, recordedAt: new Date().toISOString(), operator: input.operator.trim(), toLocation: location, wineLotId: original.wineLotId, productionEventId: original.productionEventId, relatedTransactionId: original.id, reason: input.reason.trim(), notes: '' }
+  const reversedTransactions = transactions.map((item) => item.id === original.id ? { ...item, status: 'reversed' as const, supersededByTransactionId: reversal.id } : item)
+  if (!input.replacement) return { productLots: replaceLot(productLots, restored), transactions: [reversal, ...reversedTransactions], events, entities, links }
+  const replacement = consumeProductLot(input.replacement, wineLots, replaceLot(productLots, restored), productMasters, [reversal, ...reversedTransactions], events, entities, links)
+  return { ...replacement, transactions: replacement.transactions.map((item) => item.id === replacement.transaction.id ? { ...item, relatedTransactionId: original.id } : item) }
 }
 
 export const changeProductLotStatus = (lots: ProductLot[], transactions: ProductStockTransaction[], lotId: string, status: Extract<ProductLotStatus, 'approved' | 'rejected' | 'recalled'>, notes: string) => {

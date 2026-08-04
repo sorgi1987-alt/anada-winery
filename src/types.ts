@@ -152,7 +152,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 16
+  schemaVersion: 17
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -227,7 +227,7 @@ export interface NewProductMasterInput {
   safetySheetRef?: string
 }
 
-export type ProductLotStatus = 'quarantine' | 'approved' | 'rejected' | 'expired' | 'recalled'
+export type ProductLotStatus = 'quarantine' | 'approved' | 'rejected' | 'expired' | 'recalled' | 'closed'
 
 export interface ProductLot {
   id: string
@@ -241,6 +241,7 @@ export interface ProductLot {
   quantityOnHand: number
   unit: ProductUnit
   location: string
+  locationBalances: ProductLocationBalance[]
   status: ProductLotStatus
   certificateRef?: string
   releasedAt?: string
@@ -248,7 +249,7 @@ export interface ProductLot {
   notes: string
 }
 
-export type ProductStockTransactionType = 'receipt' | 'release' | 'rejection' | 'recall' | 'adjustment' | 'transfer' | 'consumption' | 'disposal'
+export type ProductStockTransactionType = 'receipt' | 'release' | 'rejection' | 'recall' | 'adjustment' | 'transfer' | 'consumption' | 'disposal' | 'closure' | 'consumption_reversal'
 
 export interface ProductStockTransaction {
   id: string
@@ -264,8 +265,23 @@ export interface ProductStockTransaction {
   reference?: string
   wineLotId?: string
   productionEventId?: string
+  reason?: string
+  relatedTransactionId?: string
+  supersededByTransactionId?: string
+  status?: 'active' | 'reversed'
   notes: string
 }
+
+
+export interface ProductLocationBalance {
+  location: string
+  quantity: number
+}
+
+export interface ProductStockAdjustmentInput { productLotId: string; quantity: number; reason: string; performedAt: string; operator: string; notes: string }
+export interface ProductLocationTransferInput { productLotId: string; fromLocation: string; toLocation: string; quantity: number; performedAt: string; operator: string; notes: string }
+export interface ProductDisposalInput { productLotId: string; location: string; quantity: number; reason: string; performedAt: string; operator: string; reference?: string; notes: string }
+export interface ProductConsumptionCorrectionInput { transactionId: string; performedAt: string; operator: string; reason: string; replacement?: NewProductConsumptionInput }
 
 export interface NewProductLotInput {
   productId: string
