@@ -262,6 +262,8 @@ export interface ProductStockTransaction {
   fromLocation?: string
   toLocation?: string
   reference?: string
+  wineLotId?: string
+  productionEventId?: string
   notes: string
 }
 
@@ -275,6 +277,15 @@ export interface NewProductLotInput {
   unit: ProductUnit
   location: string
   certificateRef?: string
+  notes: string
+}
+
+export interface NewProductConsumptionInput {
+  productLotId: string
+  wineLotId: string
+  quantity: number
+  performedAt: string
+  operator: string
   notes: string
 }
 
@@ -356,8 +367,11 @@ export interface ProductionEventMetrics {
   freeRunVolume?: number
   pressVolume?: number
   product?: string
+  productId?: string
+  productLotId?: string
+  supplierLot?: string
   additionAmount?: number
-  additionUnit?: 'kg' | 'g' | 'L' | 'mL'
+  additionUnit?: ProductUnit
   malicAcid?: number
   freeSo2?: number
   potentialAlcohol?: number
@@ -860,9 +874,9 @@ export interface CompleteBottlingOrderInput {
   notes: string
 }
 
-export type TraceabilityEntityType = 'parcel' | 'grape_delivery' | 'wine_lot' | 'barrel_group' | 'blend' | 'bottling_order' | 'finished_lot' | 'packaging_lot'
+export type TraceabilityEntityType = 'parcel' | 'grape_delivery' | 'product_lot' | 'wine_lot' | 'barrel_group' | 'blend' | 'bottling_order' | 'finished_lot' | 'packaging_lot'
 export type TraceabilityEntityStatus = 'verified' | 'pending' | 'attention'
-export type TraceabilityRelation = 'harvested_into' | 'processed_as' | 'aged_in' | 'component_of' | 'bottled_as' | 'produced_as' | 'packaged_with'
+export type TraceabilityRelation = 'harvested_into' | 'processed_as' | 'used_in' | 'aged_in' | 'component_of' | 'bottled_as' | 'produced_as' | 'packaged_with'
 export type TraceabilityDirection = 'backward' | 'forward' | 'both'
 
 export interface TraceabilityEntity {
@@ -874,7 +888,7 @@ export interface TraceabilityEntity {
   occurredAt: string
   status: TraceabilityEntityStatus
   quantity?: number
-  unit?: 'kg' | 'L' | 'bottles' | 'units'
+  unit?: ProductUnit | 'bottles'
   image?: string
   metadata: Record<string, string>
 }
@@ -885,7 +899,7 @@ export interface TraceabilityLink {
   targetId: string
   relation: TraceabilityRelation
   quantity?: number
-  unit?: 'kg' | 'L' | 'bottles' | 'units'
+  unit?: ProductUnit | 'bottles'
   occurredAt: string
   evidence: string
   status: 'verified' | 'pending'

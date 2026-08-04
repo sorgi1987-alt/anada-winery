@@ -4,7 +4,7 @@ Añada is a visual winery-operations application for small and medium wineries i
 
 ## Current status
 
-Version 0.23 adds the first oenological-input inventory checkpoint. The former DOCa Rioja eligibility workspace remains retired. Denomination claims are not assessed or certified by Añada; the application focuses on recording what physically enters the winery, what operations are performed, what materials are consumed and what finished lots are produced.
+Version 0.24 connects approved oenological-product lots to wine production. Each recorded use deducts physical stock atomically and creates linked inventory, production-history and traceability evidence. The former DOCa Rioja eligibility workspace remains retired.
 
 The current frontend remains a browser-authoritative prototype. Catalyst confirms the seven provisioned Development tables through a health-only function, but shared server persistence, authentication, protected operational reads, remote writes and synchronization are not active.
 
@@ -28,14 +28,14 @@ The current frontend remains a browser-authoritative prototype. Catalyst confirm
 
 - Operational records are stored on the current browser only.
 - Local operator names are attribution labels, not authenticated signatures.
-- Traceability is not yet generated automatically from every mutation.
+- Traceability is generated for product-lot consumption; several older operational mutations still require unification.
 - Packaging and oenological-product receipt inventory are implemented.
-- Oenological-product consumption is not yet connected to production additions.
+- Product adjustments, storage transfers and disposal are not yet implemented.
 - No screen represents regulatory certification or an official submission.
 
 ## Next checkpoint
 
-Phase 8B.2 will connect approved input lots to wine additions, deduct stock atomically and create backward/forward traceability evidence.
+Phase 8B.2B will add attributed product-stock adjustments, storage transfers and disposal without weakening the immutable consumption history.
 
 See [PHASES.md](./PHASES.md) for the recalibrated roadmap.
 

@@ -11,15 +11,16 @@ import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
 import { BlendingPage } from './Blending'
 import { images, lots as seedLots } from './data'
-import { advanceRedStage, advanceRoseStage, advanceWhiteStage, approveBlendTrial, assignLotToTank, changeProductLotStatus, completeBottlingOrder, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createProductMaster, createRecallSimulation, createSupplier, createTask, mergeWine, receiveGrapeDelivery, receiveProductLot, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, recordRoseOperation, recordWhiteOperation, setBottlingGate, splitWine, startBottlingOrder, transferWine } from './domain'
+import { advanceRedStage, advanceRoseStage, advanceWhiteStage, approveBlendTrial, assignLotToTank, changeProductLotStatus, completeBottlingOrder, consumeProductLot, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createProductMaster, createRecallSimulation, createSupplier, createTask, mergeWine, receiveGrapeDelivery, receiveProductLot, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, recordRoseOperation, recordWhiteOperation, setBottlingGate, splitWine, startBottlingOrder, transferWine } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
 import { useLanguage, type Language } from './i18n'
 import { LaboratoryPage } from './Laboratory'
 import { NavLink, useHashLocation, useNavigate } from './router'
 import { RedProcessControl } from './RedProcess'
 import { usePwaStatus, type PwaStatus } from './pwa'
+import { ProductUsePanel } from './ProductUse'
 import { browserWineryRepository } from './store'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductLotInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement, WineType } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -420,6 +421,18 @@ function App() {
     window.setTimeout(() => setToast(null), 3200)
   }
 
+  const useInputLot = (input: NewProductConsumptionInput) => {
+    const result = consumeProductLot(input, demoLots, productLots, productMasters, productStockTransactions, productionEvents, traceabilityEntities, traceabilityLinks)
+    setDemoLots(result.wineLots)
+    setProductLots(result.productLots)
+    setProductStockTransactions(result.transactions)
+    setProductionEvents(result.events)
+    setTraceabilityEntities(result.entities)
+    setTraceabilityLinks(result.links)
+    setToast(t('toast.productUsed', { product: result.event.metrics.product ?? '', lot: result.wineLot.id }))
+    window.setTimeout(() => setToast(null), 4200)
+  }
+
   const saveWinerySettings = (nextSettings: WinerySettings) => {
     setSettings(nextSettings)
     setToast(t('toast.settingsSaved'))
@@ -467,7 +480,7 @@ function App() {
   else if (pathname === '/harvest') currentPage = <HarvestPage parcels={parcels} deliveries={deliveries} onOpenIntake={(deliveryId) => setIntakeFlow({ open: true, deliveryId })} />
   else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={activeLots} />
-  else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} productionEvents={productionEvents} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} onRecordRedOperation={saveRedOperation} onAdvanceRedStage={moveRedStage} onRecordWhiteOperation={saveWhiteOperation} onAdvanceWhiteStage={moveWhiteStage} onRecordRoseOperation={saveRoseOperation} onAdvanceRoseStage={moveRoseStage} />
+  else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} productionEvents={productionEvents} productMasters={productMasters} productLots={productLots} productTransactions={productStockTransactions} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} onConsumeProduct={useInputLot} onRecordRedOperation={saveRedOperation} onAdvanceRedStage={moveRedStage} onRecordWhiteOperation={saveWhiteOperation} onAdvanceWhiteStage={moveWhiteStage} onRecordRoseOperation={saveRoseOperation} onAdvanceRoseStage={moveRoseStage} />
   else if (pathname === '/cellar') currentPage = <CellarMap tanks={demoTanks} />
   else if (pathname === '/movements') currentPage = <MovementsPage lots={demoLots} tanks={demoTanks} movements={movements} onTransfer={completeTransfer} onSplit={completeSplit} onMerge={completeMerge} />
   else if (pathname === '/tasks') currentPage = <TasksPage lots={activeLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} />
@@ -882,12 +895,16 @@ function OverviewLotCard({ lot, onOpen, compact }: { lot: WineLot; onOpen: () =>
   )
 }
 
-function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRedOperation, onAdvanceRedStage, onRecordWhiteOperation, onAdvanceWhiteStage, onRecordRoseOperation, onAdvanceRoseStage }: {
+function LotDetail({ lots, tanks, productionEvents, productMasters, productLots, productTransactions, lotId, onReading, onConsumeProduct, onRecordRedOperation, onAdvanceRedStage, onRecordWhiteOperation, onAdvanceWhiteStage, onRecordRoseOperation, onAdvanceRoseStage }: {
   lots: WineLot[]
   tanks: Tank[]
   productionEvents: ProductionEvent[]
+  productMasters: ProductMaster[]
+  productLots: ProductLot[]
+  productTransactions: ProductStockTransaction[]
   lotId: string
   onReading: (id: string) => void
+  onConsumeProduct: (input: NewProductConsumptionInput) => void
   onRecordRedOperation: (input: NewRedOperationInput) => void
   onAdvanceRedStage: (input: AdvanceRedStageInput) => void
   onRecordWhiteOperation: (input: NewWhiteOperationInput) => void
@@ -976,6 +993,8 @@ function LotDetail({ lots, tanks, productionEvents, lotId, onReading, onRecordRe
       {isRed && <RedProcessControl lot={lot} events={productionEvents} onRecordOperation={onRecordRedOperation} onAdvanceStage={onAdvanceRedStage} />}
       {lot.type === 'blanco' && <WhiteProcessControl lot={lot} events={productionEvents} onRecordOperation={onRecordWhiteOperation} onAdvanceStage={onAdvanceWhiteStage} />}
       {isRose && <RoseProcessControl lot={lot} events={productionEvents} onRecordOperation={onRecordRoseOperation} onAdvanceStage={onAdvanceRoseStage} />}
+
+      <ProductUsePanel wineLot={lot} products={productMasters} productLots={productLots} transactions={productTransactions} onConsume={onConsumeProduct} />
 
       <section className="detail-columns">
         <div className="panel readings-panel">

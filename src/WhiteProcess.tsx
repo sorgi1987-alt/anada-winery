@@ -22,13 +22,13 @@ const nowForInput = () => {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
 
-const operationIcon = (type: WhiteOperationType): ReactNode => {
+const operationIcon = (type: WhiteOperationType | 'addition'): ReactNode => {
   if (type === 'pressing' || type === 'reception_check') return <Grape />
   if (type === 'must_protection') return <ShieldCheck />
   if (type === 'turbidity_check' || type === 'density_check') return <Droplets />
   if (type === 'clean_must_racking' || type === 'batonnage') return <RefreshCw />
   if (type === 'temperature_check') return <Thermometer />
-  if (type === 'inoculation') return <Beaker />
+  if (type === 'inoculation' || type === 'addition') return <Beaker />
   if (type === 'sample' || type === 'lees_tasting') return <FlaskConical />
   if (type === 'cold_stability_check') return <Snowflake />
   if (type === 'lees_decision') return <Sparkles />
@@ -74,7 +74,7 @@ export function WhiteProcessControl({ lot, events, onRecordOperation, onAdvanceS
     if (event.operationType === 'pressing') return `${new Intl.NumberFormat(locale).format(metrics.freeRunVolume ?? 0)} L + ${new Intl.NumberFormat(locale).format(metrics.pressVolume ?? 0)} L`
     if (event.operationType === 'turbidity_check') return `${metrics.turbidity?.toFixed(0)} NTU`
     if (event.operationType === 'clean_must_racking') return `${new Intl.NumberFormat(locale).format(metrics.volumeAfter ?? 0)} L`
-    if (event.operationType === 'inoculation') return `${metrics.additionAmount} ${metrics.additionUnit} · ${metrics.product}`
+    if (event.operationType === 'inoculation' || event.operationType === 'addition') return `${metrics.additionAmount} ${metrics.additionUnit} · ${metrics.product}${metrics.supplierLot ? ` · ${metrics.supplierLot}` : ''}`
     if (event.operationType === 'temperature_check') return `${metrics.temperature?.toFixed(1)} °C`
     if (event.operationType === 'density_check') return `${metrics.density?.toFixed(3)}${metrics.temperature !== undefined ? ` · ${metrics.temperature.toFixed(1)} °C` : ''}`
     if (event.operationType === 'batonnage') return `${metrics.durationMinutes} min`
@@ -96,6 +96,7 @@ export function WhiteProcessControl({ lot, events, onRecordOperation, onAdvanceS
 
   const eventLabel = (event: ProductionEvent) => event.kind === 'transition'
     ? t('redEngine.transition')
+    : event.operationType === 'addition' ? t('redEngine.op.addition')
     : event.operationType && event.operationType in operationLabelKeys
       ? t(operationLabelKeys[event.operationType as WhiteOperationType] as Parameters<typeof t>[0])
       : '—'
@@ -134,7 +135,7 @@ export function WhiteProcessControl({ lot, events, onRecordOperation, onAdvanceS
           <div className="red-event-list">
             {lotEvents.slice(0, 5).map((event) => (
               <article key={event.id}>
-                <span>{event.kind === 'transition' ? <ArrowRight /> : event.operationType ? operationIcon(event.operationType as WhiteOperationType) : <Check />}</span>
+                <span>{event.kind === 'transition' ? <ArrowRight /> : event.operationType ? operationIcon(event.operationType as WhiteOperationType | 'addition') : <Check />}</span>
                 <div><strong>{eventLabel(event)}</strong><small>{event.operator} · {new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(event.performedAt))}</small><em>{eventDetail(event)}</em></div>
                 <Check size={14} />
               </article>

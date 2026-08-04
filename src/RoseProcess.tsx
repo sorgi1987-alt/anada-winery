@@ -29,7 +29,7 @@ const nowForInput = () => {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
 
-const operationIcon = (type: RoseOperationType): ReactNode => {
+const operationIcon = (type: RoseOperationType | 'addition'): ReactNode => {
   if (type === 'composition_check' || type === 'color_check') return <Sparkles />
   if (type === 'separate_weighing') return <Scale />
   if (type === 'must_protection') return <ShieldCheck />
@@ -37,7 +37,7 @@ const operationIcon = (type: RoseOperationType): ReactNode => {
   if (type === 'joint_vatting') return <GitMerge />
   if (type === 'gentle_cap_management' || type === 'clean_must_racking') return <RefreshCw />
   if (type === 'turbidity_check' || type === 'density_check') return <Droplets />
-  if (type === 'inoculation') return <Beaker />
+  if (type === 'inoculation' || type === 'addition') return <Beaker />
   if (type === 'temperature_check') return <Thermometer />
   if (type === 'sample') return <FlaskConical />
   return <Waves />
@@ -85,7 +85,7 @@ export function RoseProcessControl({ lot, events, onRecordOperation, onAdvanceSt
     if (event.operationType === 'gentle_cap_management') return `${metrics.durationMinutes} min${metrics.temperature !== undefined ? ` · ${metrics.temperature.toFixed(1)} °C` : ''}`
     if (event.operationType === 'turbidity_check') return `${metrics.turbidity?.toFixed(0)} NTU`
     if (event.operationType === 'clean_must_racking') return `${new Intl.NumberFormat(locale).format(metrics.volumeAfter ?? 0)} L`
-    if (event.operationType === 'inoculation') return `${metrics.additionAmount} ${metrics.additionUnit} · ${metrics.product}`
+    if (event.operationType === 'inoculation' || event.operationType === 'addition') return `${metrics.additionAmount} ${metrics.additionUnit} · ${metrics.product}${metrics.supplierLot ? ` · ${metrics.supplierLot}` : ''}`
     if (event.operationType === 'temperature_check') return `${metrics.temperature?.toFixed(1)} °C`
     if (event.operationType === 'density_check') return `${metrics.density?.toFixed(3)}${metrics.temperature !== undefined ? ` · ${metrics.temperature.toFixed(1)} °C` : ''}`
     if (event.operationType === 'lees_decision') return t(`whiteEngine.decision.${metrics.leesDecision ?? 'continue'}` as Parameters<typeof t>[0])
@@ -105,6 +105,7 @@ export function RoseProcessControl({ lot, events, onRecordOperation, onAdvanceSt
   }
 
   const eventLabel = (event: ProductionEvent) => event.kind === 'transition' ? t('redEngine.transition')
+    : event.operationType === 'addition' ? t('redEngine.op.addition')
     : event.operationType && event.operationType in operationLabelKeys ? t(operationLabelKeys[event.operationType as RoseOperationType] as Parameters<typeof t>[0]) : '—'
 
   return (
@@ -125,7 +126,7 @@ export function RoseProcessControl({ lot, events, onRecordOperation, onAdvanceSt
 
       <div className="red-engine-grid">
         <div className="red-operation-board"><div className="red-section-heading"><span><strong>{t('redEngine.registerOperation')}</strong><small>{stage ? d(stage.shortLabel) : '—'}</small></span><em>{availableOperations.length}</em></div><div className="red-operation-grid">{availableOperations.map((type) => <button key={type} onClick={() => setSelectedOperation(type)}><span>{operationIcon(type)}</span><strong>{t(operationLabelKeys[type] as Parameters<typeof t>[0])}</strong><ArrowRight /></button>)}</div></div>
-        <div className="red-event-board"><div className="red-section-heading"><span><strong>{t('redEngine.history')}</strong><small>{t('redEngine.recentRecords')}</small></span><em>{lotEvents.length}</em></div><div className="red-event-list">{lotEvents.slice(0, 5).map((event) => <article key={event.id}><span>{event.kind === 'transition' ? <ArrowRight /> : event.operationType ? operationIcon(event.operationType as RoseOperationType) : <Check />}</span><div><strong>{eventLabel(event)}</strong><small>{event.operator} · {new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(event.performedAt))}</small><em>{eventDetail(event)}</em></div><Check size={14} /></article>)}{!lotEvents.length && <div className="red-empty-events"><Clock3 /><span>{t('redEngine.noRecords')}</span></div>}</div></div>
+        <div className="red-event-board"><div className="red-section-heading"><span><strong>{t('redEngine.history')}</strong><small>{t('redEngine.recentRecords')}</small></span><em>{lotEvents.length}</em></div><div className="red-event-list">{lotEvents.slice(0, 5).map((event) => <article key={event.id}><span>{event.kind === 'transition' ? <ArrowRight /> : event.operationType ? operationIcon(event.operationType as RoseOperationType | 'addition') : <Check />}</span><div><strong>{eventLabel(event)}</strong><small>{event.operator} · {new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(event.performedAt))}</small><em>{eventDetail(event)}</em></div><Check size={14} /></article>)}{!lotEvents.length && <div className="red-empty-events"><Clock3 /><span>{t('redEngine.noRecords')}</span></div>}</div></div>
       </div>
       {selectedOperation && <RoseOperationSheet lot={lot} type={selectedOperation} onClose={() => setSelectedOperation(null)} onSave={(input) => { onRecordOperation(input); setSelectedOperation(null) }} />}
     </section>

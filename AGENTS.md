@@ -53,4 +53,4 @@ Añada is a Spanish-first winery-operations application for small and medium win
 
 ## Current phase
 
-Phase 8B.1 is the version 0.23 supplier and oenological-input receipt checkpoint. Physical product lots enter quarantine and require an explicit attributed release before later use. Phase 8B.2 will connect approved input lots to production additions and bidirectional traceability. Authentication, shared persistence and remote writes remain deferred until Phase 9.
+Phase 8B.2A is the version 0.24 product-consumption checkpoint. Only approved, unexpired physical product lots can be consumed into active wine lots; the mutation atomically deducts stock and creates attributed inventory, production and bidirectional traceability records. Phase 8B.2B will add stock adjustments, storage transfers and disposal. Authentication, shared persistence and remote writes remain deferred until Phase 9.

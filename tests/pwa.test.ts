@@ -78,6 +78,15 @@ test('supply creation uses the established responsive modal contract', () => {
   assert.match(styles, /\.movement-sheet-body \.supply-form-grid\{padding:0;grid-template-columns:1fr\}/)
 })
 
+test('product consumption uses the cellar modal contract and touch-safe fields', () => {
+  const styles = readFileSync('src/styles.css', 'utf8')
+  const productUse = readFileSync('src/ProductUse.tsx', 'utf8')
+  assert.match(productUse, /className="movement-sheet-layer"/)
+  assert.match(productUse, /className="movement-sheet product-use-sheet"/)
+  assert.doesNotMatch(productUse, /autoFocus/)
+  assert.match(styles, /\.product-use-sheet \.movement-form-grid input,[^}]+font-size:16px/)
+})
+
 test('the active application excludes the retired DOCa eligibility workspace', () => {
   const app = readFileSync('src/App.tsx', 'utf8')
   const bottling = readFileSync('src/Bottling.tsx', 'utf8')

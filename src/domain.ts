@@ -1,5 +1,5 @@
 import { images, redProcess, roseProcesses, whiteProcess } from './data'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductLotInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -69,6 +69,76 @@ export const receiveProductLot = (input: NewProductLotInput, products: ProductMa
 
 export const effectiveProductLotStatus = (lot: ProductLot, today = new Date().toISOString().slice(0, 10)): ProductLotStatus =>
   lot.expiresAt && lot.expiresAt < today && (lot.status === 'approved' || lot.status === 'quarantine') ? 'expired' : lot.status
+
+export const consumeProductLot = (
+  input: NewProductConsumptionInput,
+  wineLots: WineLot[],
+  productLots: ProductLot[],
+  products: ProductMaster[],
+  transactions: ProductStockTransaction[],
+  events: ProductionEvent[],
+  entities: TraceabilityEntity[],
+  links: TraceabilityLink[],
+) => {
+  const wineLot = wineLots.find((lot) => lot.id === input.wineLotId && lot.operationalStatus !== 'consumed')
+  const productLot = productLots.find((lot) => lot.id === input.productLotId)
+  const product = productLot && products.find((item) => item.id === productLot.productId && item.active)
+  if (!wineLot) throw new Error('An active wine lot is required')
+  if (!productLot || !product) throw new Error('A valid product lot is required')
+  if (!input.performedAt || !input.operator.trim()) throw new Error('Consumption requires time and operator')
+  const performedDate = input.performedAt.slice(0, 10)
+  if (effectiveProductLotStatus(productLot, performedDate) !== 'approved') throw new Error('Only approved, non-expired product lots can be used')
+  if (!Number.isFinite(input.quantity) || input.quantity <= 0) throw new Error('Consumption quantity must be greater than zero')
+  if (input.quantity > productLot.quantityOnHand) throw new Error('Insufficient product-lot stock')
+  const stage = currentStage(wineLot)
+  if (!stage) throw new Error('Wine lot has no active production stage')
+
+  const recordedAt = new Date().toISOString()
+  const event: ProductionEvent = {
+    id: nowId('production-event'), lotId: wineLot.id, wineType: wineLot.type, kind: 'operation', stageId: stage.id, operationType: 'addition',
+    performedAt: input.performedAt, recordedAt, operator: input.operator.trim(), notes: input.notes.trim(), storageMode: 'browser-local',
+    metrics: { product: product.name, productId: product.id, productLotId: productLot.id, supplierLot: productLot.supplierLot, additionAmount: input.quantity, additionUnit: productLot.unit, volumeBefore: wineLot.volume, volumeAfter: wineLot.volume },
+  }
+  const updatedProductLot: ProductLot = { ...productLot, quantityOnHand: Number((productLot.quantityOnHand - input.quantity).toFixed(3)) }
+  const transaction: ProductStockTransaction = {
+    id: nowId('stock'), productLotId: productLot.id, type: 'consumption', quantity: input.quantity, unit: productLot.unit,
+    occurredAt: input.performedAt, recordedAt, operator: input.operator.trim(), fromLocation: productLot.location, reference: wineLot.id,
+    wineLotId: wineLot.id, productionEventId: event.id, notes: input.notes.trim(),
+  }
+  const activity: LotActivity = {
+    id: event.id, title: 'Adición enológica', person: event.operator, time: 'Ahora',
+    detail: `${input.quantity} ${productLot.unit} · ${product.name} · ${productLot.code}`, recordedAt,
+  }
+  const updatedWineLot: WineLot = { ...wineLot, activities: [activity, ...(wineLot.activities ?? [])] }
+
+  const productEntityId = `trace-${productLot.id}`
+  const existingProductEntity = entities.find((entity) => entity.id === productEntityId || (entity.type === 'product_lot' && entity.code === productLot.code))
+  const productEntity: TraceabilityEntity = {
+    id: existingProductEntity?.id ?? productEntityId, type: 'product_lot', code: productLot.code, name: product.name,
+    subtitle: `${product.code} · ${productLot.supplierLot}`, occurredAt: productLot.receivedAt, status: 'verified',
+    quantity: productLot.quantityReceived, unit: productLot.unit, metadata: { Lote_proveedor: productLot.supplierLot, Ubicación: productLot.location, Disponible: `${updatedProductLot.quantityOnHand} ${productLot.unit}`, Caducidad: productLot.expiresAt ?? 'No indicada' },
+  }
+  const existingWineEntity = entities.find((entity) => entity.type === 'wine_lot' && entity.code === wineLot.id)
+  const wineEntity: TraceabilityEntity = existingWineEntity ?? {
+    id: `trace-wine-${wineLot.id}`, type: 'wine_lot', code: wineLot.id, name: wineLot.name, subtitle: `${wineLot.varieties} · ${wineLot.vintage}`,
+    occurredAt: wineLot.productionDetails?.receptionDate ?? input.performedAt, status: 'verified', quantity: wineLot.volume, unit: 'L', image: wineLot.image || images.tanks,
+    metadata: { Origen: wineLot.origin, Elaboración: wineLot.type, Depósito: wineLot.vessel, Etapa: stage.label },
+  }
+  let nextEntities = existingProductEntity
+    ? entities.map((entity) => entity.id === existingProductEntity.id ? productEntity : entity)
+    : [productEntity, ...entities]
+  if (!existingWineEntity) nextEntities = [wineEntity, ...nextEntities]
+  const link: TraceabilityLink = {
+    id: nowId('trace-link'), sourceId: productEntity.id, targetId: wineEntity.id, relation: 'used_in', quantity: input.quantity, unit: productLot.unit,
+    occurredAt: input.performedAt, evidence: `${event.id} · ${productLot.code} → ${wineLot.id}`, status: 'verified', verifiedBy: input.operator.trim(),
+  }
+  return {
+    event, transaction, link, productLot: updatedProductLot, wineLot: updatedWineLot,
+    wineLots: wineLots.map((lot) => lot.id === wineLot.id ? updatedWineLot : lot),
+    productLots: productLots.map((lot) => lot.id === productLot.id ? updatedProductLot : lot),
+    transactions: [transaction, ...transactions], events: [event, ...events], entities: nextEntities, links: [link, ...links],
+  }
+}
 
 export const changeProductLotStatus = (lots: ProductLot[], transactions: ProductStockTransaction[], lotId: string, status: Extract<ProductLotStatus, 'approved' | 'rejected' | 'recalled'>, notes: string) => {
   const current = lots.find((lot) => lot.id === lotId)
@@ -613,8 +683,8 @@ export const createRecallSimulation = (input: NewRecallSimulationInput, entities
 
 export const redOperationTypesByStage: Record<string, RedOperationType[]> = {
   reception: ['selection', 'temperature_check', 'sample'],
-  destem: ['vatting', 'addition', 'temperature_check'],
-  af: ['pump_over', 'punch_down', 'temperature_check', 'density_check', 'addition', 'sample'],
+  destem: ['vatting', 'temperature_check'],
+  af: ['pump_over', 'punch_down', 'temperature_check', 'density_check', 'sample'],
   devat: ['devatting_pressing', 'racking', 'sample'],
   malo: ['malolactic_check', 'racking', 'so2_adjustment', 'sample'],
   ageing: ['racking', 'so2_adjustment', 'sample'],
@@ -782,7 +852,7 @@ export const whiteOperationTypesByStage: Record<string, WhiteOperationType[]> = 
   reception: ['reception_check', 'must_protection', 'sample'],
   press: ['pressing', 'sample'],
   settling: ['turbidity_check', 'clean_must_racking', 'sample'],
-  af: ['inoculation', 'temperature_check', 'density_check', 'sample'],
+  af: ['temperature_check', 'density_check', 'sample'],
   lees: ['batonnage', 'lees_tasting', 'lees_decision', 'sample'],
   stability: ['cold_stability_check', 'sample'],
   bottle: [],
@@ -971,7 +1041,7 @@ export const roseOperationTypesByMethod: Record<RoseMethod, Record<string, RoseO
     reception: ['composition_check', 'must_protection', 'temperature_check', 'sample'],
     press: ['direct_pressing', 'color_check', 'sample'],
     settling: ['turbidity_check', 'clean_must_racking', 'must_protection', 'sample'],
-    af: ['inoculation', 'temperature_check', 'density_check', 'color_check', 'sample'],
+    af: ['temperature_check', 'density_check', 'color_check', 'sample'],
     lees: ['lees_decision', 'sample'], stability: ['stability_check', 'color_check', 'sample'], bottle: [],
   },
   short_maceration: {
@@ -979,7 +1049,7 @@ export const roseOperationTypesByMethod: Record<RoseMethod, Record<string, RoseO
     maceration: ['skin_contact_check', 'color_check', 'temperature_check', 'sample'],
     press: ['fraction_separation', 'color_check', 'sample'],
     settling: ['turbidity_check', 'clean_must_racking', 'must_protection', 'sample'],
-    af: ['inoculation', 'temperature_check', 'density_check', 'color_check', 'sample'],
+    af: ['temperature_check', 'density_check', 'color_check', 'sample'],
     lees: ['lees_decision', 'sample'], bottle: [],
   },
   saignee: {
@@ -987,7 +1057,7 @@ export const roseOperationTypesByMethod: Record<RoseMethod, Record<string, RoseO
     maceration: ['skin_contact_check', 'color_check', 'temperature_check', 'sample'],
     saignee: ['saignee_separation', 'color_check', 'sample'],
     settling: ['turbidity_check', 'clean_must_racking', 'must_protection', 'sample'],
-    af: ['inoculation', 'temperature_check', 'density_check', 'color_check', 'sample'],
+    af: ['temperature_check', 'density_check', 'color_check', 'sample'],
     lees: ['lees_decision', 'sample'], bottle: [],
   },
   cofermentation: {
@@ -995,7 +1065,7 @@ export const roseOperationTypesByMethod: Record<RoseMethod, Record<string, RoseO
     vatting: ['joint_vatting', 'temperature_check', 'sample'],
     cofermentation: ['gentle_cap_management', 'skin_contact_check', 'color_check', 'temperature_check', 'density_check', 'sample'],
     press: ['fraction_separation', 'color_check', 'sample'],
-    af: ['inoculation', 'temperature_check', 'density_check', 'sample'],
+    af: ['temperature_check', 'density_check', 'sample'],
     lees: ['lees_decision', 'sample'], bottle: [],
   },
 }

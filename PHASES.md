@@ -44,14 +44,24 @@ Status: deployment prepared for version 0.23.
 - Duplicate supplier-lot, blocked-supplier, unit and expiry validation
 - Schema v16 migration preserving version 0.22 wine records and adding supply registers
 
-### Phase 8B.2 — Consumption and wine-lot traceability
+### Phase 8B.2A — Consumption and wine-lot traceability
 
-- Receipt, release, consumption, adjustment, transfer and disposal transactions
-- Addition to wine lot with product lot, dosage, target volume, stage, operator and timestamp
+Status: deployment prepared for version 0.24.
+
+- Addition to an active wine lot with physical product lot, quantity, stage, operator and timestamp
 - Atomic inventory deduction and insufficient/expired/quarantined-stock guards
-- Forward trace from product lot to wine and finished lots; backward trace from wine lot to every input lot
+- Inventory transaction and production event joined by immutable identifiers
+- Forward trace from product lot to wine; backward trace from wine lot to every consumed input lot
+- Legacy untracked addition actions removed from active process menus while preserving historical events
 
 Completion gate: receive a yeast lot, approve it, consume part of it in fermentation, reconcile stock and find every affected wine lot in both traceability directions.
+
+### Phase 8B.2B — Stock corrections and location control
+
+- Attributed quantity adjustments with mandatory reasons
+- Storage-location transfers without changing ownership or product identity
+- Disposal and stock-zero closure events
+- Consumption corrections by explicit reversal and replacement, never silent overwrite
 
 ## Phase 8C — Unified operational register and genealogy
 
