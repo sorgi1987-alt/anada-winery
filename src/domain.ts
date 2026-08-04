@@ -1,7 +1,56 @@
 import { images, redProcess, roseProcesses, whiteProcess } from './data'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductLotInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+export const receiveProductLot = (input: NewProductLotInput, products: ProductMaster[], suppliers: Supplier[], lots: ProductLot[], transactions: ProductStockTransaction[]) => {
+  const product = products.find((item) => item.id === input.productId && item.active)
+  const supplier = suppliers.find((item) => item.id === input.supplierId && item.status === 'active')
+  if (!product) throw new Error('An active product is required')
+  if (!supplier) throw new Error('An active supplier is required')
+  if (!input.supplierLot.trim() || !input.location.trim() || input.quantity <= 0) throw new Error('Lot, quantity and location are required')
+  if (input.unit !== product.defaultUnit) throw new Error('The receipt unit must match the product master')
+  if (input.expiresAt && input.expiresAt < input.receivedAt.slice(0, 10)) throw new Error('Expiry cannot precede receipt')
+  if (lots.some((lot) => lot.productId === product.id && lot.supplierId === supplier.id && lot.supplierLot.toLowerCase() === input.supplierLot.trim().toLowerCase())) throw new Error('Supplier lot already exists for this product')
+  const year = new Date(input.receivedAt).getFullYear().toString().slice(-2)
+  const sequence = lots.reduce((maximum, lot) => {
+    const match = lot.code.match(new RegExp(`^INS-${year}-(\\d+)$`))
+    return match ? Math.max(maximum, Number(match[1])) : maximum
+  }, 0) + 1
+  const recordedAt = new Date().toISOString()
+  const lot: ProductLot = {
+    id: nowId('product-lot'), code: `INS-${year}-${String(sequence).padStart(3, '0')}`, productId: product.id, supplierId: supplier.id,
+    supplierLot: input.supplierLot.trim(), receivedAt: input.receivedAt, ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}), quantityReceived: input.quantity,
+    quantityOnHand: input.quantity, unit: input.unit, location: input.location.trim(), status: 'quarantine', ...(input.certificateRef?.trim() ? { certificateRef: input.certificateRef.trim() } : {}), notes: input.notes.trim(),
+  }
+  const transaction: ProductStockTransaction = {
+    id: nowId('stock'), productLotId: lot.id, type: 'receipt', quantity: input.quantity, unit: input.unit, occurredAt: input.receivedAt, recordedAt,
+    operator: 'Elena Martín', toLocation: lot.location, reference: lot.supplierLot, notes: input.notes.trim(),
+  }
+  return { lot, lots: [lot, ...lots], transaction, transactions: [transaction, ...transactions] }
+}
+
+export const effectiveProductLotStatus = (lot: ProductLot, today = new Date().toISOString().slice(0, 10)): ProductLotStatus =>
+  lot.expiresAt && lot.expiresAt < today && (lot.status === 'approved' || lot.status === 'quarantine') ? 'expired' : lot.status
+
+export const changeProductLotStatus = (lots: ProductLot[], transactions: ProductStockTransaction[], lotId: string, status: Extract<ProductLotStatus, 'approved' | 'rejected' | 'recalled'>, notes: string) => {
+  const current = lots.find((lot) => lot.id === lotId)
+  if (!current) throw new Error('Product lot not found')
+  if (current.status === 'expired') throw new Error('An expired lot cannot be released')
+  if (current.status === 'recalled' && status === 'approved') throw new Error('A recalled lot cannot be released')
+  if (status === 'approved' && current.expiresAt && current.expiresAt < new Date().toISOString().slice(0, 10)) throw new Error('An expired product lot cannot be released')
+  if (status !== 'approved' && !notes.trim()) throw new Error('A reason is required for rejection or recall')
+  const recordedAt = new Date().toISOString()
+  const updated: ProductLot = {
+    ...current, status, notes: notes.trim() || current.notes,
+    ...(status === 'approved' ? { releasedAt: recordedAt, releasedBy: 'Elena Martín' } : { releasedAt: undefined, releasedBy: undefined }),
+  }
+  const transaction: ProductStockTransaction = {
+    id: nowId('stock'), productLotId: current.id, type: status === 'approved' ? 'release' : status === 'rejected' ? 'rejection' : 'recall', quantity: 0,
+    unit: current.unit, occurredAt: recordedAt, recordedAt, operator: 'Elena Martín', reference: current.code, notes: notes.trim(),
+  }
+  return { lot: updated, lots: lots.map((lot) => lot.id === lotId ? updated : lot), transaction, transactions: [transaction, ...transactions] }
+}
 
 const initialProcess = (template: ProcessStage[]) => template.map((stage, index) => ({
   ...stage,

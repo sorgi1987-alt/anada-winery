@@ -53,4 +53,4 @@ Añada is a Spanish-first winery-operations application for small and medium win
 
 ## Current phase
 
-Phase 8A is the version 0.22 scope reset. The dedicated DOCa Rioja eligibility prototype is retired from the active product and remains recoverable from Git history. The next implementation phase is supplier and oenological-product lot traceability. Authentication, shared persistence and remote writes remain deferred until Phase 9.
+Phase 8B.1 is the version 0.23 supplier and oenological-input receipt checkpoint. Physical product lots enter quarantine and require an explicit attributed release before later use. Phase 8B.2 will connect approved input lots to production additions and bidirectional traceability. Authentication, shared persistence and remote writes remain deferred until Phase 9.

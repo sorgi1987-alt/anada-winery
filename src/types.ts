@@ -152,7 +152,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 15
+  schemaVersion: 16
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -170,7 +170,93 @@ export interface WineryState {
   traceabilityEntities: TraceabilityEntity[]
   traceabilityLinks: TraceabilityLink[]
   recallSimulations: RecallSimulation[]
+  suppliers: Supplier[]
+  productMasters: ProductMaster[]
+  productLots: ProductLot[]
+  productStockTransactions: ProductStockTransaction[]
   settings: WinerySettings
+}
+
+export type SupplierStatus = 'active' | 'blocked'
+
+export interface Supplier {
+  id: string
+  code: string
+  name: string
+  taxId: string
+  contactName: string
+  email: string
+  phone: string
+  status: SupplierStatus
+  approvedAt?: string
+  notes: string
+}
+
+export type ProductCategory = 'yeast' | 'nutrient' | 'enzyme' | 'sulphur' | 'acid' | 'fining' | 'stabilisation' | 'filtration' | 'cleaning'
+export type ProductUnit = 'kg' | 'g' | 'L' | 'mL' | 'units'
+
+export interface ProductMaster {
+  id: string
+  code: string
+  name: string
+  category: ProductCategory
+  manufacturer: string
+  defaultUnit: ProductUnit
+  storageInstructions: string
+  technicalSheetRef?: string
+  safetySheetRef?: string
+  active: boolean
+}
+
+export type ProductLotStatus = 'quarantine' | 'approved' | 'rejected' | 'expired' | 'recalled'
+
+export interface ProductLot {
+  id: string
+  code: string
+  productId: string
+  supplierId: string
+  supplierLot: string
+  receivedAt: string
+  expiresAt?: string
+  quantityReceived: number
+  quantityOnHand: number
+  unit: ProductUnit
+  location: string
+  status: ProductLotStatus
+  certificateRef?: string
+  releasedAt?: string
+  releasedBy?: string
+  notes: string
+}
+
+export type ProductStockTransactionType = 'receipt' | 'release' | 'rejection' | 'recall' | 'adjustment' | 'transfer' | 'consumption' | 'disposal'
+
+export interface ProductStockTransaction {
+  id: string
+  productLotId: string
+  type: ProductStockTransactionType
+  quantity: number
+  unit: ProductUnit
+  occurredAt: string
+  recordedAt: string
+  operator: string
+  fromLocation?: string
+  toLocation?: string
+  reference?: string
+  notes: string
+}
+
+export interface NewProductLotInput {
+  productId: string
+  supplierId: string
+  supplierLot: string
+  receivedAt: string
+  expiresAt?: string
+  quantity: number
+  unit: ProductUnit
+  location: string
+  certificateRef?: string
+  notes: string
 }
 
 export interface WinerySettings {

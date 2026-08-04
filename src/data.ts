@@ -1,4 +1,4 @@
-import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, ProductionEvent, RecallSimulation, RoseMethod, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement } from './types'
+import type { Barrel, BarrelOperation, BlendCandidate, BlendTrial, BottlingOrder, CellarTask, GrapeDelivery, LabSample, PackagingMaterial, ProcessStage, ProductLot, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement } from './types'
 
 export const images = {
   vineyard: 'https://images.unsplash.com/photo-1727647279740-bb8a586193fa?auto=format&fit=crop&w=1800&q=82',
@@ -522,3 +522,29 @@ export const traceabilityLinks: TraceabilityLink[] = [
 export const recallSimulations: RecallSimulation[] = [
   { id: 'recall-sim-001', code: 'SIM-26-001', targetEntityId: 'pack-closure-001', targetCode: 'AM-26-4481', reason: 'trace_test', notes: 'Ejercicio interno de localización por lote de corcho.', affectedEntityIds: ['pack-closure-001', 'trace-finished-001', 'trace-order-006', 'trace-order-007', 'trace-blend-001', 'trace-blend-002', 'trace-wine-001', 'trace-wine-002', 'trace-wine-003', 'trace-barrels-001', 'trace-delivery-001', 'trace-delivery-002', 'trace-delivery-003', 'trace-parcel-001', 'trace-parcel-002', 'trace-parcel-003'], affectedFinishedLotIds: ['trace-finished-001'], affectedBottlingOrderIds: ['trace-order-006', 'trace-order-007'], sourceParcelIds: ['trace-parcel-001', 'trace-parcel-002', 'trace-parcel-003'], createdAt: '2026-09-20T16:30:00+02:00', createdBy: 'Elena Martín', status: 'completed' },
 ]
+
+export const suppliers: Supplier[] = [
+  { id: 'supplier-001', code: 'PROV-001', name: 'Laffort España', taxId: 'B26340521', contactName: 'Ana López', email: 'pedidos@laffort.es', phone: '+34 941 000 101', status: 'active', approvedAt: '2026-01-15T10:00:00+01:00', notes: 'Proveedor habitual de levaduras y nutrientes.' },
+  { id: 'supplier-002', code: 'PROV-002', name: 'Agrovin', taxId: 'A13013415', contactName: 'Carlos Sanz', email: 'rioja@agrovin.com', phone: '+34 941 000 202', status: 'active', approvedAt: '2026-02-03T09:30:00+01:00', notes: 'Productos de protección y estabilización.' },
+  { id: 'supplier-003', code: 'PROV-003', name: 'Higiene Enológica Norte', taxId: 'B26590117', contactName: 'Marta Gil', email: 'pedidos@henorte.example', phone: '+34 941 000 303', status: 'active', approvedAt: '2026-03-12T12:00:00+01:00', notes: 'Productos de limpieza para depósitos y línea.' },
+]
+
+export const productMasters: ProductMaster[] = [
+  { id: 'product-001', code: 'LEV-TIN-01', name: 'Levadura selección tinto', category: 'yeast', manufacturer: 'Laffort', defaultUnit: 'kg', storageInstructions: 'Conservar seco entre 5 y 15 °C.', technicalSheetRef: 'FT-LEV-TIN-01', safetySheetRef: 'FDS-LEV-TIN-01', active: true },
+  { id: 'product-002', code: 'NUT-ORG-01', name: 'Nutriente orgánico de fermentación', category: 'nutrient', manufacturer: 'Laffort', defaultUnit: 'kg', storageInstructions: 'Envase cerrado, lugar fresco y seco.', technicalSheetRef: 'FT-NUT-ORG-01', active: true },
+  { id: 'product-003', code: 'SO2-SOL-06', name: 'Solución sulfurosa 6 %', category: 'sulphur', manufacturer: 'Agrovin', defaultUnit: 'L', storageInstructions: 'Ventilado, protegido de calor y luz.', technicalSheetRef: 'FT-SO2-06', safetySheetRef: 'FDS-SO2-06', active: true },
+  { id: 'product-004', code: 'EST-TAR-01', name: 'Estabilizante tartárico', category: 'stabilisation', manufacturer: 'Agrovin', defaultUnit: 'kg', storageInstructions: 'Conservar en lugar seco.', technicalSheetRef: 'FT-EST-TAR-01', active: true },
+  { id: 'product-005', code: 'LIM-ALC-01', name: 'Detergente alcalino de bodega', category: 'cleaning', manufacturer: 'Higiene Enológica Norte', defaultUnit: 'L', storageInstructions: 'Armario químico, separado de ácidos.', technicalSheetRef: 'FT-LIM-ALC-01', safetySheetRef: 'FDS-LIM-ALC-01', active: true },
+]
+
+export const productLots: ProductLot[] = [
+  { id: 'product-lot-001', code: 'INS-26-001', productId: 'product-001', supplierId: 'supplier-001', supplierLot: 'LA-260711-84', receivedAt: '2026-07-14T09:20:00+02:00', expiresAt: '2028-01-31', quantityReceived: 20, quantityOnHand: 14.5, unit: 'kg', location: 'Almacén seco · A-02', status: 'approved', certificateRef: 'COA-LA-260711-84', releasedAt: '2026-07-14T12:10:00+02:00', releasedBy: 'Elena Martín', notes: 'Envases íntegros; recepción a 11 °C.' },
+  { id: 'product-lot-002', code: 'INS-26-002', productId: 'product-002', supplierId: 'supplier-001', supplierLot: 'LA-260718-21', receivedAt: '2026-07-21T10:05:00+02:00', expiresAt: '2027-11-30', quantityReceived: 25, quantityOnHand: 25, unit: 'kg', location: 'Almacén seco · A-03', status: 'quarantine', certificateRef: 'COA-LA-260718-21', notes: 'Pendiente de revisión documental.' },
+  { id: 'product-lot-003', code: 'INS-26-003', productId: 'product-003', supplierId: 'supplier-002', supplierLot: 'AG-S6-26042', receivedAt: '2026-07-22T08:45:00+02:00', expiresAt: '2027-07-01', quantityReceived: 60, quantityOnHand: 48, unit: 'L', location: 'Almacén químico · Q-01', status: 'approved', certificateRef: 'COA-AG-S6-26042', releasedAt: '2026-07-22T11:00:00+02:00', releasedBy: 'Lucía Sáenz', notes: 'Bidones precintados.' },
+  { id: 'product-lot-004', code: 'INS-26-004', productId: 'product-004', supplierId: 'supplier-002', supplierLot: 'AG-EST-2611', receivedAt: '2026-07-25T09:10:00+02:00', expiresAt: '2029-04-30', quantityReceived: 15, quantityOnHand: 15, unit: 'kg', location: 'Almacén seco · B-01', status: 'approved', certificateRef: 'COA-AG-EST-2611', releasedAt: '2026-07-25T12:00:00+02:00', releasedBy: 'Elena Martín', notes: '' },
+  { id: 'product-lot-005', code: 'INS-26-005', productId: 'product-005', supplierId: 'supplier-003', supplierLot: 'HEN-260729-A', receivedAt: '2026-07-30T08:30:00+02:00', expiresAt: '2028-07-01', quantityReceived: 80, quantityOnHand: 80, unit: 'L', location: 'Almacén químico · Q-04', status: 'quarantine', notes: 'Pendiente de ficha de seguridad actualizada.' },
+]
+
+export const productStockTransactions: ProductStockTransaction[] = productLots.map((lot) => ({
+  id: `stock-${lot.id}-receipt`, productLotId: lot.id, type: 'receipt', quantity: lot.quantityReceived, unit: lot.unit, occurredAt: lot.receivedAt, recordedAt: lot.receivedAt, operator: 'Martín Ruiz', toLocation: lot.location, reference: lot.supplierLot, notes: 'Recepción inicial de producto.',
+}))

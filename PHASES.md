@@ -16,7 +16,7 @@ The roadmap is organized around auditable winery operations and general legal-re
 
 ## Phase 8A — Operational scope reset
 
-Status: implementation in progress for version 0.22.
+Status: completed in version 0.22.
 
 - Remove the DOCa Rioja route, navigation and eligibility engines
 - Remove denomination-specific decisions from bottling
@@ -31,12 +31,21 @@ Completion gate: no active route, screen, domain type or production rule claims 
 
 Build the first legally meaningful input-to-wine traceability slice.
 
-- Supplier master and product master
-- Categories for yeast, nutrients, enzymes, sulphur products, acids, fining, stabilization and filtration products
-- Separate category for cleaning and sanitation chemicals
-- Supplier lot, internal lot, receipt date, quantity, unit, expiry and storage location
-- Quarantine, approved, rejected, expired and recalled states
-- Technical sheet, safety sheet and certificate-of-analysis references
+### Phase 8B.1 — Receipt, quarantine and release
+
+Status: deployment prepared for version 0.23.
+
+- Visual bilingual supply workspace with product lots, product masters and suppliers
+- Separate product, supplier and physical supplier-lot identities
+- Yeast, nutrient, enzyme, sulphur, acid, fining, stabilisation, filtration and cleaning categories
+- Receipt date, quantity, unit, expiry, storage location and certificate reference
+- Quarantine by default with explicit release, rejection and recall actions
+- Attributed receipt and status transactions retained without rewriting prior events
+- Duplicate supplier-lot, blocked-supplier, unit and expiry validation
+- Schema v16 migration preserving version 0.22 wine records and adding supply registers
+
+### Phase 8B.2 — Consumption and wine-lot traceability
+
 - Receipt, release, consumption, adjustment, transfer and disposal transactions
 - Addition to wine lot with product lot, dosage, target volume, stage, operator and timestamp
 - Atomic inventory deduction and insufficient/expired/quarantined-stock guards
