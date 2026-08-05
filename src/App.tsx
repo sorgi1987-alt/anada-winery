@@ -71,6 +71,15 @@ function App() {
   const { t, d } = useLanguage()
   const navigate = useNavigate()
   const pwa = usePwaStatus()
+  const [mobileViewport, setMobileViewport] = useState(() => window.matchMedia('(max-width: 900px)').matches)
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 900px)')
+    const updateViewport = () => setMobileViewport(query.matches)
+    updateViewport()
+    query.addEventListener('change', updateViewport)
+    return () => query.removeEventListener('change', updateViewport)
+  }, [])
   const [initialState] = useState(() => browserWineryRepository.load())
   const [demoLots, setDemoLots] = useState<WineLot[]>(initialState.lots)
   const [tasks, setTasks] = useState<CellarTask[]>(initialState.tasks)
@@ -496,7 +505,7 @@ function App() {
   else if (pathname === '/bottling') currentPage = <BottlingPage orders={bottlingOrders} materials={packagingMaterials} trials={blendTrials} onCreateOrder={addBottlingOrder} onToggleGate={updateBottlingGate} onStartOrder={startBottling} onCompleteOrder={finishBottling} />
   else if (pathname === '/supplies') currentPage = <SuppliesPage suppliers={suppliers} products={productMasters} lots={productLots} transactions={productStockTransactions} onReceive={receiveInputLot} onCreateProduct={addProductMaster} onCreateSupplier={addSupplier} onStatus={updateInputLotStatus} onAdjust={adjustInputStock} onTransfer={transferInputStock} onDispose={disposeInputStock} onCorrectConsumption={correctInputConsumption} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
-  else if (pathname === '/scan') currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
+  else if (pathname === '/scan' && mobileViewport) currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
   else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
@@ -562,7 +571,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.25</span>
+          <span>Añada 0.25.2</span>
         </div>
       </section>
     </main>
@@ -618,7 +627,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
           <ChevronDown size={15} />
         </div>
         <nav className="primary-nav" aria-label={t('nav.primary')}>
-          {navItems.map(({ labelKey, path, icon: Icon }) => (
+          {navItems.filter((item) => item.path !== '/scan').map(({ labelKey, path, icon: Icon }) => (
             <NavLink key={path} to={path} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={() => setMenuOpen(false)}>
               <Icon size={19} strokeWidth={1.8} />
               <span>{t(labelKey)}</span>

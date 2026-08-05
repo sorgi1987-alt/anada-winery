@@ -52,7 +52,7 @@ export function SuppliesPage({ suppliers, products, lots, transactions, onReceiv
   const openPrimaryAction = () => view === 'lots' ? setReceiving(true) : view === 'products' ? setCreatingProduct(true) : setCreatingSupplier(true)
   const primaryActionLabel = view === 'lots' ? t('supplies.receive') : view === 'products' ? t('supplies.newProduct') : t('supplies.newSupplier')
 
-  return <main className="page-content supplies-page">
+  return <main className="supplies-page">
     <header className="page-header"><div><span className="eyebrow">{t('supplies.kicker')}</span><h1>{t('supplies.title')}</h1><p>{t('supplies.description')}</p></div><div className="page-header-action"><button className="primary-button" onClick={openPrimaryAction}><Plus /> {primaryActionLabel}</button></div></header>
     <section className="supplies-hero"><div><span className="supplies-hero-mark"><FlaskConical /></span><h2>{t('supplies.heroTitle')}</h2><p>{t('supplies.heroText')}</p></div><aside><ClipboardCheck /><span><strong>{t('supplies.localRegister')}</strong><small>{t('supplies.localRegisterText')}</small></span></aside></section>
     <section className="supplies-metrics">
