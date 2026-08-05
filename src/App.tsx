@@ -526,6 +526,7 @@ function App() {
         }}
         settings={settings}
         pwa={pwa}
+        mobileViewport={mobileViewport}
       >
         <Suspense fallback={<div className="module-loading"><Package size={24} /><span>{t('common.loading')}</span></div>}>{currentPage}</Suspense>
       </Shell>
@@ -574,7 +575,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.27.1</span>
+          <span>Añada 0.27.2</span>
         </div>
       </section>
     </main>
@@ -616,9 +617,10 @@ interface ShellProps {
   onNotifications: () => void
   settings: WinerySettings
   pwa: PwaStatus
+  mobileViewport: boolean
 }
 
-function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, pwa }: ShellProps) {
+function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, pwa, mobileViewport }: ShellProps) {
   const location = useHashLocation()
   const { t } = useLanguage()
   const pageItem = navItems.find((item) => location.pathname.startsWith(item.path))
@@ -667,7 +669,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
             <span className={`connectivity-pill ${pwa.online ? 'online' : 'offline'}`} title={pwa.online ? t('pwa.online') : t('pwa.offline')}>
               {pwa.online ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{pwa.online ? t('pwa.online') : t('pwa.offline')}</span>
             </span>
-            {pwa.installAvailable && <button className="mode-button pwa-install-button" onClick={() => void pwa.install()}><Download size={17} /><span>{t('pwa.install')}</span></button>}
+            {mobileViewport && pwa.installAvailable && <button className="mode-button pwa-install-button" onClick={() => void pwa.install()}><Download size={17} /><span>{t('pwa.install')}</span></button>}
             <button className="mode-button" onClick={toggleCellarMode}>
               {cellarMode ? <Sun size={17} /> : <Moon size={17} />}
               <span>{cellarMode ? t('shell.light') : t('shell.cellar')}</span>
