@@ -133,14 +133,3 @@ Completion gate: one pilot winery confirms that the integration reduces manual w
 ## Validation gate before expansion
 
 Test with three to five Rioja wineries using real or anonymized records. Prioritize grape intake, fermentation, product addition, movement, analysis, bottling and recall. Do not add another broad module unless the same unmet need is independently observed in multiple wineries.
-
-
-### Phase 8C.2 — Time and operational attribution
-
-Status: implemented for version 0.27.0.
-
-- Live winery-local clock in the application header
-- Configurable IANA timezone applied to operational display
-- Performed-at and recorded-at remain distinct immutable timestamps
-- Relative time labels alongside exact timestamps in the operational register
-- Schema v19 migration preserving version 18 records and settings

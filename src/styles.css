@@ -200,7 +200,7 @@ h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -0.0
 .mobile-page-title { display: none; font-weight: 700; }
 .menu-trigger { display: none !important; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-.connectivity-pill{min-height:34px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb,var(--success) 22%,var(--line));border-radius:99px;color:var(--success);background:var(--success-soft);font-size:9px;font-weight:800}.connectivity-pill svg{width:14px}.connectivity-pill.offline{color:var(--warning);border-color:color-mix(in srgb,var(--warning) 26%,var(--line));background:var(--warning-soft)}.pwa-install-button{color:var(--wine-700);border-color:color-mix(in srgb,var(--wine-600) 20%,var(--line));background:var(--wine-100)}.offline-notice{position:sticky;z-index:29;top:72px;min-height:46px;padding:8px clamp(24px,4vw,54px);display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px;align-items:center;color:#704f16;background:#f5e8c9;border-bottom:1px solid #e3ce98}.offline-notice>svg{width:18px}.offline-notice>span{display:grid}.offline-notice strong{font-size:10px}.offline-notice small{font-size:9px;color:#75664a}
+.connectivity-pill{display:none;min-height:34px;padding:0 10px;align-items:center;gap:6px;border:1px solid color-mix(in srgb,var(--success) 22%,var(--line));border-radius:99px;color:var(--success);background:var(--success-soft);font-size:9px;font-weight:800}.connectivity-pill svg{width:14px}.connectivity-pill.offline{color:var(--warning);border-color:color-mix(in srgb,var(--warning) 26%,var(--line));background:var(--warning-soft)}.pwa-install-button{display:none;color:var(--wine-700);border-color:color-mix(in srgb,var(--wine-600) 20%,var(--line));background:var(--wine-100)}.offline-notice{position:sticky;z-index:29;top:72px;min-height:46px;padding:8px clamp(24px,4vw,54px);display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px;align-items:center;color:#704f16;background:#f5e8c9;border-bottom:1px solid #e3ce98}.offline-notice>svg{width:18px}.offline-notice>span{display:grid}.offline-notice strong{font-size:10px}.offline-notice small{font-size:9px;color:#75664a}
 
 .icon-button {
   width: 40px;
@@ -798,6 +798,12 @@ h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -0.0
 
 @media (max-width:900px){.catalyst-foundation-steps{grid-template-columns:1fr}.catalyst-foundation-card>footer{align-items:stretch;display:grid}.catalyst-foundation-card>footer .secondary-button{width:100%}}
 @media (max-width:900px){.pwa-foundation-card>footer{align-items:stretch;display:grid}.pwa-foundation-card>footer>div{display:grid;grid-template-columns:1fr 1fr}.pwa-foundation-card>footer button{width:100%}}
+
+@media (max-width:900px){
+  .connectivity-pill{display:inline-flex}
+  .pwa-install-button{display:inline-flex}
+}
+
 @media (max-width:680px){.connectivity-pill{width:36px;padding:0;justify-content:center}.connectivity-pill span,.pwa-install-button span{display:none}.offline-notice{top:60px;padding:8px 16px}.pwa-foundation-card,.catalyst-foundation-card{padding:14px}.pwa-foundation-card>header,.catalyst-foundation-card>header{align-items:flex-start}.pwa-capability-grid{grid-template-columns:1fr}.pwa-foundation-card>footer>div{grid-template-columns:1fr}.catalyst-table-cloud{overflow-x:auto;flex-wrap:nowrap}.catalyst-table-cloud span{flex:0 0 auto}.catalyst-connection-note{align-items:flex-start;display:grid}}
 
 /* Phase 4A · red-wine operational process engine */

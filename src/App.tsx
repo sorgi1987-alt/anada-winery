@@ -574,7 +574,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.27</span>
+          <span>Añada 0.27.1</span>
         </div>
       </section>
     </main>
@@ -672,7 +672,6 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
               {cellarMode ? <Sun size={17} /> : <Moon size={17} />}
               <span>{cellarMode ? t('shell.light') : t('shell.cellar')}</span>
             </button>
-            <LanguageSelector compact />
             <button className="icon-button notification-button" onClick={onNotifications} aria-label={t('shell.notifications')}><Bell size={19} /><i /></button>
             <span className="avatar top-avatar">EM</span>
           </div>

@@ -82,10 +82,5 @@ The production build is written to `dist/`. Preserve the Catalyst CLI-generated 
 Phase 8B.2B adds auditable stock adjustments, location transfers, disposal/zero-balance closure, per-location balances and explicit consumption reversal chains. Local persisted data migrates from schema v16 to v17 without replacing existing supply or wine records.
 
 
-## Version 0.27.0
+## Version 0.26.0
 Adds the unified operational register with cross-module chronology, filters and CSV export.
-
-
-## Time attribution
-
-Version 0.27 uses the winery timezone configured in Administration for live and operational date display. Operational records preserve performed-at and recorded-at timestamps separately.
