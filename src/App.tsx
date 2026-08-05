@@ -114,7 +114,7 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 18, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings })
+    browserWineryRepository.save({ schemaVersion: 19, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings })
   }, [demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings])
 
   const toggleCellarMode = () => {
@@ -508,7 +508,7 @@ function App() {
   else if (pathname === '/supplies') currentPage = <SuppliesPage suppliers={suppliers} products={productMasters} lots={productLots} transactions={productStockTransactions} onReceive={receiveInputLot} onCreateProduct={addProductMaster} onCreateSupplier={addSupplier} onStatus={updateInputLotStatus} onAdjust={adjustInputStock} onTransfer={transferInputStock} onDispose={disposeInputStock} onCorrectConsumption={correctInputConsumption} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
   else if (pathname === '/scan' && mobileViewport) currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
-  else if (pathname === '/register') currentPage = <OperationalRegisterPage lots={demoLots} deliveries={deliveries} productionEvents={productionEvents} movements={movements} productTransactions={productStockTransactions} barrelOperations={barrelOperations} bottlingOrders={bottlingOrders} />
+  else if (pathname === '/register') currentPage = <OperationalRegisterPage lots={demoLots} deliveries={deliveries} productionEvents={productionEvents} movements={movements} productTransactions={productStockTransactions} barrelOperations={barrelOperations} bottlingOrders={bottlingOrders} timeZone={settings.timezone} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
   else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
@@ -574,7 +574,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.26.2</span>
+          <span>Añada 0.27</span>
         </div>
       </section>
     </main>
@@ -588,6 +588,13 @@ function Brand({ light = false }: { light?: boolean }) {
       <span>Añada</span>
     </div>
   )
+}
+
+function LiveClock({ timeZone }: { timeZone: string }) {
+  const { locale } = useLanguage()
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 1000); return () => window.clearInterval(timer) }, [])
+  return <time className="live-clock" dateTime={now.toISOString()} title={timeZone}><Clock3 size={16} /><span><strong>{new Intl.DateTimeFormat(locale,{timeZone,hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now)}</strong><small>{new Intl.DateTimeFormat(locale,{timeZone,weekday:'short',day:'2-digit',month:'short'}).format(now)}</small></span></time>
 }
 
 function LanguageSelector({ compact = false }: { compact?: boolean }) {
@@ -656,6 +663,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
             <span className="mobile-page-title">{page}</span>
           </div>
           <div className="topbar-actions">
+            <LiveClock timeZone={settings.timezone} />
             <span className={`connectivity-pill ${pwa.online ? 'online' : 'offline'}`} title={pwa.online ? t('pwa.online') : t('pwa.offline')}>
               {pwa.online ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{pwa.online ? t('pwa.online') : t('pwa.offline')}</span>
             </span>
