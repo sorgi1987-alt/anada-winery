@@ -80,3 +80,7 @@ The production build is written to `dist/`. Preserve the Catalyst CLI-generated 
 ## Version 0.25
 
 Phase 8B.2B adds auditable stock adjustments, location transfers, disposal/zero-balance closure, per-location balances and explicit consumption reversal chains. Local persisted data migrates from schema v16 to v17 without replacing existing supply or wine records.
+
+
+## Version 0.26.0
+Adds the unified operational register with cross-module chronology, filters and CSV export.

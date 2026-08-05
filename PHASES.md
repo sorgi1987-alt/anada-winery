@@ -65,6 +65,17 @@ Completion gate: receive a yeast lot, approve it, consume part of it in fermenta
 
 ## Phase 8C — Unified operational register and genealogy
 
+### Phase 8C.1 — Unified operational register
+
+Status: implemented for version 0.26.0.
+
+- Read-only unified chronology across intake, production, movements, supplies, ageing and bottling
+- Standard event identity, performed/recorded timestamps, operator, quantities, locations and references
+- Filters by category, date and free-text record identity
+- Daily or filtered CSV export
+- Schema v18 migration preserving all v17 operational data
+
+
 - Immutable event identity and correction/supersession records
 - Consistent operator, performed-at and recorded-at attribution
 - Automatic genealogy for intake, additions, movements, blending and bottling

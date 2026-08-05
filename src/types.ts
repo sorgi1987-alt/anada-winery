@@ -152,7 +152,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 17
+  schemaVersion: 18
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
