@@ -132,7 +132,7 @@ test('white-only operations cannot be recorded on a red lot', () => {
 test('the current migration preserves v10 process history and adds missing white demo events', () => {
   const redHistory = structuredClone(productionEvents.filter((event) => event.wineType === 'tinto'))
   const migrated = migrateLegacyState({ schemaVersion: 10, lots: structuredClone(lots), tasks: structuredClone(initialTasks), tanks: structuredClone(tanks), productionEvents: redHistory })
-  assert.equal(migrated?.schemaVersion, 20)
+  assert.equal(migrated?.schemaVersion, 21)
   assert.equal(migrated?.productionEvents.filter((event) => event.wineType === 'tinto').length, redHistory.length)
   assert.equal(migrated?.productionEvents.filter((event) => event.wineType === 'blanco').length, 3)
 })

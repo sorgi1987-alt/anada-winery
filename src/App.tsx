@@ -20,7 +20,8 @@ import { RedProcessControl } from './RedProcess'
 import { usePwaStatus, type PwaStatus } from './pwa'
 import { ProductUsePanel } from './ProductUse'
 import { browserWineryRepository } from './store'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WinerySettings, WineLot, WineMovement, WineType } from './types'
+import { fetchWineryWeather, unavailableWeatherSnapshot, weatherSnapshotFromWeather } from './weather'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WeatherSnapshot, WinerySettings, WineLot, WineMovement, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -104,6 +105,7 @@ function App() {
   const [productMasters, setProductMasters] = useState<ProductMaster[]>(initialState.productMasters)
   const [productLots, setProductLots] = useState<ProductLot[]>(initialState.productLots)
   const [productStockTransactions, setProductStockTransactions] = useState<ProductStockTransaction[]>(initialState.productStockTransactions)
+  const [weatherSnapshots, setWeatherSnapshots] = useState<WeatherSnapshot[]>(initialState.weatherSnapshots)
   const [settings, setSettings] = useState<WinerySettings>(initialState.settings)
   const [cellarMode, setCellarMode] = useState(() => localStorage.getItem('anada-theme') === 'cellar')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -114,8 +116,15 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 20, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings })
-  }, [demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings])
+    browserWineryRepository.save({ schemaVersion: 21, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings })
+  }, [demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings])
+
+
+  const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
+    void fetchWineryWeather(settings.latitude, settings.longitude, settings.timezone)
+      .then((weather) => setWeatherSnapshots((current) => [weatherSnapshotFromWeather(entityType, entityId, settings.latitude, settings.longitude, weather), ...current]))
+      .catch((error: unknown) => setWeatherSnapshots((current) => [unavailableWeatherSnapshot(entityType, entityId, settings.latitude, settings.longitude, error instanceof Error ? error.message : 'weather unavailable'), ...current]))
+  }
 
   const toggleCellarMode = () => {
     setCellarMode((current) => {
@@ -170,6 +179,7 @@ function App() {
         storageMode: 'browser-local',
       }
       setProductionEvents((current) => [event, ...current])
+      captureWeather('production_event', event.id)
     }
     setDemoTanks((current) => current.map((tank) => tank.lot === lotId
       ? { ...tank, temperature: reading.temperature, volume: nextVolume ?? tank.volume }
@@ -196,6 +206,7 @@ function App() {
     setDemoTanks(result.tanks)
     setTasks(result.tasks)
     setProductionEvents(result.events)
+    captureWeather('production_event', result.event.id)
     setUndoLot(null)
     setToast(t('toast.redOperationSaved', { id: result.lot.id }))
     window.setTimeout(() => setToast(null), 4200)
@@ -207,6 +218,7 @@ function App() {
     setDemoTanks(result.tanks)
     setTasks(result.tasks)
     setProductionEvents(result.events)
+    captureWeather('production_event', result.event.id)
     setUndoLot(null)
     setToast(t('toast.redStageAdvanced', { id: result.lot.id, stage: d(result.lot.stage) }))
     window.setTimeout(() => setToast(null), 4200)
@@ -218,6 +230,7 @@ function App() {
     setDemoTanks(result.tanks)
     setTasks(result.tasks)
     setProductionEvents(result.events)
+    captureWeather('production_event', result.event.id)
     setUndoLot(null)
     setToast(t('toast.whiteOperationSaved', { id: result.lot.id }))
     window.setTimeout(() => setToast(null), 4200)
@@ -229,6 +242,7 @@ function App() {
     setDemoTanks(result.tanks)
     setTasks(result.tasks)
     setProductionEvents(result.events)
+    captureWeather('production_event', result.event.id)
     setUndoLot(null)
     setToast(t('toast.whiteStageAdvanced', { id: result.lot.id, stage: d(result.lot.stage) }))
     window.setTimeout(() => setToast(null), 4200)
@@ -240,6 +254,7 @@ function App() {
     setDemoTanks(result.tanks)
     setTasks(result.tasks)
     setProductionEvents(result.events)
+    captureWeather('production_event', result.event.id)
     setUndoLot(null)
     setToast(t('toast.roseOperationSaved', { id: result.lot.id }))
     window.setTimeout(() => setToast(null), 4200)
@@ -251,6 +266,7 @@ function App() {
     setDemoTanks(result.tanks)
     setTasks(result.tasks)
     setProductionEvents(result.events)
+    captureWeather('production_event', result.event.id)
     setUndoLot(null)
     setToast(t('toast.roseStageAdvanced', { id: result.lot.id, stage: d(result.lot.stage) }))
     window.setTimeout(() => setToast(null), 4200)
@@ -262,6 +278,7 @@ function App() {
     setDemoTanks(result.tanks)
     setMovements(result.movements)
     setUndoLot(null)
+    captureWeather('wine_movement', result.movement.id)
     setToast(t('toast.movementSaved', { code: result.movement.code }))
     window.setTimeout(() => setToast(null), 4200)
   }
@@ -272,6 +289,7 @@ function App() {
     setDemoTanks(result.tanks)
     setMovements(result.movements)
     setUndoLot(null)
+    captureWeather('wine_movement', result.movement.id)
     setToast(t('toast.movementSaved', { code: result.movement.code }))
     window.setTimeout(() => setToast(null), 4200)
   }
@@ -282,6 +300,7 @@ function App() {
     setDemoTanks(result.tanks)
     setMovements(result.movements)
     setUndoLot(null)
+    captureWeather('wine_movement', result.movement.id)
     setToast(t('toast.movementSaved', { code: result.movement.code }))
     window.setTimeout(() => setToast(null), 4200)
   }
@@ -311,6 +330,7 @@ function App() {
     setDeliveries(result.deliveries)
     setParcels(result.parcels)
     setIntakeFlow({ open: false })
+    captureWeather('grape_delivery', result.delivery.id)
     setToast(t('toast.intakeRegistered', { code: result.delivery.code }))
     window.setTimeout(() => setToast(null), 4200)
   }
@@ -369,6 +389,7 @@ function App() {
     const result = createBottlingOrder(input, blendTrials, bottlingOrders, packagingMaterials)
     setBottlingOrders(result.orders)
     setPackagingMaterials(result.materials)
+    captureWeather('bottling_order', result.order.id)
     setToast(t('toast.bottlingOrderCreated', { code: result.order.code }))
     window.setTimeout(() => setToast(null), 4200)
   }
@@ -391,6 +412,7 @@ function App() {
     const result = completeBottlingOrder(bottlingOrders, packagingMaterials, input)
     setBottlingOrders(result.orders)
     setPackagingMaterials(result.materials)
+    captureWeather('bottling_order', result.order.id)
     setToast(t('toast.bottlingCompleted', { code: result.order.code, lot: result.order.completion?.finishedProductLot ?? '' }))
     window.setTimeout(() => setToast(null), 4200)
   }
@@ -479,6 +501,7 @@ function App() {
     setProductMasters(reset.productMasters)
     setProductLots(reset.productLots)
     setProductStockTransactions(reset.productStockTransactions)
+    setWeatherSnapshots(reset.weatherSnapshots)
     setSettings(reset.settings)
     setUndoLot(null)
     setToast(t('toast.reset'))
@@ -508,7 +531,7 @@ function App() {
   else if (pathname === '/supplies') currentPage = <SuppliesPage suppliers={suppliers} products={productMasters} lots={productLots} transactions={productStockTransactions} onReceive={receiveInputLot} onCreateProduct={addProductMaster} onCreateSupplier={addSupplier} onStatus={updateInputLotStatus} onAdjust={adjustInputStock} onTransfer={transferInputStock} onDispose={disposeInputStock} onCorrectConsumption={correctInputConsumption} />
   else if (pathname === '/traceability') currentPage = <TraceabilityPage entities={traceabilityEntities} links={traceabilityLinks} simulations={recallSimulations} onCreateSimulation={runRecallSimulation} />
   else if (pathname === '/scan' && mobileViewport) currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
-  else if (pathname === '/register') currentPage = <OperationalRegisterPage lots={demoLots} deliveries={deliveries} productionEvents={productionEvents} movements={movements} productTransactions={productStockTransactions} barrelOperations={barrelOperations} bottlingOrders={bottlingOrders} timeZone={settings.timezone} />
+  else if (pathname === '/register') currentPage = <OperationalRegisterPage lots={demoLots} deliveries={deliveries} productionEvents={productionEvents} movements={movements} productTransactions={productStockTransactions} barrelOperations={barrelOperations} bottlingOrders={bottlingOrders} weatherSnapshots={weatherSnapshots} timeZone={settings.timezone} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
   else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} />
@@ -575,7 +598,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.28.0</span>
+          <span>Añada 0.29.0</span>
         </div>
       </section>
     </main>

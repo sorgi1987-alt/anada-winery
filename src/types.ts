@@ -151,8 +151,27 @@ export interface GrapeDelivery {
   notes?: string
 }
 
+export interface WeatherSnapshot {
+  id: string
+  entityType: 'grape_delivery' | 'production_event' | 'wine_movement' | 'bottling_order'
+  entityId: string
+  capturedAt: string
+  observedAt?: string
+  latitude: number
+  longitude: number
+  temperatureC?: number
+  apparentTemperatureC?: number
+  relativeHumidity?: number
+  windSpeedKmh?: number
+  precipitationMm?: number
+  weatherCode?: number
+  source: 'Open-Meteo' | 'manual' | 'unavailable'
+  status: 'live' | 'cached' | 'manual' | 'unavailable'
+  notes?: string
+}
+
 export interface WineryState {
-  schemaVersion: 20
+  schemaVersion: 21
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -174,6 +193,7 @@ export interface WineryState {
   productMasters: ProductMaster[]
   productLots: ProductLot[]
   productStockTransactions: ProductStockTransaction[]
+  weatherSnapshots: WeatherSnapshot[]
   settings: WinerySettings
 }
 

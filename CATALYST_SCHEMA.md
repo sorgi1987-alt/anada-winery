@@ -48,3 +48,6 @@ Deploy the `anada_data_api` health route using the CLI-generated function config
 ## Weather proxy
 
 `GET /weather?latitude=<lat>&longitude=<lon>&timezone=<iana>` returns current conditions from Open-Meteo. The Catalyst function validates coordinates, caches responses for 15 minutes and may return the last cached response when the upstream service is unavailable.
+
+## Schema v21 — operational weather snapshots
+The browser state includes `weatherSnapshots`, immutable records linked to grape deliveries, production events, wine movements and bottling orders. Each record stores coordinates, capture/observation timestamps, source, provenance status and available weather measurements.

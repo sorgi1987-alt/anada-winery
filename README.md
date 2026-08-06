@@ -89,3 +89,6 @@ Adds the unified operational register with cross-module chronology, filters and 
 ## Weather context
 
 Version 0.28 retrieves current winery weather through the Catalyst function using configured coordinates. Responses are cached for 15 minutes and attributed to Open-Meteo. Weather unavailability does not block winery operations.
+
+## Weather snapshots (0.29)
+Relevant operations capture an immutable winery-weather snapshot when saved. Failed weather calls create an unavailable provenance record and never block the operation. Snapshots are shown in the operational register and included in CSV exports.

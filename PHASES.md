@@ -145,3 +145,13 @@ Status: implemented for version 0.28.0.
 - Live temperature, condition, wind and precipitation in harvest planning
 - Source and last-refresh attribution
 - Weather failure never blocks operational workflows
+
+### Phase 8C.4 — Weather snapshots and operational context
+
+Status: implemented for version 0.29.0.
+
+- Immutable weather snapshots linked to grape receipts, production events, wine movements and bottling operations
+- Live, cached and unavailable provenance states retained without blocking operations
+- Temperature, humidity, wind and precipitation exposed in the operational register and CSV export
+- Winery coordinates and observation timestamps preserved with every snapshot
+- Schema v21 migration preserving all v20 operational data

@@ -1,3 +1,5 @@
+import type { WeatherSnapshot } from './types'
+
 export interface WineryWeather {
   temperatureC: number
   apparentTemperatureC: number
@@ -11,8 +13,10 @@ export interface WineryWeather {
   cached: boolean
 }
 
-const apiBase = (import.meta.env.VITE_CATALYST_READ_API_URL ?? '').trim().replace(/\/$/, '')
-  || `${(import.meta.env.VITE_CATALYST_PROJECT_DOMAIN ?? 'https://anada-winery-20117369913.development.catalystserverless.eu').trim().replace(/\/$/, '')}/server/anada_data_api`
+const viteEnv = import.meta.env ?? {}
+
+const apiBase = (viteEnv.VITE_CATALYST_READ_API_URL ?? '').trim().replace(/\/$/, '')
+  || `${(viteEnv.VITE_CATALYST_PROJECT_DOMAIN ?? 'https://anada-winery-20117369913.development.catalystserverless.eu').trim().replace(/\/$/, '')}/server/anada_data_api`
 
 export async function fetchWineryWeather(latitude: number, longitude: number, timeZone: string, signal?: AbortSignal): Promise<WineryWeather> {
   const params = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude), timezone: timeZone })
@@ -34,4 +38,12 @@ export function weatherCondition(code: number, locale: string) {
   if ([71,73,75,77,85,86].includes(code)) return es ? 'Nieve' : 'Snow'
   if ([95,96,99].includes(code)) return es ? 'Tormenta' : 'Thunderstorm'
   return es ? 'Variable' : 'Variable'
+}
+
+export function weatherSnapshotFromWeather(entityType: WeatherSnapshot['entityType'], entityId: string, latitude: number, longitude: number, weather: WineryWeather): WeatherSnapshot {
+  return { id: `weather-${entityType}-${entityId}-${Date.now()}`, entityType, entityId, capturedAt: new Date().toISOString(), observedAt: weather.observedAt, latitude, longitude, temperatureC: weather.temperatureC, apparentTemperatureC: weather.apparentTemperatureC, relativeHumidity: weather.relativeHumidity, windSpeedKmh: weather.windSpeedKmh, precipitationMm: weather.precipitationMm, weatherCode: weather.weatherCode, source: 'Open-Meteo', status: weather.cached ? 'cached' : 'live' }
+}
+
+export function unavailableWeatherSnapshot(entityType: WeatherSnapshot['entityType'], entityId: string, latitude: number, longitude: number, notes?: string): WeatherSnapshot {
+  return { id: `weather-${entityType}-${entityId}-${Date.now()}`, entityType, entityId, capturedAt: new Date().toISOString(), latitude, longitude, source: 'unavailable', status: 'unavailable', notes }
 }
