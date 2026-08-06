@@ -96,3 +96,8 @@ Relevant operations capture an immutable winery-weather snapshot when saved. Fai
 ## Version 0.31.0
 
 The harvest workspace now presents factual current conditions and a transparent 48-hour weather assessment. It labels conditions favourable, cautionary or adverse using explicit precipitation, wind and temperature thresholds and avoids recommendations when forecast data is unavailable.
+
+
+### Cellar asset model
+
+Version 0.32.0 introduces canonical vessel specifications, usable-capacity validation and occupancy derived from active vessel allocations.

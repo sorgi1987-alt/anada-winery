@@ -115,9 +115,16 @@ export const buildCanonicalRelationshipModel = (
     code: tank.id,
     name: `Depósito ${tank.id}`,
     type: 'tank',
-    capacity: tank.capacity,
+    material: 'stainless_steel',
+    nominalCapacity: tank.capacity,
+    usableCapacity: tank.capacity,
     unit: 'L',
     locationId: tankRoom.id,
+    status: 'available',
+    coolingJacket: true,
+    heating: false,
+    variableLid: false,
+    pressureRated: false,
     active: true,
   }))
   const vesselByCode = new Map(vessels.map((vessel) => [vessel.code.toLowerCase(), vessel]))
@@ -215,6 +222,8 @@ export const validateCanonicalRelationships = (model: CanonicalRelationshipModel
     if (!vesselIds.has(allocation.vesselId)) errors.push(`Allocation ${allocation.id} has no valid vessel`)
     if (!lotIds.has(allocation.wineLotId)) errors.push(`Allocation ${allocation.id} has no valid wine lot`)
     if (activeVesselIds.has(allocation.vesselId)) errors.push(`Vessel ${allocation.vesselId} has multiple active allocations`)
+    const vessel = model.vessels.find((item) => item.id === allocation.vesselId)
+    if (vessel && allocation.volume > vessel.usableCapacity) errors.push(`Allocation ${allocation.id} exceeds vessel ${vessel.id} usable capacity`)
     activeVesselIds.add(allocation.vesselId)
   })
   return errors

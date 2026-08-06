@@ -179,3 +179,8 @@ Status: implemented in version 0.31.0.
 - Relationship-integrity validation and migration tests
 
 Completion gate: all current parcels, deliveries, vineyard samples and active vessel allocations resolve to valid canonical records without changing existing user workflows.
+
+
+### Phase 9B.1 — Cellar asset normalization
+
+Status: prepared for version 0.32.0. Canonical vessel specifications, usable-capacity controls, operational status and derived occupancy are established while legacy tank UI remains compatible.

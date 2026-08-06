@@ -83,15 +83,35 @@ export interface WineryLocation {
   active: boolean
 }
 
+export type VesselStatus = 'available' | 'occupied' | 'cleaning' | 'maintenance' | 'quarantine' | 'inactive'
+export type VesselMaterial = 'stainless_steel' | 'concrete' | 'wood' | 'fiberglass' | 'plastic' | 'other'
+
 export interface Vessel {
   id: string
   code: string
   name: string
-  type: 'tank' | 'barrel' | 'hopper' | 'press' | 'other'
-  capacity: number
+  type: 'tank' | 'barrel' | 'hopper' | 'press' | 'ibc' | 'flexitank' | 'other'
+  material: VesselMaterial
+  nominalCapacity: number
+  usableCapacity: number
   unit: 'L'
   locationId: string
+  status: VesselStatus
+  coolingJacket: boolean
+  heating: boolean
+  variableLid: boolean
+  pressureRated: boolean
   active: boolean
+}
+
+export interface VesselOccupancy {
+  vesselId: string
+  wineLotId?: string
+  allocatedVolume: number
+  usableCapacity: number
+  remainingCapacity: number
+  fillPercentage: number
+  status: VesselStatus
 }
 
 export interface VesselAllocation {
@@ -239,7 +259,7 @@ export interface WeatherSnapshot {
 }
 
 export interface WineryState {
-  schemaVersion: 22
+  schemaVersion: 23
   campaigns: Campaign[]
   growers: Grower[]
   locations: WineryLocation[]

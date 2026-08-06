@@ -70,3 +70,8 @@ Authoritative relationships:
 - `VesselAllocation.wineLotId -> WineLot.id`
 
 Legacy labels remain temporary UI projections and must not become independently editable once the canonical masters are exposed.
+
+
+## Browser schema v23 — Cellar assets
+
+Vessels now include material, nominal and usable capacity, location, equipment capabilities and operational status. Vessel allocations remain the authoritative occupancy relationship.

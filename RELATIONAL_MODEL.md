@@ -23,3 +23,8 @@ Version 0.31 introduces an additive canonical relationship layer. Existing displ
 - Wine lot → current vessel through `currentVesselId`, with history in `VesselAllocation`.
 
 Legacy fields such as `grower`, `vessel` and embedded `sample` remain temporarily for display compatibility. They must not become independently editable once canonical forms are exposed in the UI.
+
+
+## Phase 9B.1 — Cellar assets
+
+`Vessel` is the canonical physical asset. `Tank` remains a temporary UI projection. Nominal and usable capacity are distinct; active `VesselAllocation` records determine occupancy, remaining capacity and fill percentage. Vessel operational status blocks receiving operations when cleaning, under maintenance, quarantined or inactive.
