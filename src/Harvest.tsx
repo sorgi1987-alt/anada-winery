@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { images } from './data'
 import { useLanguage } from './i18n'
+import { fetchWineryWeather, weatherCondition, type WineryWeather } from './weather'
 import type { DeliveryStatus, GrapeDelivery, NewGrapeIntakeInput, VineyardParcel } from './types'
 
 const statusKeys: Record<DeliveryStatus, 'harvest.statusPlanned' | 'harvest.statusEnRoute' | 'harvest.statusAtGate' | 'harvest.statusReceived'> = {
@@ -29,11 +30,16 @@ interface HarvestPageProps {
   deliveries: GrapeDelivery[]
   onOpenIntake: (deliveryId?: string) => void
   timeZone: string
+  latitude: number
+  longitude: number
 }
 
-export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone }: HarvestPageProps) {
+export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone, latitude, longitude }: HarvestPageProps) {
   const [view, setView] = useState<'overview' | 'parcels' | 'schedule'>('overview')
   const [currentDate, setCurrentDate] = useState(() => new Date())
+  const [weather, setWeather] = useState<WineryWeather | null>(null)
+  const [weatherError, setWeatherError] = useState(false)
+  const [weatherRefreshing, setWeatherRefreshing] = useState(false)
   const { t, locale } = useLanguage()
   const harvestDate = new Intl.DateTimeFormat(locale, { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(currentDate)
 
@@ -42,6 +48,25 @@ export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone }: Har
     const timer = window.setInterval(() => setCurrentDate(new Date()), 60_000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+    const loadWeather = async () => {
+      setWeatherRefreshing(true)
+      try {
+        const result = await fetchWineryWeather(latitude, longitude, timeZone, controller.signal)
+        if (active) { setWeather(result); setWeatherError(false) }
+      } catch {
+        if (active) setWeatherError(true)
+      } finally {
+        if (active) setWeatherRefreshing(false)
+      }
+    }
+    void loadWeather()
+    const timer = window.setInterval(loadWeather, 15 * 60_000)
+    return () => { active = false; controller.abort(); window.clearInterval(timer) }
+  }, [latitude, longitude, timeZone])
   const campaignEstimate = parcels.reduce((total, parcel) => total + parcel.estimatedKg, 0)
   const campaignReceivedKg = deliveries.reduce((total, delivery) => total + (delivery.netKg ?? 0), 0)
   const todayDeliveries = deliveries.filter((delivery) => delivery.scheduledDate === '2026-09-19')
@@ -64,7 +89,8 @@ export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone }: Har
           <span className="hero-season"><Sprout size={15} /> {t('harvest.campaign')}</span>
           <h2>{t('harvest.heroTitle')}</h2>
           <p>{harvestDate} · {t('harvest.heroWindow')}</p>
-          <div className="harvest-weather"><span><strong>24°</strong><small>{t('harvest.dry')}</small></span><span><strong>9 km/h</strong><small>{t('harvest.wind')}</small></span><span><strong>0 mm</strong><small>{t('harvest.rain')}</small></span></div>
+          <div className="harvest-weather" aria-live="polite"><span><strong>{weather ? `${Math.round(weather.temperatureC)}°` : '—'}</strong><small>{weather ? weatherCondition(weather.weatherCode, locale) : weatherError ? (locale.startsWith('es') ? 'Sin datos' : 'Unavailable') : (locale.startsWith('es') ? 'Actualizando' : 'Updating')}</small></span><span><strong>{weather ? `${Math.round(weather.windSpeedKmh)} km/h` : '—'}</strong><small>{t('harvest.wind')}</small></span><span><strong>{weather ? `${weather.precipitationMm.toFixed(1)} mm` : '—'}</strong><small>{t('harvest.rain')}</small></span></div>
+          <div className="harvest-weather-meta">{weather ? `${locale.startsWith('es') ? 'Actualizado' : 'Updated'} ${new Intl.DateTimeFormat(locale, { timeZone, hour: '2-digit', minute: '2-digit' }).format(new Date(weather.fetchedAt))} · Open-Meteo${weather.cached ? ` · ${locale.startsWith('es') ? 'caché' : 'cached'}` : ''}` : weatherRefreshing ? (locale.startsWith('es') ? 'Consultando estación meteorológica…' : 'Fetching winery weather…') : ''}</div>
         </div>
         <div className="campaign-progress-card">
           <div className="campaign-ring" style={{ '--campaign-progress': `${progress * 3.6}deg` } as CSSProperties}><span><strong>{progress}%</strong><small>{t('harvest.received')}</small></span></div>

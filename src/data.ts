@@ -11,7 +11,7 @@ export const images = {
 
 export const winerySettings: WinerySettings = {
   wineryName: 'Bodega ValdeIregua', legalName: 'Bodegas ValdeIregua, S.L.', wineryCode: 'RE-26-LO-184',
-  municipality: 'Alberite', province: 'La Rioja', designation: 'DOCa Rioja', timezone: 'Europe/Madrid',
+  municipality: 'Alberite', province: 'La Rioja', designation: 'DOCa Rioja', timezone: 'Europe/Madrid', latitude: 42.4056, longitude: -2.4389,
   campaignYear: 2026, campaignStart: '2026-08-20', campaignEnd: '2026-11-15', targetHarvestKg: 120400,
   cellarTemperatureTarget: 16, cellarHumidityTarget: 72, taskReminderHours: 2, lowStockThreshold: 15,
   labReviewHours: 4, showOfficialDisclaimer: true, updatedAt: '2026-07-31T16:30:00+02:00', updatedBy: 'Elena Martín',

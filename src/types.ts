@@ -152,7 +152,7 @@ export interface GrapeDelivery {
 }
 
 export interface WineryState {
-  schemaVersion: 19
+  schemaVersion: 20
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]
@@ -313,6 +313,8 @@ export interface WinerySettings {
   province: string
   designation: string
   timezone: string
+  latitude: number
+  longitude: number
   campaignYear: number
   campaignStart: string
   campaignEnd: string

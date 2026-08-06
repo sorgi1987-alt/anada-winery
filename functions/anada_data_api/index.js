@@ -36,6 +36,34 @@ app.get('/health', async (request, response) => {
   }
 })
 
+
+const weatherCache = new Map()
+app.get('/weather', async (request, response) => {
+  const latitude = Number(request.query.latitude)
+  const longitude = Number(request.query.longitude)
+  const timezone = typeof request.query.timezone === 'string' ? request.query.timezone : 'Europe/Madrid'
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    return response.status(400).json({ status: 'invalid_location', message: 'Valid latitude and longitude are required.' })
+  }
+  const cacheKey = `${latitude.toFixed(4)},${longitude.toFixed(4)},${timezone}`
+  const cached = weatherCache.get(cacheKey)
+  if (cached && Date.now() - cached.fetchedAtMs < 15 * 60 * 1000) return response.json({ ...cached.payload, cached: true })
+  try {
+    const query = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude), current: 'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m', timezone })
+    const upstream = await fetch(`https://api.open-meteo.com/v1/forecast?${query}`, { headers: { Accept: 'application/json', 'User-Agent': 'Anada-Winery/0.28' } })
+    if (!upstream.ok) throw new Error(`upstream-${upstream.status}`)
+    const data = await upstream.json()
+    const current = data.current || {}
+    const payload = { temperatureC: Number(current.temperature_2m), apparentTemperatureC: Number(current.apparent_temperature), relativeHumidity: Number(current.relative_humidity_2m), windSpeedKmh: Number(current.wind_speed_10m), precipitationMm: Number(current.precipitation), weatherCode: Number(current.weather_code), observedAt: current.time, fetchedAt: new Date().toISOString(), source: 'Open-Meteo', cached: false }
+    if (![payload.temperatureC, payload.windSpeedKmh, payload.precipitationMm, payload.weatherCode].every(Number.isFinite)) throw new Error('invalid-upstream-payload')
+    weatherCache.set(cacheKey, { fetchedAtMs: Date.now(), payload })
+    return response.json(payload)
+  } catch {
+    if (cached) return response.status(200).json({ ...cached.payload, cached: true, stale: true })
+    return response.status(503).json({ status: 'weather_unavailable', message: 'Weather data is temporarily unavailable.' })
+  }
+})
+
 app.all('*', (_request, response) => {
   response.status(404).json({
     status: 'not_found',

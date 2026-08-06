@@ -133,3 +133,15 @@ Completion gate: one pilot winery confirms that the integration reduces manual w
 ## Validation gate before expansion
 
 Test with three to five Rioja wineries using real or anonymized records. Prioritize grape intake, fermentation, product addition, movement, analysis, bottling and recall. Do not add another broad module unless the same unmet need is independently observed in multiple wineries.
+
+
+### Phase 8C.3 — Winery weather context
+
+Status: implemented for version 0.28.0.
+
+- Winery latitude and longitude configuration
+- Catalyst weather proxy backed by Open-Meteo
+- Fifteen-minute server-side cache with stale fallback
+- Live temperature, condition, wind and precipitation in harvest planning
+- Source and last-refresh attribution
+- Weather failure never blocks operational workflows

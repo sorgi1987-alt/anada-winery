@@ -84,3 +84,8 @@ Phase 8B.2B adds auditable stock adjustments, location transfers, disposal/zero-
 
 ## Version 0.26.0
 Adds the unified operational register with cross-module chronology, filters and CSV export.
+
+
+## Weather context
+
+Version 0.28 retrieves current winery weather through the Catalyst function using configured coordinates. Responses are cached for 15 minutes and attributed to Open-Meteo. Weather unavailability does not block winery operations.

@@ -114,7 +114,7 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 19, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings })
+    browserWineryRepository.save({ schemaVersion: 20, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings })
   }, [demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, settings])
 
   const toggleCellarMode = () => {
@@ -494,7 +494,7 @@ function App() {
 
   let currentPage: ReactNode
   if (pathname === '/dashboard') currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} />
-  else if (pathname === '/harvest') currentPage = <HarvestPage parcels={parcels} deliveries={deliveries} onOpenIntake={(deliveryId) => setIntakeFlow({ open: true, deliveryId })} timeZone={settings.timezone} />
+  else if (pathname === '/harvest') currentPage = <HarvestPage parcels={parcels} deliveries={deliveries} onOpenIntake={(deliveryId) => setIntakeFlow({ open: true, deliveryId })} timeZone={settings.timezone} latitude={settings.latitude} longitude={settings.longitude} />
   else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={activeLots} />
   else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} productionEvents={productionEvents} productMasters={productMasters} productLots={productLots} productTransactions={productStockTransactions} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} onConsumeProduct={useInputLot} onRecordRedOperation={saveRedOperation} onAdvanceRedStage={moveRedStage} onRecordWhiteOperation={saveWhiteOperation} onAdvanceWhiteStage={moveWhiteStage} onRecordRoseOperation={saveRoseOperation} onAdvanceRoseStage={moveRoseStage} />
@@ -575,7 +575,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.27.3</span>
+          <span>Añada 0.28.0</span>
         </div>
       </section>
     </main>
