@@ -896,3 +896,6 @@ h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -0.0
 .live-clock{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border-color,#e6e1dc);border-radius:12px;background:rgba(255,255,255,.72);font-style:normal;line-height:1.05}.live-clock>span{display:flex;flex-direction:column;gap:2px}.live-clock strong{font-size:12px;font-variant-numeric:tabular-nums}.live-clock small{font-size:10px;color:var(--muted-color,#756d67);text-transform:capitalize}@media(max-width:900px){.live-clock{padding:7px}.live-clock>span{display:none}}
 
 .harvest-weather-meta{margin-top:8px;color:rgba(255,255,255,.68);font-size:9px;letter-spacing:.02em}
+.harvest-assessment{margin:14px 0 2px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;width:max-content;max-width:560px;border:1px solid rgba(255,255,255,.22);border-radius:12px;background:rgba(24,10,15,.42);backdrop-filter:blur(10px)}
+.harvest-assessment strong{font-size:12px}.harvest-assessment span{color:rgba(255,255,255,.78);font-size:10px;line-height:1.35}.harvest-assessment.favourable{border-color:rgba(167,216,181,.48)}.harvest-assessment.caution{border-color:rgba(238,190,104,.55)}.harvest-assessment.adverse{border-color:rgba(240,123,123,.58)}
+@media(max-width:900px){.harvest-assessment{width:100%;max-width:none}}

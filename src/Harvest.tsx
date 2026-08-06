@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { images } from './data'
 import { useLanguage } from './i18n'
-import { fetchWineryWeather, weatherCondition, type WineryWeather } from './weather'
+import { assessHarvestWeather, fetchWineryWeather, weatherCondition, type WineryWeather } from './weather'
 import type { DeliveryStatus, GrapeDelivery, NewGrapeIntakeInput, VineyardParcel } from './types'
 
 const statusKeys: Record<DeliveryStatus, 'harvest.statusPlanned' | 'harvest.statusEnRoute' | 'harvest.statusAtGate' | 'harvest.statusReceived'> = {
@@ -67,9 +67,12 @@ export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone, latit
     const timer = window.setInterval(loadWeather, 15 * 60_000)
     return () => { active = false; controller.abort(); window.clearInterval(timer) }
   }, [latitude, longitude, timeZone])
+  const dateParts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(currentDate)
+  const currentDateKey = `${dateParts.find((part) => part.type === 'year')?.value}-${dateParts.find((part) => part.type === 'month')?.value}-${dateParts.find((part) => part.type === 'day')?.value}`
+  const weatherAssessment = assessHarvestWeather(weather, locale)
   const campaignEstimate = parcels.reduce((total, parcel) => total + parcel.estimatedKg, 0)
   const campaignReceivedKg = deliveries.reduce((total, delivery) => total + (delivery.netKg ?? 0), 0)
-  const todayDeliveries = deliveries.filter((delivery) => delivery.scheduledDate === '2026-09-19')
+  const todayDeliveries = deliveries.filter((delivery) => delivery.scheduledDate === currentDateKey)
   const receivedTodayKg = todayDeliveries.reduce((total, delivery) => total + (delivery.netKg ?? 0), 0)
   const scheduledKg = todayDeliveries.reduce((total, delivery) => total + (delivery.netKg ?? delivery.expectedKg), 0)
   const readyParcels = parcels.filter((parcel) => parcel.readiness === 'ready' || parcel.readiness === 'scheduled').length
@@ -89,7 +92,8 @@ export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone, latit
           <span className="hero-season"><Sprout size={15} /> {t('harvest.campaign')}</span>
           <h2>{t('harvest.heroTitle')}</h2>
           <p>{harvestDate} · {t('harvest.heroWindow')}</p>
-          <div className="harvest-weather" aria-live="polite"><span><strong>{weather ? `${Math.round(weather.temperatureC)}°` : '—'}</strong><small>{weather ? weatherCondition(weather.weatherCode, locale) : weatherError ? (locale.startsWith('es') ? 'Sin datos' : 'Unavailable') : (locale.startsWith('es') ? 'Actualizando' : 'Updating')}</small></span><span><strong>{weather ? `${Math.round(weather.windSpeedKmh)} km/h` : '—'}</strong><small>{t('harvest.wind')}</small></span><span><strong>{weather ? `${weather.precipitationMm.toFixed(1)} mm` : '—'}</strong><small>{t('harvest.rain')}</small></span></div>
+          <div className={`harvest-assessment ${weatherAssessment.level}`} aria-live="polite"><strong>{weatherAssessment.title}</strong><span>{weatherAssessment.detail}</span></div>
+          <div className="harvest-weather" aria-live="polite"><span><strong>{weather ? `${Math.round(weather.temperatureC)}°` : '—'}</strong><small>{weather ? weatherCondition(weather.weatherCode, locale) : weatherError ? (locale.startsWith('es') ? 'Sin datos' : 'Unavailable') : (locale.startsWith('es') ? 'Actualizando' : 'Updating')}</small></span><span><strong>{weather ? `${Math.round(weather.windSpeedKmh)} km/h` : '—'}</strong><small>{locale.startsWith('es') ? 'Viento actual' : 'Current wind'}</small></span><span><strong>{weather?.forecast48h ? `${weather.forecast48h.precipitationMm.toFixed(1)} mm` : '—'}</strong><small>{locale.startsWith('es') ? 'Lluvia 48 h' : 'Rain 48h'}</small></span></div>
           <div className="harvest-weather-meta">{weather ? `${locale.startsWith('es') ? 'Actualizado' : 'Updated'} ${new Intl.DateTimeFormat(locale, { timeZone, hour: '2-digit', minute: '2-digit' }).format(new Date(weather.fetchedAt))} · Open-Meteo${weather.cached ? ` · ${locale.startsWith('es') ? 'caché' : 'cached'}` : ''}` : weatherRefreshing ? (locale.startsWith('es') ? 'Consultando estación meteorológica…' : 'Fetching winery weather…') : ''}</div>
         </div>
         <div className="campaign-progress-card">

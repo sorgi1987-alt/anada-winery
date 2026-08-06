@@ -598,7 +598,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.29.0</span>
+          <span>Añada 0.30.0</span>
         </div>
       </section>
     </main>

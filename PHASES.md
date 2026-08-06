@@ -155,3 +155,12 @@ Status: implemented for version 0.29.0.
 - Temperature, humidity, wind and precipitation exposed in the operational register and CSV export
 - Winery coordinates and observation timestamps preserved with every snapshot
 - Schema v21 migration preserving all v20 operational data
+
+### Phase 8C.5 — Forecast-backed harvest context
+
+Status: implemented in version 0.30.0.
+
+- Replaced promotional harvest copy with an operational conditions summary.
+- Added a transparent 48-hour assessment based on forecast precipitation, peak wind and peak temperature.
+- The app does not issue an assessment when forecast evidence is unavailable.
+- Current-day intake metrics now use the winery-local calendar date rather than a seeded date.
