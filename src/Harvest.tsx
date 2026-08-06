@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import {
   Activity, ArrowUpRight, CalendarDays, Check, CheckCircle2, ChevronRight,
   Clock3, Grape, MapPin, Navigation, Plus, Scale, Sprout, Thermometer,
@@ -28,11 +28,20 @@ interface HarvestPageProps {
   parcels: VineyardParcel[]
   deliveries: GrapeDelivery[]
   onOpenIntake: (deliveryId?: string) => void
+  timeZone: string
 }
 
-export function HarvestPage({ parcels, deliveries, onOpenIntake }: HarvestPageProps) {
+export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone }: HarvestPageProps) {
   const [view, setView] = useState<'overview' | 'parcels' | 'schedule'>('overview')
+  const [currentDate, setCurrentDate] = useState(() => new Date())
   const { t, locale } = useLanguage()
+  const harvestDate = new Intl.DateTimeFormat(locale, { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(currentDate)
+
+  // Refresh after midnight without keeping an unnecessary second-by-second timer.
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentDate(new Date()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
   const campaignEstimate = parcels.reduce((total, parcel) => total + parcel.estimatedKg, 0)
   const campaignReceivedKg = deliveries.reduce((total, delivery) => total + (delivery.netKg ?? 0), 0)
   const todayDeliveries = deliveries.filter((delivery) => delivery.scheduledDate === '2026-09-19')
@@ -54,7 +63,7 @@ export function HarvestPage({ parcels, deliveries, onOpenIntake }: HarvestPagePr
         <div className="harvest-hero-copy">
           <span className="hero-season"><Sprout size={15} /> {t('harvest.campaign')}</span>
           <h2>{t('harvest.heroTitle')}</h2>
-          <p>{t('harvest.heroText')}</p>
+          <p>{harvestDate} · {t('harvest.heroWindow')}</p>
           <div className="harvest-weather"><span><strong>24°</strong><small>{t('harvest.dry')}</small></span><span><strong>9 km/h</strong><small>{t('harvest.wind')}</small></span><span><strong>0 mm</strong><small>{t('harvest.rain')}</small></span></div>
         </div>
         <div className="campaign-progress-card">

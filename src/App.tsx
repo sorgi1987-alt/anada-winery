@@ -493,14 +493,14 @@ function App() {
   if (pathname === '/welcome') return <div className={cellarMode ? 'app cellar-theme' : 'app'}><Welcome /></div>
 
   let currentPage: ReactNode
-  if (pathname === '/dashboard') currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
-  else if (pathname === '/harvest') currentPage = <HarvestPage parcels={parcels} deliveries={deliveries} onOpenIntake={(deliveryId) => setIntakeFlow({ open: true, deliveryId })} />
+  if (pathname === '/dashboard') currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} />
+  else if (pathname === '/harvest') currentPage = <HarvestPage parcels={parcels} deliveries={deliveries} onOpenIntake={(deliveryId) => setIntakeFlow({ open: true, deliveryId })} timeZone={settings.timezone} />
   else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={activeLots} />
   else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} productionEvents={productionEvents} productMasters={productMasters} productLots={productLots} productTransactions={productStockTransactions} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} onConsumeProduct={useInputLot} onRecordRedOperation={saveRedOperation} onAdvanceRedStage={moveRedStage} onRecordWhiteOperation={saveWhiteOperation} onAdvanceWhiteStage={moveWhiteStage} onRecordRoseOperation={saveRoseOperation} onAdvanceRoseStage={moveRoseStage} />
   else if (pathname === '/cellar') currentPage = <CellarMap tanks={demoTanks} />
   else if (pathname === '/movements') currentPage = <MovementsPage lots={demoLots} tanks={demoTanks} movements={movements} onTransfer={completeTransfer} onSplit={completeSplit} onMerge={completeMerge} />
-  else if (pathname === '/tasks') currentPage = <TasksPage lots={activeLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} />
+  else if (pathname === '/tasks') currentPage = <TasksPage lots={activeLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} timeZone={settings.timezone} />
   else if (pathname === '/laboratory') currentPage = <LaboratoryPage samples={samples} lots={demoLots} deliveries={deliveries} parcels={parcels} onCreate={addLabSample} onRecordResults={saveLabResults} />
   else if (pathname === '/ageing') currentPage = <AgeingPage barrels={barrels} operations={barrelOperations} lots={activeLots} onCreateBarrel={addBarrel} onRecordOperation={saveBarrelOperation} />
   else if (pathname === '/blending') currentPage = <BlendingPage candidates={blendCandidates} trials={blendTrials} onCreateTrial={addBlendTrial} onRecordTasting={saveBlendTasting} onApproveTrial={approveBlend} />
@@ -511,7 +511,7 @@ function App() {
   else if (pathname === '/register') currentPage = <OperationalRegisterPage lots={demoLots} deliveries={deliveries} productionEvents={productionEvents} movements={movements} productTransactions={productStockTransactions} barrelOperations={barrelOperations} bottlingOrders={bottlingOrders} timeZone={settings.timezone} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
   else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onResetData={resetDemoData} />
-  else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} />
+  else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} />
 
   return (
     <div className={cellarMode ? 'app cellar-theme' : 'app'}>
@@ -575,7 +575,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.27.2</span>
+          <span>Añada 0.27.3</span>
         </div>
       </section>
     </main>
@@ -703,11 +703,18 @@ interface DashboardProps {
   tasks: CellarTask[]
   setTasks: React.Dispatch<React.SetStateAction<CellarTask[]>>
   onReading: (lotId: string) => void
+  timeZone: string
 }
 
-function Dashboard({ lots, tanks, tasks, setTasks, onReading }: DashboardProps) {
+function Dashboard({ lots, tanks, tasks, setTasks, onReading, timeZone }: DashboardProps) {
   const navigate = useNavigate()
   const { t, locale } = useLanguage()
+  const [dashboardNow, setDashboardNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = window.setInterval(() => setDashboardNow(new Date()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const dashboardDate = new Intl.DateTimeFormat(locale, { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(dashboardNow)
   const pending = tasks.filter((task) => !task.complete)
   const occupied = tanks.filter((tank) => tank.volume > 0)
   const totalCapacity = tanks.reduce((total, tank) => total + tank.capacity, 0)
@@ -717,7 +724,7 @@ function Dashboard({ lots, tanks, tasks, setTasks, onReading }: DashboardProps) 
   return (
     <main>
       <PageHeader
-        eyebrow={t('dashboard.date')}
+        eyebrow={dashboardDate}
         title={t('dashboard.greeting')}
         description={t('dashboard.description')}
         action={<button className="primary-button" onClick={() => navigate('/production')}><Plus size={18} /> {t('dashboard.new')}</button>}
@@ -1140,12 +1147,18 @@ function TankDrawer({ tank, onClose }: { tank: Tank; onClose: () => void }) {
   )
 }
 
-function TasksPage({ lots, tasks, setTasks, onCreate }: { lots: WineLot[]; tasks: CellarTask[]; setTasks: React.Dispatch<React.SetStateAction<CellarTask[]>>; onCreate: (input: NewTaskInput) => void }) {
+function TasksPage({ lots, tasks, setTasks, onCreate, timeZone }: { lots: WineLot[]; tasks: CellarTask[]; setTasks: React.Dispatch<React.SetStateAction<CellarTask[]>>; onCreate: (input: NewTaskInput) => void; timeZone: string }) {
   const [creating, setCreating] = useState(false)
-  const { t } = useLanguage()
+  const [currentDate, setCurrentDate] = useState(() => new Date())
+  const { t, locale } = useLanguage()
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentDate(new Date()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const taskDate = new Intl.DateTimeFormat(locale, { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(currentDate)
   return (
     <main>
-      <PageHeader eyebrow={t('tasks.kicker')} title={t('tasks.title')} description={t('tasks.description')} action={<button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} /> {t('tasks.new')}</button>} />
+      <PageHeader eyebrow={taskDate} title={t('tasks.title')} description={t('tasks.description')} action={<button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} /> {t('tasks.new')}</button>} />
       <section className="panel task-page-panel">
         {tasks.map((task) => <TaskRow key={task.id} task={task} onToggle={() => setTasks((current) => current.map((item) => item.id === task.id ? { ...item, complete: !item.complete } : item))} />)}
       </section>
