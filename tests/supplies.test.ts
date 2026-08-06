@@ -50,7 +50,7 @@ test('release and recall remain separate attributed stock events', () => {
 test('the v16 migration adds supply masters and lots without changing legacy wine records', () => {
   const legacyLot = { id: 'LEGACY-LOT' }
   const migrated = migrateLegacyState({ schemaVersion: 15, lots: [legacyLot], tasks: [], tanks: [] })
-  assert.equal(migrated?.schemaVersion, 23)
+  assert.equal(migrated?.schemaVersion, 24)
   assert.equal(migrated?.lots[0], legacyLot)
   assert.ok(migrated?.suppliers.length)
   assert.ok(migrated?.productMasters.length)
@@ -130,6 +130,6 @@ test('stock adjustments, transfers and disposals reconcile immutable location ba
 
 test('v17 migration preserves v16 supplies and creates idempotent location balances', () => {
   const migrated = migrateLegacyState({ schemaVersion: 16, lots: wineLots, tasks: [], tanks: [], productLots, productStockTransactions })
-  assert.equal(migrated?.schemaVersion, 23)
+  assert.equal(migrated?.schemaVersion, 24)
   assert.ok(migrated?.productLots.every((lot) => lot.locationBalances.length > 0))
 })

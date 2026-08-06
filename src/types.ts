@@ -54,13 +54,38 @@ export interface ProcessStage {
   status: 'complete' | 'current' | 'upcoming' | 'optional'
 }
 
+export type CampaignStatus = 'planned' | 'active' | 'closed' | 'archived'
+
 export interface Campaign {
   id: string
   code: string
-  year: number
+  name: string
+  vintage: number
+  status: CampaignStatus
   startsAt: string
-  endsAt: string
-  status: 'planned' | 'active' | 'closed'
+  expectedHarvestStart?: string
+  expectedEndAt?: string
+  closedAt?: string
+  isDefault: boolean
+  notes: string
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
+  reopenedAt?: string
+  reopenedBy?: string
+}
+
+export interface NewCampaignInput {
+  code: string
+  name: string
+  vintage: number
+  startsAt: string
+  expectedHarvestStart?: string
+  expectedEndAt?: string
+  makeDefault?: boolean
+  notes?: string
+  operator: string
 }
 
 export interface Grower {
@@ -259,7 +284,7 @@ export interface WeatherSnapshot {
 }
 
 export interface WineryState {
-  schemaVersion: 23
+  schemaVersion: 24
   campaigns: Campaign[]
   growers: Grower[]
   locations: WineryLocation[]

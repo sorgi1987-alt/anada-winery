@@ -184,3 +184,16 @@ Completion gate: all current parcels, deliveries, vineyard samples and active ve
 ### Phase 9B.1 — Cellar asset normalization
 
 Status: prepared for version 0.32.0. Canonical vessel specifications, usable-capacity controls, operational status and derived occupancy are established while legacy tank UI remains compatible.
+
+
+## Phase 10A.1 — Campaign foundation
+
+Status: prepared for version 0.33.0.
+
+- Canonical campaign lifecycle fields and audit attribution
+- Create, activate, close, reopen and archive domain operations
+- Single active and single default campaign invariants
+- Closure blockers for active lots, pending deliveries and unfinished bottling
+- Browser schema v24 migration preserving v23 campaign relationships
+
+UI CRUD is intentionally deferred to the next sprint.

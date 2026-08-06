@@ -101,3 +101,8 @@ The harvest workspace now presents factual current conditions and a transparent 
 ### Cellar asset model
 
 Version 0.32.0 introduces canonical vessel specifications, usable-capacity validation and occupancy derived from active vessel allocations.
+
+
+## Version 0.33.0 — Campaign foundation
+
+Campaigns now have canonical lifecycle, default selection and audit fields. Lifecycle rules live in `src/campaigns.ts`; UI delivery follows in the next sprint. Browser schema v24 migrates existing v23 campaigns without losing operational relationships.

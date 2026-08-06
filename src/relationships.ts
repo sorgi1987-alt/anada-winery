@@ -44,10 +44,18 @@ export const buildCanonicalRelationshipModel = (
   const campaigns: Campaign[] = [{
     id: campaignId,
     code: String(settings.campaignYear),
-    year: settings.campaignYear,
+    name: `Vendimia ${settings.campaignYear}`,
+    vintage: settings.campaignYear,
     startsAt: settings.campaignStart,
-    endsAt: settings.campaignEnd,
+    expectedHarvestStart: `${settings.campaignYear}-09-01`,
+    expectedEndAt: settings.campaignEnd,
     status: 'active',
+    isDefault: true,
+    notes: '',
+    createdAt: `${settings.campaignStart}T00:00:00.000Z`,
+    updatedAt: `${settings.campaignStart}T00:00:00.000Z`,
+    createdBy: 'System migration',
+    updatedBy: 'System migration',
   }]
 
   const growerNames = [...new Set(parcels.map((parcel) => parcel.grower.trim()).filter(Boolean))]

@@ -75,3 +75,8 @@ Legacy labels remain temporary UI projections and must not become independently 
 ## Browser schema v23 — Cellar assets
 
 Vessels now include material, nominal and usable capacity, location, equipment capabilities and operational status. Vessel allocations remain the authoritative occupancy relationship.
+
+
+## Browser schema v24 — Campaign lifecycle
+
+`campaigns` is the authoritative campaign master. Required fields include `id`, `code`, `name`, `vintage`, `status`, `startsAt`, `isDefault`, audit timestamps and audit users. Operational records continue to reference `campaignId`.

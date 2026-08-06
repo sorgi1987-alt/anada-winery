@@ -28,3 +28,8 @@ Legacy fields such as `grower`, `vessel` and embedded `sample` remain temporaril
 ## Phase 9B.1 — Cellar assets
 
 `Vessel` is the canonical physical asset. `Tank` remains a temporary UI projection. Nominal and usable capacity are distinct; active `VesselAllocation` records determine occupancy, remaining capacity and fill percentage. Vessel operational status blocks receiving operations when cleaning, under maintenance, quarantined or inactive.
+
+
+## Campaign lifecycle (schema v24)
+
+Campaigns are persistent operational masters. Exactly one campaign is default and no more than one campaign is active. Closing is blocked while campaign-linked lots, receptions or bottling orders remain unresolved. Reopen and archive actions preserve audit attribution.
