@@ -1,26 +1,34 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
-  BellRing, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CloudOff,
-  Database, Download, FlaskConical, Gauge, Grape, HardDrive, Info, LockKeyhole, RefreshCw, Server,
-  Save, ShieldCheck, SlidersHorizontal, Smartphone, Thermometer, Trash2, Users, Warehouse, Wifi, WifiOff,
+  Archive, BellRing, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CloudOff,
+  Database, Download, Edit3, FlaskConical, Gauge, HardDrive, Info, LockKeyhole, MoreHorizontal, Plus, RefreshCw, RotateCcw, Server,
+  Save, Search, ShieldCheck, SlidersHorizontal, Smartphone, Star, Thermometer, Trash2, Users, Warehouse, Wifi, WifiOff, X,
 } from 'lucide-react'
 import { catalystFoundation, checkCatalystReadService, type CatalystConnectionResult } from './catalyst'
 import { images } from './data'
 import { useLanguage } from './i18n'
 import type { PwaStatus } from './pwa'
-import type { WinerySettings } from './types'
+import type { BottlingOrder, Campaign, GrapeDelivery, NewCampaignInput, WineLot, WinerySettings } from './types'
+import type { CampaignUpdateInput } from './campaigns'
 
 type AdministrationView = 'winery' | 'campaign' | 'operations' | 'system'
 
 interface AdministrationPageProps {
   settings: WinerySettings
+  campaigns: Campaign[]
+  lots: WineLot[]
+  deliveries: GrapeDelivery[]
+  bottlingOrders: BottlingOrder[]
   recordCount: number
   pwa: PwaStatus
   onSave: (settings: WinerySettings) => void
+  onCreateCampaign: (input: NewCampaignInput) => void
+  onUpdateCampaign: (id: string, input: CampaignUpdateInput) => void
+  onCampaignAction: (action: 'activate' | 'close' | 'reopen' | 'archive' | 'default', id: string) => void
   onResetData: () => void
 }
 
-export function AdministrationPage({ settings, recordCount, pwa, onSave, onResetData }: AdministrationPageProps) {
+export function AdministrationPage({ settings, campaigns, lots, deliveries, bottlingOrders, recordCount, pwa, onSave, onCreateCampaign, onUpdateCampaign, onCampaignAction, onResetData }: AdministrationPageProps) {
   const { t, locale } = useLanguage()
   const [view, setView] = useState<AdministrationView>('winery')
   const [draft, setDraft] = useState(settings)
@@ -34,10 +42,6 @@ export function AdministrationPage({ settings, recordCount, pwa, onSave, onReset
   useEffect(() => setDraft(settings), [settings])
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings])
   const initials = draft.wineryName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
-  const campaignDate = (value: string, withYear = false) => {
-    const date = new Date(`${value}T12:00:00`)
-    return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: withYear ? 'numeric' : undefined }).format(date)
-  }
   const update = <K extends keyof WinerySettings>(key: K, value: WinerySettings[K]) => setDraft((current) => ({ ...current, [key]: value }))
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -98,11 +102,7 @@ export function AdministrationPage({ settings, recordCount, pwa, onSave, onReset
           <div className="admin-context-note"><Info /><span><strong>{t('admin.identityNote')}</strong><small>{t('admin.identityNoteText')}</small></span></div>
         </AdminSection>}
 
-        {view === 'campaign' && <AdminSection icon={<CalendarDays />} title={t('admin.campaign')} text={t('admin.campaignIntro')}>
-          <div className="admin-form-grid"><AdminField label={t('admin.campaignYear')}><input type="number" min="2020" max="2100" value={draft.campaignYear} onChange={(event) => update('campaignYear', Number(event.target.value))} /></AdminField><AdminField label={t('admin.targetHarvest')}><div className="admin-unit-input"><input type="number" min="1" value={draft.targetHarvestKg} onChange={(event) => update('targetHarvestKg', Number(event.target.value))} /><i>kg</i></div></AdminField><AdminField label={t('admin.campaignStart')}><input type="date" value={draft.campaignStart} onChange={(event) => update('campaignStart', event.target.value)} /></AdminField><AdminField label={t('admin.campaignEnd')}><input type="date" value={draft.campaignEnd} onChange={(event) => update('campaignEnd', event.target.value)} /></AdminField></div>
-          <div className="campaign-window-card"><span className="campaign-window-icon"><Grape /></span><span><small>{t('admin.activeWindow')}</small><strong>{campaignDate(draft.campaignStart)} — {campaignDate(draft.campaignEnd, true)}</strong><em>{new Intl.NumberFormat(locale).format(draft.targetHarvestKg)} kg · {draft.designation}</em></span></div>
-          <div className="admin-context-note"><Info /><span><strong>{t('admin.campaignRuleNote')}</strong><small>{t('admin.campaignRuleNoteText')}</small></span></div>
-        </AdminSection>}
+        {view === 'campaign' && <CampaignManager campaigns={campaigns} lots={lots} deliveries={deliveries} bottlingOrders={bottlingOrders} locale={locale} onCreate={onCreateCampaign} onUpdate={onUpdateCampaign} onAction={onCampaignAction} />}
 
         {view === 'operations' && <AdminSection icon={<SlidersHorizontal />} title={t('admin.operations')} text={t('admin.operationsIntro')}>
           <div className="admin-threshold-grid"><ThresholdField icon={<Thermometer />} label={t('admin.cellarTemperature')} value={draft.cellarTemperatureTarget} unit="°C" min={5} max={25} onChange={(value) => update('cellarTemperatureTarget', value)} /><ThresholdField icon={<Gauge />} label={t('admin.cellarHumidity')} value={draft.cellarHumidityTarget} unit="%" min={40} max={95} onChange={(value) => update('cellarHumidityTarget', value)} /><ThresholdField icon={<BellRing />} label={t('admin.taskReminder')} value={draft.taskReminderHours} unit="h" min={1} max={24} onChange={(value) => update('taskReminderHours', value)} /><ThresholdField icon={<Warehouse />} label={t('admin.lowStock')} value={draft.lowStockThreshold} unit="%" min={1} max={50} onChange={(value) => update('lowStockThreshold', value)} /><ThresholdField icon={<FlaskConical />} label={t('admin.labReview')} value={draft.labReviewHours} unit="h" min={1} max={48} onChange={(value) => update('labReviewHours', value)} /></div>
@@ -136,12 +136,61 @@ export function AdministrationPage({ settings, recordCount, pwa, onSave, onReset
           <div className="danger-zone"><span><Trash2 /><span><strong>{t('admin.demoData')}</strong><small>{t('admin.demoDataText')}</small></span></span><button type="button" className="danger-button" onClick={() => setResetOpen(true)}>{t('common.reset')}</button></div>
         </AdminSection>}
         {error && <div className="form-error admin-form-error">{error}</div>}
-        {view !== 'system' && <footer className="admin-form-actions"><span>{dirty ? t('admin.unsavedChanges') : t('admin.noPendingChanges')}</span><button className="primary-button" disabled={!dirty}><Save size={16} /> {t('admin.saveChanges')}</button></footer>}
+        {view !== 'system' && view !== 'campaign' && <footer className="admin-form-actions"><span>{dirty ? t('admin.unsavedChanges') : t('admin.noPendingChanges')}</span><button className="primary-button" disabled={!dirty}><Save size={16} /> {t('admin.saveChanges')}</button></footer>}
       </form>
     </div>
 
     {resetOpen && <div className="sheet-layer" role="dialog" aria-modal="true"><button className="sheet-scrim" onClick={() => setResetOpen(false)} aria-label={t('common.close')} /><section className="reset-confirm"><span className="reset-confirm-icon"><Trash2 /></span><h2>{t('admin.resetTitle')}</h2><p>{t('admin.resetText')}</p><div><button className="secondary-button" onClick={() => setResetOpen(false)}>{t('common.cancel')}</button><button className="danger-button" onClick={() => { onResetData(); setResetOpen(false) }}>{t('admin.resetConfirm')}</button></div></section></div>}
   </main>
+}
+
+function CampaignManager({ campaigns, lots, deliveries, bottlingOrders, locale, onCreate, onUpdate, onAction }: {
+  campaigns: Campaign[]
+  lots: WineLot[]
+  deliveries: GrapeDelivery[]
+  bottlingOrders: BottlingOrder[]
+  locale: string
+  onCreate: (input: NewCampaignInput) => void
+  onUpdate: (id: string, input: CampaignUpdateInput) => void
+  onAction: (action: 'activate' | 'close' | 'reopen' | 'archive' | 'default', id: string) => void
+}) {
+  const es = locale.startsWith('es')
+  const [query, setQuery] = useState('')
+  const [editing, setEditing] = useState<Campaign | 'new' | null>(null)
+  const [menuId, setMenuId] = useState<string | null>(null)
+  const filtered = campaigns.filter((campaign) => `${campaign.code} ${campaign.name} ${campaign.vintage}`.toLowerCase().includes(query.toLowerCase()))
+  const active = campaigns.find((campaign) => campaign.status === 'active')
+  const copy = es ? {
+    title: 'Campañas', intro: 'Gestiona el ciclo operativo de cada vendimia sin duplicar parcelas ni maestros.', add: 'Nueva campaña', search: 'Buscar campañas', campaign: 'Campaña', dates: 'Fechas', activity: 'Actividad', status: 'Estado', actions: 'Acciones', default: 'Predeterminada', lots: 'lotes', deliveries: 'recepciones', bottlings: 'embotellados', noResults: 'No hay campañas que coincidan.', active: 'Activa', planned: 'Planificada', closed: 'Cerrada', archived: 'Archivada', activate: 'Activar', close: 'Cerrar', reopen: 'Reabrir', archive: 'Archivar', makeDefault: 'Hacer predeterminada', edit: 'Editar', createTitle: 'Crear campaña', editTitle: 'Editar campaña', code: 'Código', name: 'Nombre', vintage: 'Añada', start: 'Inicio', harvest: 'Inicio previsto de vendimia', end: 'Fin previsto', notes: 'Notas', makeActive: 'Activar al crear', save: 'Guardar campaña', cancel: 'Cancelar', activeSummary: 'Campaña operativa', noActive: 'No hay campaña activa', blocked: 'El cierre puede bloquearse si quedan lotes, recepciones o embotellados pendientes.'
+  } : {
+    title: 'Campaigns', intro: 'Manage each vintage lifecycle without duplicating parcels or master data.', add: 'New campaign', search: 'Search campaigns', campaign: 'Campaign', dates: 'Dates', activity: 'Activity', status: 'Status', actions: 'Actions', default: 'Default', lots: 'lots', deliveries: 'receptions', bottlings: 'bottlings', noResults: 'No matching campaigns.', active: 'Active', planned: 'Planned', closed: 'Closed', archived: 'Archived', activate: 'Activate', close: 'Close', reopen: 'Reopen', archive: 'Archive', makeDefault: 'Make default', edit: 'Edit', createTitle: 'Create campaign', editTitle: 'Edit campaign', code: 'Code', name: 'Name', vintage: 'Vintage', start: 'Start', harvest: 'Expected harvest start', end: 'Expected end', notes: 'Notes', makeActive: 'Activate after creation', save: 'Save campaign', cancel: 'Cancel', activeSummary: 'Operational campaign', noActive: 'No active campaign', blocked: 'Closure may be blocked while lots, receptions or bottlings remain unresolved.'
+  }
+  const stats = (id: string) => ({
+    lots: lots.filter((lot) => lot.campaignId === id).length,
+    deliveries: deliveries.filter((delivery) => delivery.campaignId === id).length,
+    bottlings: bottlingOrders.filter((order) => (order as { campaignId?: string }).campaignId === id).length,
+  })
+  return <AdminSection icon={<CalendarDays />} title={copy.title} text={copy.intro}>
+    <div className="campaign-manager-toolbar"><label><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.search} /></label><button type="button" className="primary-button" onClick={() => setEditing('new')}><Plus /> {copy.add}</button></div>
+    <div className="campaign-active-summary"><span><CalendarDays /></span><span><small>{copy.activeSummary}</small><strong>{active ? `${active.name} · ${active.vintage}` : copy.noActive}</strong><em>{active ? `${formatAdminDate(active.startsAt, locale)} — ${formatAdminDate(active.expectedEndAt, locale)}` : copy.blocked}</em></span>{active?.isDefault && <i><Star /> {copy.default}</i>}</div>
+    <div className="campaign-table-wrap"><table className="campaign-table"><thead><tr><th>{copy.campaign}</th><th>{copy.dates}</th><th>{copy.activity}</th><th>{copy.status}</th><th>{copy.actions}</th></tr></thead><tbody>{filtered.map((campaign) => { const count = stats(campaign.id); return <tr key={campaign.id}><td><span className="campaign-name-cell"><strong>{campaign.name}</strong><small>{campaign.code} · {campaign.vintage}</small>{campaign.isDefault && <em><Star /> {copy.default}</em>}</span></td><td><span className="campaign-date-cell"><strong>{formatAdminDate(campaign.startsAt, locale)}</strong><small>{formatAdminDate(campaign.expectedHarvestStart, locale)}</small></span></td><td><span className="campaign-counts"><i>{count.lots} {copy.lots}</i><i>{count.deliveries} {copy.deliveries}</i><i>{count.bottlings} {copy.bottlings}</i></span></td><td><span className={`campaign-status ${campaign.status}`}>{copy[campaign.status]}</span></td><td><div className="campaign-row-actions"><button type="button" className="icon-button" onClick={() => setEditing(campaign)} aria-label={copy.edit}><Edit3 /></button><button type="button" className="icon-button" onClick={() => setMenuId(menuId === campaign.id ? null : campaign.id)} aria-label={copy.actions}><MoreHorizontal /></button>{menuId === campaign.id && <div className="campaign-action-menu">{campaign.status !== 'active' && campaign.status !== 'archived' && <button type="button" onClick={() => { onAction('activate', campaign.id); setMenuId(null) }}><CheckCircle2 /> {copy.activate}</button>}{campaign.status === 'active' && <button type="button" onClick={() => { onAction('close', campaign.id); setMenuId(null) }}><LockKeyhole /> {copy.close}</button>}{campaign.status === 'closed' && <button type="button" onClick={() => { onAction('reopen', campaign.id); setMenuId(null) }}><RotateCcw /> {copy.reopen}</button>}{campaign.status === 'closed' && <button type="button" onClick={() => { onAction('archive', campaign.id); setMenuId(null) }}><Archive /> {copy.archive}</button>}{!campaign.isDefault && campaign.status !== 'archived' && <button type="button" onClick={() => { onAction('default', campaign.id); setMenuId(null) }}><Star /> {copy.makeDefault}</button>}</div>}</div></td></tr>})}</tbody></table>{!filtered.length && <div className="campaign-empty">{copy.noResults}</div>}</div>
+    <div className="admin-context-note"><Info /><span><strong>{copy.blocked}</strong><small>{es ? 'Las reglas de cierre se evalúan contra registros operativos reales.' : 'Closure rules are evaluated against real operational records.'}</small></span></div>
+    {editing && <CampaignEditor campaign={editing === 'new' ? undefined : editing} locale={locale} copy={copy} onCancel={() => setEditing(null)} onSave={(input, makeActive) => { if (editing === 'new') onCreate({ ...input, makeDefault: makeActive, operator: 'Elena Martín' }); else onUpdate(editing.id, input); setEditing(null) }} />}
+  </AdminSection>
+}
+
+function CampaignEditor({ campaign, locale, copy, onCancel, onSave }: { campaign?: Campaign; locale: string; copy: Record<string, string>; onCancel: () => void; onSave: (input: CampaignUpdateInput & NewCampaignInput, makeActive: boolean) => void }) {
+  const year = new Date().getFullYear()
+  const [draft, setDraft] = useState({ code: campaign?.code ?? String(year + 1), name: campaign?.name ?? `${locale.startsWith('es') ? 'Vendimia' : 'Harvest'} ${year + 1}`, vintage: campaign?.vintage ?? year + 1, startsAt: campaign?.startsAt ?? `${year + 1}-08-01`, expectedHarvestStart: campaign?.expectedHarvestStart ?? `${year + 1}-09-01`, expectedEndAt: campaign?.expectedEndAt ?? `${year + 1}-12-31`, notes: campaign?.notes ?? '' })
+  const [makeActive, setMakeActive] = useState(false)
+  const valid = Boolean(draft.code.trim() && draft.name.trim() && draft.startsAt && draft.vintage >= 1900)
+  return <div className="sheet-layer campaign-editor-layer" role="dialog" aria-modal="true"><button type="button" className="sheet-scrim" onClick={onCancel} aria-label={copy.cancel} /><section className="campaign-editor"><header><span><CalendarDays /></span><div><small>{campaign ? copy.editTitle : copy.createTitle}</small><h2>{campaign?.name ?? copy.createTitle}</h2></div><button type="button" className="icon-button" onClick={onCancel}><X /></button></header><div className="campaign-editor-body"><div className="campaign-editor-grid"><label><span>{copy.code}</span><input value={draft.code} onChange={(event) => setDraft({ ...draft, code: event.target.value })} /></label><label><span>{copy.vintage}</span><input type="number" min="1900" max="2200" value={draft.vintage} onChange={(event) => setDraft({ ...draft, vintage: Number(event.target.value) })} /></label><label className="wide"><span>{copy.name}</span><input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label><label><span>{copy.start}</span><input type="date" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} /></label><label><span>{copy.harvest}</span><input type="date" value={draft.expectedHarvestStart} onChange={(event) => setDraft({ ...draft, expectedHarvestStart: event.target.value })} /></label><label><span>{copy.end}</span><input type="date" value={draft.expectedEndAt} onChange={(event) => setDraft({ ...draft, expectedEndAt: event.target.value })} /></label><label className="wide"><span>{copy.notes}</span><textarea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} /></label></div>{!campaign && <label className="campaign-activate-toggle"><input type="checkbox" checked={makeActive} onChange={(event) => setMakeActive(event.target.checked)} /><span><CheckCircle2 /><span><strong>{copy.makeActive}</strong><small>{copy.blocked}</small></span></span></label>}</div><footer><button type="button" className="secondary-button" onClick={onCancel}>{copy.cancel}</button><button type="button" className="primary-button" disabled={!valid} onClick={() => onSave({ ...draft, operator: 'Elena Martín' }, makeActive)}><Save /> {copy.save}</button></footer></section></div>
+}
+
+function formatAdminDate(value: string | undefined, locale: string) {
+  if (!value) return '—'
+  const date = new Date(`${value.slice(0, 10)}T12:00:00`)
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
 }
 
 function AdminStatus({ icon, label, value, detail, tone }: { icon: ReactNode; label: string; value: string; detail: string; tone: string }) { return <article className="admin-status"><span className={`admin-status-icon ${tone}`}>{icon}</span><span><small>{label}</small><strong>{value}</strong><em>{detail}</em></span></article> }

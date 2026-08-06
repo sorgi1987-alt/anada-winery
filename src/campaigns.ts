@@ -100,6 +100,53 @@ export const createCampaign = (campaigns: Campaign[], input: NewCampaignInput, a
   return [...campaigns.map((item) => makeDefault ? { ...item, isDefault: false } : item), created]
 }
 
+
+export interface CampaignUpdateInput {
+  code?: string
+  name?: string
+  vintage?: number
+  startsAt?: string
+  expectedHarvestStart?: string
+  expectedEndAt?: string
+  notes?: string
+}
+
+export const updateCampaign = (campaigns: Campaign[], id: string, input: CampaignUpdateInput, operator: string, at = nowIso()): Campaign[] => {
+  const target = campaigns.find((item) => item.id === id)
+  if (!target) throw new CampaignValidationError('Campaign not found')
+  const nextCode = (input.code ?? target.code).trim()
+  const nextName = (input.name ?? target.name).trim()
+  const nextVintage = input.vintage ?? target.vintage
+  if (!nextCode || !nextName) throw new CampaignValidationError('Campaign code and name are required')
+  if (!Number.isInteger(nextVintage) || nextVintage < 1900 || nextVintage > 2200) throw new CampaignValidationError('Campaign vintage is invalid')
+  if (campaigns.some((item) => item.id !== id && canonical(item.code) === canonical(nextCode))) throw new CampaignValidationError('Campaign code must be unique')
+  if (target.status === 'archived') throw new CampaignValidationError('Archived campaigns cannot be edited')
+  return campaigns.map((campaign) => campaign.id === id ? {
+    ...campaign,
+    code: nextCode,
+    name: nextName,
+    vintage: nextVintage,
+    startsAt: input.startsAt ?? campaign.startsAt,
+    expectedHarvestStart: input.expectedHarvestStart ?? campaign.expectedHarvestStart,
+    expectedEndAt: input.expectedEndAt ?? campaign.expectedEndAt,
+    notes: input.notes?.trim() ?? campaign.notes,
+    updatedAt: at,
+    updatedBy: operator,
+  } : campaign)
+}
+
+export const setDefaultCampaign = (campaigns: Campaign[], id: string, operator: string, at = nowIso()): Campaign[] => {
+  const target = campaigns.find((item) => item.id === id)
+  if (!target) throw new CampaignValidationError('Campaign not found')
+  if (target.status === 'archived') throw new CampaignValidationError('Archived campaigns cannot be default')
+  return campaigns.map((campaign) => ({
+    ...campaign,
+    isDefault: campaign.id === id,
+    updatedAt: campaign.id === id || campaign.isDefault ? at : campaign.updatedAt,
+    updatedBy: campaign.id === id || campaign.isDefault ? operator : campaign.updatedBy,
+  }))
+}
+
 export const activateCampaign = (campaigns: Campaign[], id: string, operator: string, at = nowIso()): Campaign[] => {
   const target = campaigns.find((item) => item.id === id)
   if (!target) throw new CampaignValidationError('Campaign not found')
@@ -129,7 +176,7 @@ export const closeCampaign = (state: WineryState, id: string, operator: string, 
     throw new CampaignValidationError('Campaign has unresolved operational records')
   }
   return state.campaigns.map((campaign) => campaign.id === id
-    ? { ...campaign, status: 'closed', isDefault: false, closedAt: at, updatedAt: at, updatedBy: operator }
+    ? { ...campaign, status: 'closed', closedAt: at, updatedAt: at, updatedBy: operator }
     : campaign)
 }
 
@@ -145,6 +192,6 @@ export const archiveCampaign = (campaigns: Campaign[], id: string, operator: str
   const target = campaigns.find((item) => item.id === id)
   if (!target || target.status !== 'closed') throw new CampaignValidationError('Only closed campaigns can be archived')
   return campaigns.map((campaign) => campaign.id === id
-    ? { ...campaign, status: 'archived', isDefault: false, updatedAt: at, updatedBy: operator }
+    ? { ...campaign, status: 'archived', updatedAt: at, updatedBy: operator }
     : campaign)
 }

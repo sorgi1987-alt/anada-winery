@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { activateCampaign, archiveCampaign, CampaignValidationError, closeCampaign, createCampaign, normalizeCampaigns, reopenCampaign, validateCampaignSet } from '../src/campaigns'
+import { activateCampaign, archiveCampaign, CampaignValidationError, closeCampaign, createCampaign, normalizeCampaigns, reopenCampaign, setDefaultCampaign, updateCampaign, validateCampaignSet } from '../src/campaigns'
 import { migrateLegacyState } from '../src/store'
 import type { Campaign, WineryState } from '../src/types'
 
@@ -83,4 +84,26 @@ test('normalization repairs multiple active and default campaigns deterministica
   ], 2026)
   assert.equal(normalized.filter((item) => item.status === 'active').length, 1)
   assert.equal(normalized.filter((item) => item.isDefault).length, 1)
+})
+
+test('campaign edits preserve identity and default selection stays unique', () => {
+  const base = normalizeCampaigns([
+    { id: 'campaign-2026', code: '2026', status: 'active', isDefault: true },
+    { id: 'campaign-2027', code: '2027', status: 'planned', isDefault: false },
+  ], 2026)
+  const edited = updateCampaign(base, 'campaign-2027', { name: 'Vendimia especial 2027', expectedHarvestStart: '2027-09-10' }, 'Elena Martín', '2026-08-06T15:00:00.000Z')
+  assert.equal(edited[1].id, 'campaign-2027')
+  assert.equal(edited[1].name, 'Vendimia especial 2027')
+  const selected = setDefaultCampaign(edited, 'campaign-2027', 'Elena Martín', '2026-08-06T15:01:00.000Z')
+  assert.equal(selected.filter((campaign) => campaign.isDefault).length, 1)
+  assert.equal(selected.find((campaign) => campaign.isDefault)?.id, 'campaign-2027')
+})
+
+test('campaign management UI uses in-app editor and lifecycle actions', () => {
+  const source = readFileSync(new URL('../src/Administration.tsx', import.meta.url), 'utf8')
+  assert.match(source, /function CampaignManager/)
+  assert.match(source, /function CampaignEditor/)
+  assert.match(source, /onAction\('activate'/)
+  assert.match(source, /onAction\('close'/)
+  assert.doesNotMatch(source, /window\.prompt/)
 })
