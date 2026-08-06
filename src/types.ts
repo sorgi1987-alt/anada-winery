@@ -54,6 +54,67 @@ export interface ProcessStage {
   status: 'complete' | 'current' | 'upcoming' | 'optional'
 }
 
+export interface Campaign {
+  id: string
+  code: string
+  year: number
+  startsAt: string
+  endsAt: string
+  status: 'planned' | 'active' | 'closed'
+}
+
+export interface Grower {
+  id: string
+  code: string
+  name: string
+  taxId?: string
+  contactName?: string
+  email?: string
+  phone?: string
+  status: 'active' | 'blocked'
+}
+
+export interface WineryLocation {
+  id: string
+  code: string
+  name: string
+  type: 'winery' | 'vineyard' | 'tank_room' | 'barrel_room' | 'warehouse' | 'processing' | 'external'
+  parentLocationId?: string
+  active: boolean
+}
+
+export interface Vessel {
+  id: string
+  code: string
+  name: string
+  type: 'tank' | 'barrel' | 'hopper' | 'press' | 'other'
+  capacity: number
+  unit: 'L'
+  locationId: string
+  active: boolean
+}
+
+export interface VesselAllocation {
+  id: string
+  vesselId: string
+  wineLotId: string
+  campaignId: string
+  volume: number
+  unit: 'L'
+  startedAt: string
+  endedAt?: string
+  status: 'active' | 'ended' | 'corrected'
+}
+
+export interface VineyardSampleRecord extends VineyardSample {
+  id: string
+  parcelId: string
+  campaignId: string
+  sampledBy: string
+  status: 'draft' | 'validated' | 'superseded'
+  notes?: string
+}
+
 export interface WineLot {
   id: string
   name: string
@@ -78,6 +139,8 @@ export interface WineLot {
   activities?: LotActivity[]
   productionDetails?: ProductionDetails
   operationalStatus?: 'active' | 'consumed'
+  campaignId?: string
+  currentVesselId?: string
 }
 
 export interface CellarTask {
@@ -126,6 +189,9 @@ export interface VineyardParcel {
   readiness: ParcelReadiness
   sample: VineyardSample
   image: string
+  growerId?: string
+  locationId?: string
+  campaignId?: string
 }
 
 export interface GrapeDelivery {
@@ -149,6 +215,8 @@ export interface GrapeDelivery {
   potentialAlcohol?: number
   condition?: GrapeCondition
   notes?: string
+  growerId?: string
+  campaignId?: string
 }
 
 export interface WeatherSnapshot {
@@ -171,7 +239,13 @@ export interface WeatherSnapshot {
 }
 
 export interface WineryState {
-  schemaVersion: 21
+  schemaVersion: 22
+  campaigns: Campaign[]
+  growers: Grower[]
+  locations: WineryLocation[]
+  vessels: Vessel[]
+  vesselAllocations: VesselAllocation[]
+  vineyardSamples: VineyardSampleRecord[]
   lots: WineLot[]
   tasks: CellarTask[]
   tanks: Tank[]

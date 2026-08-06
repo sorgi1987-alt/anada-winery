@@ -93,6 +93,6 @@ Version 0.28 retrieves current winery weather through the Catalyst function usin
 ## Weather snapshots (0.29)
 Relevant operations capture an immutable winery-weather snapshot when saved. Failed weather calls create an unavailable provenance record and never block the operation. Snapshots are shown in the operational register and included in CSV exports.
 
-## Version 0.30.0
+## Version 0.31.0
 
 The harvest workspace now presents factual current conditions and a transparent 48-hour weather assessment. It labels conditions favourable, cautionary or adverse using explicit precipitation, wind and temperature thresholds and avoids recommendations when forecast data is unavailable.

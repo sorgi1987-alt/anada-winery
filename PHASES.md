@@ -158,9 +158,24 @@ Status: implemented for version 0.29.0.
 
 ### Phase 8C.5 — Forecast-backed harvest context
 
-Status: implemented in version 0.30.0.
+Status: implemented in version 0.31.0.
 
 - Replaced promotional harvest copy with an operational conditions summary.
 - Added a transparent 48-hour assessment based on forecast precipitation, peak wind and peak temperature.
 - The app does not issue an assessment when forecast evidence is unavailable.
 - Current-day intake metrics now use the winery-local calendar date rather than a seeded date.
+
+
+## Phase 9A.1 — Canonical masters and relationship integrity
+
+Status: implemented in version 0.31.0.
+
+- Campaign, grower, controlled-location and vessel masters
+- Stable parcel-to-grower and parcel-to-location references
+- Delivery campaign and grower references
+- Historical vineyard samples separated from the latest parcel summary
+- Vessel allocations separated from tank occupancy display fields
+- Schema v22 migration preserving existing operational and supply master data
+- Relationship-integrity validation and migration tests
+
+Completion gate: all current parcels, deliveries, vineyard samples and active vessel allocations resolve to valid canonical records without changing existing user workflows.

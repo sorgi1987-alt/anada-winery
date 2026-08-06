@@ -51,3 +51,22 @@ Deploy the `anada_data_api` health route using the CLI-generated function config
 
 ## Schema v21 — operational weather snapshots
 The browser state includes `weatherSnapshots`, immutable records linked to grape deliveries, production events, wine movements and bottling orders. Each record stores coordinates, capture/observation timestamps, source, provenance status and available weather measurements.
+
+
+## Browser schema v22 canonical relationship layer
+
+The local domain now includes canonical masters for campaigns, growers, controlled winery locations and vessels, plus historical vineyard samples and vessel allocations. These records are not yet persisted in Catalyst tables; they define the target foreign-key structure for Catalyst Schema v2.
+
+Authoritative relationships:
+
+- `VineyardParcel.growerId -> Grower.id`
+- `VineyardParcel.locationId -> WineryLocation.id`
+- `VineyardParcel.campaignId -> Campaign.id`
+- `GrapeDelivery.parcelId -> VineyardParcel.id`
+- `GrapeDelivery.growerId -> Grower.id`
+- `VineyardSampleRecord.parcelId -> VineyardParcel.id`
+- `Vessel.locationId -> WineryLocation.id`
+- `VesselAllocation.vesselId -> Vessel.id`
+- `VesselAllocation.wineLotId -> WineLot.id`
+
+Legacy labels remain temporary UI projections and must not become independently editable once the canonical masters are exposed.

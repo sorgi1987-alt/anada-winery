@@ -84,6 +84,12 @@ function App() {
     return () => query.removeEventListener('change', updateViewport)
   }, [])
   const [initialState] = useState(() => browserWineryRepository.load())
+  const [campaigns, setCampaigns] = useState(initialState.campaigns)
+  const [growers, setGrowers] = useState(initialState.growers)
+  const [locations, setLocations] = useState(initialState.locations)
+  const [vessels, setVessels] = useState(initialState.vessels)
+  const [vesselAllocations, setVesselAllocations] = useState(initialState.vesselAllocations)
+  const [vineyardSamples, setVineyardSamples] = useState(initialState.vineyardSamples)
   const [demoLots, setDemoLots] = useState<WineLot[]>(initialState.lots)
   const [tasks, setTasks] = useState<CellarTask[]>(initialState.tasks)
   const [demoTanks, setDemoTanks] = useState<Tank[]>(initialState.tanks)
@@ -116,8 +122,8 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 21, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings })
-  }, [demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings])
+    browserWineryRepository.save({ schemaVersion: 22, campaigns, growers, locations, vessels, vesselAllocations, vineyardSamples, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings })
+  }, [campaigns, growers, locations, vessels, vesselAllocations, vineyardSamples, demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings])
 
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
@@ -480,6 +486,12 @@ function App() {
 
   const resetDemoData = () => {
     const reset = browserWineryRepository.clear()
+    setCampaigns(reset.campaigns)
+    setGrowers(reset.growers)
+    setLocations(reset.locations)
+    setVessels(reset.vessels)
+    setVesselAllocations(reset.vesselAllocations)
+    setVineyardSamples(reset.vineyardSamples)
     setDemoLots(reset.lots)
     setTasks(reset.tasks)
     setDemoTanks(reset.tanks)
@@ -598,7 +610,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.30.0</span>
+          <span>Añada 0.31.0</span>
         </div>
       </section>
     </main>
