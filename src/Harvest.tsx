@@ -209,11 +209,12 @@ interface IntakeSheetProps {
   deliveries: GrapeDelivery[]
   parcels: VineyardParcel[]
   initialDeliveryId?: string
+  campaignName?: string
   onClose: () => void
   onSave: (input: NewGrapeIntakeInput) => void
 }
 
-export function IntakeSheet({ deliveries, parcels, initialDeliveryId, onClose, onSave }: IntakeSheetProps) {
+export function IntakeSheet({ deliveries, parcels, initialDeliveryId, campaignName, onClose, onSave }: IntakeSheetProps) {
   const available = deliveries.filter((delivery) => delivery.status !== 'received')
   const initialDelivery = initialDeliveryId === 'manual' ? undefined : deliveries.find((delivery) => delivery.id === initialDeliveryId) ?? available.find((delivery) => delivery.status === 'at_gate')
   const firstParcel = parcels.find((parcel) => parcel.id === initialDelivery?.parcelId) ?? parcels[0]
@@ -256,7 +257,7 @@ export function IntakeSheet({ deliveries, parcels, initialDeliveryId, onClose, o
     <div className="sheet-layer lot-flow-layer" role="dialog" aria-modal="true" aria-label={t('intake.title')}>
       <button className="sheet-scrim" onClick={onClose} aria-label={t('common.close')} />
       <form className="lot-flow intake-flow" onSubmit={submit}>
-        <header className="lot-flow-head"><div><span className="flow-type-icon intake"><Scale size={20} /></span><span><small>{t('harvest.campaign')}</small><strong>{t('intake.title')}</strong></span></div><button type="button" className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={20} /></button></header>
+        <header className="lot-flow-head"><div><span className="flow-type-icon intake"><Scale size={20} /></span><span><small>{campaignName ?? t('harvest.campaign')}</small><strong>{t('intake.title')}</strong></span></div><button type="button" className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={20} /></button></header>
         <div className="flow-progress">
           {[t('intake.origin'), t('intake.weightQuality'), t('intake.destination')].map((label, index) => <span key={label} className={step === index + 1 ? 'active' : step > index + 1 ? 'complete' : ''}><i>{step > index + 1 ? <Check size={14} /> : index + 1}</i><em>{label}</em></span>)}
         </div>
@@ -268,7 +269,7 @@ export function IntakeSheet({ deliveries, parcels, initialDeliveryId, onClose, o
             <IntakeField label={t('intake.date')} icon={<CalendarDays size={15} />}><input type="date" value={draft.scheduledDate} onChange={(event) => setDraft({ ...draft, scheduledDate: event.target.value })} /></IntakeField>
             <IntakeField label={t('intake.time')} icon={<Clock3 size={15} />}><input type="time" value={draft.scheduledTime} onChange={(event) => setDraft({ ...draft, scheduledTime: event.target.value })} /></IntakeField>
             <IntakeField label={t('intake.expectedWeight')}><input type="number" min="1" value={draft.expectedKg} onChange={(event) => setDraft({ ...draft, expectedKg: Number(event.target.value) })} /><i>kg</i></IntakeField>
-            <div className="intake-origin-card"><Sprout size={20} /><span><small>{parcel?.id}</small><strong>{parcel?.grower}</strong><em>{parcel?.varieties} · {parcel?.municipality}</em></span></div>
+            <div className="intake-origin-card"><Sprout size={20} /><span><small>{parcel?.id}</small><strong>{parcel?.grower}</strong><em>{parcel?.varieties} · {parcel?.municipality}</em>{campaignName && <em>{t('harvest.campaign')}: {campaignName}</em>}</span></div>
           </div></section>}
           {step === 2 && <section className="flow-section"><FlowTitle eyebrow={t('intake.step', { step: 2 })} title={t('intake.weightTitle')} text={t('intake.weightText')} /><div className="intake-scale-card"><Scale size={24} /><span><small>{t('intake.netWeight')}</small><strong>{formatKg(netKg, locale)}</strong><em>{t('intake.calculatedWeight')}</em></span></div><div className="form-grid">
             <IntakeField label={t('intake.grossWeight')}><input type="number" min="1" value={draft.grossKg} onChange={(event) => setDraft({ ...draft, grossKg: Number(event.target.value) })} /><i>kg</i></IntakeField>
@@ -280,7 +281,7 @@ export function IntakeSheet({ deliveries, parcels, initialDeliveryId, onClose, o
           {step === 3 && <section className="flow-section"><FlowTitle eyebrow={t('intake.step', { step: 3 })} title={t('intake.destinationTitle')} text={t('intake.destinationText')} /><div className="form-grid">
             <IntakeField label={t('intake.processingDestination')} icon={<Warehouse size={15} />} wide><select value={draft.processingDestination} onChange={(event) => setDraft({ ...draft, processingDestination: event.target.value })}><option value="Mesa de selección">{t('intake.selectionTable')}</option><option value="Prensa 1">{t('intake.pressOne')}</option><option value="Tolva 1">{t('intake.hopperOne')}</option><option value="Cámara de frío">{t('intake.coldRoom')}</option></select></IntakeField>
             <IntakeField label={t('intake.notes')} wide><textarea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder={t('intake.notesPlaceholder')} /></IntakeField>
-          </div><div className="intake-review-card"><div><CheckCircle2 size={23} /><span><small>{t('intake.ready')}</small><strong>{parcel?.name} · {parcel?.varieties}</strong><em>{parcel?.grower} · {draft.vehicle}</em></span></div><div className="intake-review-grid"><span><small>{t('intake.netWeight')}</small><strong>{formatKg(netKg, locale)}</strong></span><span><small>{t('common.temperature')}</small><strong>{draft.temperature.toFixed(1)} °C</strong></span><span><small>{t('harvest.potential')}</small><strong>{draft.potentialAlcohol.toFixed(1)}%</strong></span><span><small>{t('harvest.destination')}</small><strong>{d(draft.processingDestination)}</strong></span></div><p><Activity size={15} /> {t('intake.traceabilityText')}</p></div></section>}
+          </div><div className="intake-review-card"><div><CheckCircle2 size={23} /><span><small>{t('intake.ready')}</small><strong>{parcel?.name} · {parcel?.varieties}</strong><em>{parcel?.grower}{campaignName ? ` · ${campaignName}` : ''} · {draft.vehicle}</em></span></div><div className="intake-review-grid"><span><small>{t('intake.netWeight')}</small><strong>{formatKg(netKg, locale)}</strong></span><span><small>{t('common.temperature')}</small><strong>{draft.temperature.toFixed(1)} °C</strong></span><span><small>{t('harvest.potential')}</small><strong>{draft.potentialAlcohol.toFixed(1)}%</strong></span><span><small>{t('harvest.destination')}</small><strong>{d(draft.processingDestination)}</strong></span></div><p><Activity size={15} /> {t('intake.traceabilityText')}</p></div></section>}
           {error && <div className="form-error">{error}</div>}
         </div>
         <footer className="lot-flow-actions"><button type="button" className="secondary-button" onClick={step === 1 ? onClose : () => { setError(''); setStep(step - 1) }}>{step === 1 ? t('common.cancel') : t('common.previous')}</button>{step < 3 ? <button type="button" className="primary-button" onClick={next}>{t('common.continue')} <ArrowUpRight size={17} /></button> : <button className="primary-button" type="submit"><Check size={17} /> {t('intake.confirm')}</button>}</footer>

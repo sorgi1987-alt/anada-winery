@@ -3,6 +3,7 @@ import test from 'node:test'
 import { deliveries, lots, parcels, tanks, winerySettings } from '../src/data'
 import { buildCanonicalRelationshipModel, validateCanonicalRelationships } from '../src/relationships'
 import { migrateLegacyState } from '../src/store'
+import { receiveGrapeDelivery } from '../src/domain'
 
 test('canonical relationship model creates stable masters and valid foreign keys', () => {
   const model = buildCanonicalRelationshipModel(winerySettings, structuredClone(parcels), structuredClone(deliveries), structuredClone(lots), structuredClone(tanks))
@@ -11,6 +12,16 @@ test('canonical relationship model creates stable masters and valid foreign keys
   assert.equal(validateCanonicalRelationships(model).length, 0)
   assert.ok(model.parcels.every((parcel) => parcel.growerId && parcel.locationId && parcel.campaignId))
   assert.ok(model.deliveries.every((delivery) => delivery.growerId && delivery.campaignId))
+})
+
+test('grape intake stamps the delivery with the parcel grower relationship', () => {
+  const model = buildCanonicalRelationshipModel(winerySettings, structuredClone(parcels), structuredClone(deliveries), structuredClone(lots), structuredClone(tanks))
+  const parcel = model.parcels[0]
+  assert.ok(parcel.growerId)
+  const result = receiveGrapeDelivery([], model.parcels, {
+    deliveryId: '', parcelId: parcel.id, scheduledDate: '2026-09-19', scheduledTime: '14:00', expectedKg: 1000, vehicle: 'LO-0000-AA', grossKg: 1000, tareKg: 0, temperature: 18, potentialAlcohol: 12.5, condition: 'good', processingDestination: 'Mesa de selección', notes: '',
+  })
+  assert.equal(result.delivery.growerId, parcel.growerId)
 })
 
 test('v21 migration preserves operational data and adds canonical relationships', () => {

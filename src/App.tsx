@@ -652,7 +652,7 @@ function App() {
 
       {readingLot && <ReadingSheet lot={readingLot} onClose={() => setReadingLotId(null)} onSave={saveReading} />}
       {newLotType && <CreateLotSheet type={newLotType} lots={demoLots} tanks={demoTanks} onClose={() => setNewLotType(null)} onCreate={createNewLot} />}
-      {intakeFlow.open && (() => { const activeCampaign = campaigns.find((c) => c.status === 'active'); const parcelIds = new Set(campaignParcels.filter((plan) => plan.campaignId === activeCampaign?.id && plan.status !== 'cancelled').map((plan) => plan.parcelId)); return <IntakeSheet deliveries={deliveries.filter((delivery) => delivery.campaignId === activeCampaign?.id)} parcels={parcels.filter((parcel) => parcelIds.has(parcel.id) && parcel.status !== 'inactive')} initialDeliveryId={intakeFlow.deliveryId} onClose={() => setIntakeFlow({ open: false })} onSave={registerIntake} /> })()}
+      {intakeFlow.open && (() => { const activeCampaign = campaigns.find((c) => c.status === 'active'); const parcelIds = new Set(campaignParcels.filter((plan) => plan.campaignId === activeCampaign?.id && plan.status !== 'cancelled').map((plan) => plan.parcelId)); return <IntakeSheet deliveries={deliveries.filter((delivery) => delivery.campaignId === activeCampaign?.id)} parcels={parcels.filter((parcel) => parcelIds.has(parcel.id) && parcel.status !== 'inactive')} initialDeliveryId={intakeFlow.deliveryId} campaignName={activeCampaign?.name} onClose={() => setIntakeFlow({ open: false })} onSave={registerIntake} /> })()}
       {toast && (
         <div className="toast" role="status">
           <CheckCircle2 size={19} />

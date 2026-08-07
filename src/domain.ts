@@ -387,6 +387,7 @@ export const receiveGrapeDelivery = (
     code: existing?.code ?? `ENT-${String(new Date().getFullYear()).slice(-2)}-${String(deliveries.length + 41).padStart(3, '0')}`,
     parcelId: parcel.id,
     grower: parcel.grower,
+    growerId: parcel.growerId,
     varieties: parcel.varieties,
     origin: `${parcel.municipality} · ${parcel.zone}`,
     scheduledDate: input.scheduledDate,
