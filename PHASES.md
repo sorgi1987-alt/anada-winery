@@ -115,12 +115,48 @@ Completion gate: reconcile one reporting period from operational transactions an
 
 ## Phase 9 — Shared production infrastructure
 
-- Catalyst operational persistence
-- Authentication, winery membership and roles
-- Protected API reads and writes
+Real multi-winery persistence and authentication, staged as five ordered sub-phases rather than one migration. Each is independently shippable and gates the next.
+
+### Phase 9.1 — Winery and User foundational entities
+
+- `Winery` and `User`/`Member` added as real domain entities with stable IDs
+- `Membership` junction records role-per-winery
+- `wineryId` added to every top-level collection in the browser schema
+- Winery-switcher UI stub, not yet enforcing scoping
+- Browser schema v27 migration preserving all v26 operational data
+
+Completion gate: every existing collection carries a valid `wineryId`; a `User`/`Member` record exists for the current hardcoded operator; migration tests confirm no data loss.
+
+### Phase 9.2 — Winery scoping enforcement
+
+- Every page and mutation handler filters by the selected winery
+- Winery switcher becomes functional
+- Multi-winery demo data proves isolation between wineries
+
+Completion gate: two wineries' demo data coexist in the browser state without either being visible from the other's context.
+
+### Phase 9.3 — Catalyst Schema v2 provisioning
+
+- Design and provision `Wineries`, `Users` and `Memberships` tables
+- Provision the previously-planned growers/vineyards/parcels/vessels/campaigns tables already named in `CATALYST_SCHEMA.md`
+- No Slate client exposure until membership and role checks exist
+
+Completion gate: schema v2 tables are provisioned in the Development environment and match the browser domain model field-for-field.
+
+### Phase 9.4 — Catalyst authentication
+
+- Real login backed by Zoho Catalyst authentication
+- Replaces hardcoded operator attribution everywhere with the authenticated user's identity
+- Role-based access aligned with `Membership` records
+
+Completion gate: a user logs in, their identity is attributed on every mutation, and an unauthenticated request is rejected.
+
+### Phase 9.5 — Remote reads, then remote writes
+
+- Protected API reads before any remote writes
 - Server-side audit trail
 - Multi-device synchronization and conflict handling
-- Backup, restore and winery-level data separation
+- Backup, restore and winery-level data separation enforced server-side
 
 Completion gate: two authorized devices can work on the same winery without lost updates, unauthorized access or ambiguous authorship.
 
@@ -137,7 +173,9 @@ Completion gate: one pilot winery confirms that the integration reduces manual w
 
 ## Validation gate before expansion
 
-Test with three to five Rioja wineries using real or anonymized records. Prioritize grape intake, fermentation, product addition, movement, analysis, bottling and recall. Do not add another broad module unless the same unmet need is independently observed in multiple wineries.
+Real multi-winery validation is not available for this project — there is no path to test with three to five Rioja wineries. That original gate is dropped as unreachable rather than left as a blocker nothing can satisfy.
+
+In its place: do not add another broad operational module (Phase 8D, 8E) without an explicit decision from the product owner, made the same way Phase 9 was — a deliberate call, not something started by momentum. Absent real winery usage, that decision rests on internal review of the existing modules against the domain rules in `AGENTS.md`, not on field-observed unmet need.
 
 
 ### Phase 8C.3 — Winery weather context
