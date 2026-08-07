@@ -4,7 +4,7 @@ Añada is a visual winery-operations application for small and medium wineries i
 
 ## Current status
 
-Version 0.24 connects approved oenological-product lots to wine production. Each recorded use deducts physical stock atomically and creates linked inventory, production-history and traceability evidence. The former DOCa Rioja eligibility workspace remains retired.
+Version 0.34.0 adds canonical grower master management under Administration: legal/trade identity, contact details, active/inactive lifecycle and duplicate code/tax-ID validation, with browser schema v25 migrating legacy grower records without duplicating them. Campaign lifecycle logic (create, activate, close, reopen, archive, single-active/default invariants) is implemented in `src/campaigns.ts`; UI CRUD for campaigns is deferred. The former DOCa Rioja eligibility workspace remains retired.
 
 The current frontend remains a browser-authoritative prototype. Catalyst confirms the seven provisioned Development tables through a health-only function, but shared server persistence, authentication, protected operational reads, remote writes and synchronization are not active.
 
@@ -114,3 +114,6 @@ Adds canonical grower master management under Administration, including legal/fi
 ## Version 0.34.0 — Grower master management
 
 Growers are now permanent master records under Administration, independent of campaigns. The workspace supports create/edit, activate/deactivate, searchable status views, audited updates, and duplicate code/tax-ID validation. Browser schema v25 migrates existing v24 grower identities into the richer canonical master without changing parcel or operational history.
+
+### v0.35 vineyard and parcel masters
+Administration now supports Grower → Vineyard → Parcel CRUD. Parcels can be added to or removed from the active campaign through `CampaignParcelPlan` records; Harvest reads the active/default campaign scope and disables reception registration when no campaign is active.

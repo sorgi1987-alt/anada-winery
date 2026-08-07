@@ -53,4 +53,30 @@ Añada is a Spanish-first winery-operations application for small and medium win
 
 ## Current phase
 
-Phase 8B.2A is the version 0.24 product-consumption checkpoint. Only approved, unexpired physical product lots can be consumed into active wine lots; the mutation atomically deducts stock and creates attributed inventory, production and bidirectional traceability records. Phase 8B.2B will add stock adjustments, storage transfers and disposal. Authentication, shared persistence and remote writes remain deferred until Phase 9.
+Phase 10A.2 is the version 0.34.0 checkpoint. Growers are permanent Administration master data with legal/trade identity, contact details, active/inactive lifecycle and duplicate code/tax-ID validation; browser schema v25 migrates legacy grower records without duplicating them. Campaign lifecycle logic (Phase 10A.1) is implemented in `src/campaigns.ts` — single-active and single-default invariants, closure blockers, audit attribution — but its UI CRUD remains deferred. Authentication, shared persistence and remote writes remain deferred until Phase 9.
+
+## Migration rules
+
+- A migration may enrich, normalize or add structures.
+- A migration must never regenerate IDs, replace operational objects,
+  discard history or recreate lots.
+- Preserve object identity; enrich existing records rather than replacing them.
+- Legacy schemas predating campaigns have no campaigns collection —
+  migration code must tolerate missing campaign arrays.
+- Canonical relationship builders enrich existing data, never rebuild it.
+
+## Fragile areas
+
+- Migration pipeline
+- Campaign normalization
+- Relationship normalization
+- Browser persistence compatibility
+
+## Recurring failure modes
+
+- Prop signature drift after UI refactors.
+- Migration regressions affecting older schemas.
+- Assuming campaigns have always existed.
+- Replacing objects instead of enriching them.
+- Never remove a test because it fails. Migration tests catch the
+  regressions that schema evolution causes.

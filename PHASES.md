@@ -2,6 +2,13 @@
 
 The roadmap is organized around auditable winery operations and general legal-record support. Denomination-specific qualification or certification is out of scope until the operational evidence model is complete and independently validated.
 
+## Status vocabulary
+
+Every phase below carries exactly one of two statuses:
+
+- **Implemented in version X** — the capability is built, wired into the UI and available to users as of that shipped version.
+- **Prepared for version X** — the underlying domain logic, data model or migration exists, but UI exposure (or full UI replacement) is deferred to a later version.
+
 ## Completed foundation — versions 0.1 to 0.21
 
 - Premium responsive React interface and bilingual navigation
@@ -16,7 +23,7 @@ The roadmap is organized around auditable winery operations and general legal-re
 
 ## Phase 8A — Operational scope reset
 
-Status: completed in version 0.22.
+Status: implemented in version 0.22.
 
 - Remove the DOCa Rioja route, navigation and eligibility engines
 - Remove denomination-specific decisions from bottling
@@ -33,7 +40,7 @@ Build the first legally meaningful input-to-wine traceability slice.
 
 ### Phase 8B.1 — Receipt, quarantine and release
 
-Status: deployment prepared for version 0.23.
+Status: implemented in version 0.23.
 
 - Visual bilingual supply workspace with styled segmented navigation and creation workflows for product and supplier masters
 - Separate product, supplier and physical supplier-lot identities
@@ -46,7 +53,7 @@ Status: deployment prepared for version 0.23.
 
 ### Phase 8B.2A — Consumption and wine-lot traceability
 
-Status: deployment prepared for version 0.24.
+Status: implemented in version 0.24.
 
 - Addition to an active wine lot with physical product lot, quantity, stage, operator and timestamp
 - Atomic inventory deduction and insufficient/expired/quarantined-stock guards
@@ -67,15 +74,13 @@ Completion gate: receive a yeast lot, approve it, consume part of it in fermenta
 
 ### Phase 8C.1 — Unified operational register
 
-Status: implemented for version 0.26.0.
+Status: implemented in version 0.26.0.
 
 - Read-only unified chronology across intake, production, movements, supplies, ageing and bottling
 - Standard event identity, performed/recorded timestamps, operator, quantities, locations and references
 - Filters by category, date and free-text record identity
 - Daily or filtered CSV export
 - Schema v18 migration preserving all v17 operational data
-
-
 - Immutable event identity and correction/supersession records
 - Consistent operator, performed-at and recorded-at attribution
 - Automatic genealogy for intake, additions, movements, blending and bottling
@@ -137,7 +142,7 @@ Test with three to five Rioja wineries using real or anonymized records. Priorit
 
 ### Phase 8C.3 — Winery weather context
 
-Status: implemented for version 0.28.0.
+Status: implemented in version 0.28.0.
 
 - Winery latitude and longitude configuration
 - Catalyst weather proxy backed by Open-Meteo
@@ -148,7 +153,7 @@ Status: implemented for version 0.28.0.
 
 ### Phase 8C.4 — Weather snapshots and operational context
 
-Status: implemented for version 0.29.0.
+Status: implemented in version 0.29.0.
 
 - Immutable weather snapshots linked to grape receipts, production events, wine movements and bottling operations
 - Live, cached and unavailable provenance states retained without blocking operations
@@ -202,22 +207,19 @@ UI CRUD is intentionally deferred to the next sprint.
 
 Status: implemented in version 0.34.0.
 
-- Permanent grower CRUD workspace under Administration
-- Legal/fiscal identity and contact master data
-- Active/inactive lifecycle without destructive deletion
-- Unique grower code and tax-ID validation
-- Existing parcel relationships retained through `growerId`
-- Schema v25 migration enriches legacy grower records without duplicating them
-
-## Phase 10A.1 — Grower master management
-
-Status: prepared for version 0.34.0.
-
-- Growers exposed as permanent Administration master data, not campaign records
-- Legal/trade identity, grower type, tax ID, contact and address fields
-- Active/inactive lifecycle with attributed updates
-- Unique grower code and normalized tax-ID validation
-- Parcel relationships remain through stable `growerId`
-- Browser schema v25 migration preserving v24 operational history
+- Permanent grower CRUD workspace under Administration, independent of campaign records
+- Legal/trade identity, grower type, tax ID, contact and address master data
+- Active/inactive lifecycle without destructive deletion, with attributed updates
+- Unique grower code and normalized tax-ID validation, rejecting duplicates
+- Existing parcel relationships retained through stable `growerId`
+- Schema v25 migration enriches legacy grower records without duplicating them, preserving v24 operational history
 
 Completion gate: create and edit a grower, reject duplicate fiscal identity, deactivate/reactivate it, and retain every existing parcel relationship through migration.
+
+### v0.35.0 — Vineyard and parcel master management
+
+- Permanent vineyard/estate CRUD linked to growers.
+- Permanent parcel CRUD with agronomic identity and grower/vineyard validation.
+- CampaignParcel planning records separate campaign-specific yield/readiness from parcel master data.
+- Harvest view is scoped to the active/default campaign and intake is disabled when no campaign is active.
+- Browser schema v26 migrates v25 parcels into vineyard masters and campaign parcel plans.
