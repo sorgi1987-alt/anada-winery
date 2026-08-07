@@ -579,7 +579,10 @@ function App() {
   else if (pathname === '/scan' && mobileViewport) currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
   else if (pathname === '/register') currentPage = <OperationalRegisterPage lots={demoLots} deliveries={deliveries} productionEvents={productionEvents} movements={movements} productTransactions={productStockTransactions} barrelOperations={barrelOperations} bottlingOrders={bottlingOrders} weatherSnapshots={weatherSnapshots} timeZone={settings.timezone} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
-  else if (pathname === '/settings') currentPage = <AdministrationPage settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/campaigns') currentPage = <AdministrationPage initialView="campaign" settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/operations') currentPage = <AdministrationPage initialView="operations" settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/system') currentPage = <AdministrationPage initialView="system" settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/winery' || pathname === '/settings') currentPage = <AdministrationPage initialView="winery" settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} />
 
   return (
@@ -693,7 +696,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
   const location = useHashLocation()
   const { t } = useLanguage()
   const pageItem = navItems.find((item) => location.pathname.startsWith(item.path))
-  const page = pageItem ? t(pageItem.labelKey) : 'Añada'
+  const page = location.pathname.startsWith('/admin') || location.pathname === '/settings' ? t('nav.admin') : pageItem ? t(pageItem.labelKey) : 'Añada'
   const wineryInitials = settings.wineryName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
   return (
     <div className="shell">
@@ -717,7 +720,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
         </nav>
         <div className="sidebar-bottom">
           <LanguageSelector />
-          <NavLink to="/settings" className="nav-item"><Settings2 size={19} /><span>{t('nav.settings')}</span></NavLink>
+          <NavLink to="/admin/campaigns" className="nav-item"><Settings2 size={19} /><span>{t('nav.admin')}</span></NavLink>
           <div className="user-mini">
             <span className="avatar">EM</span>
             <span><strong>Elena Martín</strong><small>{t('shell.role')}</small></span>

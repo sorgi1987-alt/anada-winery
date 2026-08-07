@@ -107,3 +107,13 @@ test('campaign management UI uses in-app editor and lifecycle actions', () => {
   assert.match(source, /onAction\('close'/)
   assert.doesNotMatch(source, /window\.prompt/)
 })
+
+
+test('campaign management is exposed as a routed administration workspace', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  const admin = readFileSync(new URL('../src/Administration.tsx', import.meta.url), 'utf8')
+  assert.match(app, /\/admin\/campaigns/)
+  assert.match(app, /nav\.admin/)
+  assert.match(admin, /initialView/)
+  assert.match(admin, /admin\.campaigns/)
+})

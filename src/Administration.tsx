@@ -7,6 +7,7 @@ import {
 import { catalystFoundation, checkCatalystReadService, type CatalystConnectionResult } from './catalyst'
 import { images } from './data'
 import { useLanguage } from './i18n'
+import { useNavigate } from './router'
 import type { PwaStatus } from './pwa'
 import type { BottlingOrder, Campaign, GrapeDelivery, NewCampaignInput, WineLot, WinerySettings } from './types'
 import type { CampaignUpdateInput } from './campaigns'
@@ -14,6 +15,7 @@ import type { CampaignUpdateInput } from './campaigns'
 type AdministrationView = 'winery' | 'campaign' | 'operations' | 'system'
 
 interface AdministrationPageProps {
+  initialView?: AdministrationView
   settings: WinerySettings
   campaigns: Campaign[]
   lots: WineLot[]
@@ -28,9 +30,11 @@ interface AdministrationPageProps {
   onResetData: () => void
 }
 
-export function AdministrationPage({ settings, campaigns, lots, deliveries, bottlingOrders, recordCount, pwa, onSave, onCreateCampaign, onUpdateCampaign, onCampaignAction, onResetData }: AdministrationPageProps) {
+export function AdministrationPage({ initialView = 'winery', settings, campaigns, lots, deliveries, bottlingOrders, recordCount, pwa, onSave, onCreateCampaign, onUpdateCampaign, onCampaignAction, onResetData }: AdministrationPageProps) {
   const { t, locale } = useLanguage()
-  const [view, setView] = useState<AdministrationView>('winery')
+  const navigate = useNavigate()
+  const [view, setView] = useState<AdministrationView>(initialView)
+  useEffect(() => setView(initialView), [initialView])
   const [draft, setDraft] = useState(settings)
   const [error, setError] = useState('')
   const [resetOpen, setResetOpen] = useState(false)
@@ -82,19 +86,23 @@ export function AdministrationPage({ settings, campaigns, lots, deliveries, bott
     })
   }, [view, catalystConnection.state])
 
-  return <main className="admin-page">
-    <header className="page-header"><div><span className="eyebrow">{t('admin.kicker')}</span><h1>{t('admin.title')}</h1><p>{t('admin.description')}</p></div><div className="page-header-action"><button className="primary-button" form="admin-settings-form" disabled={!dirty}><Save size={16} /> {dirty ? t('admin.saveChanges') : t('admin.saved')}</button></div></header>
+  const routeForView: Record<AdministrationView, string> = { winery: '/admin/winery', campaign: '/admin/campaigns', operations: '/admin/operations', system: '/admin/system' }
+  const switchView = (next: AdministrationView) => { setView(next); navigate(routeForView[next]) }
+  const campaignWorkspace = view === 'campaign'
 
-    <section className="admin-hero" style={{ backgroundImage: `url(${images.vineyard})` }}><div className="admin-hero-overlay" /><div className="admin-hero-copy"><span className="admin-season"><Building2 size={15} /> {t('admin.singleWinery')}</span><h2>{draft.wineryName}</h2><p>{draft.municipality} · {draft.province} · {draft.designation}</p><div className="admin-hero-badges"><span><ShieldCheck size={15} /> {t('admin.localCheckpoint')}</span><span><CloudOff size={15} /> {t('admin.backendDeferred')}</span></div></div><div className="winery-identity-card"><span className="winery-large-mark">{initials || 'VI'}</span><span><small>{t('admin.registry')}</small><strong>{draft.wineryCode}</strong><em>{t('admin.campaignLabel', { year: draft.campaignYear })}</em></span></div></section>
+  return <main className={`admin-page ${campaignWorkspace ? 'admin-page-master-data' : ''}`}>
+    <header className="page-header"><div><span className="eyebrow">{t('admin.kicker')}</span><h1>{campaignWorkspace ? (locale.startsWith('es') ? 'Campañas' : 'Campaigns') : t('admin.title')}</h1><p>{campaignWorkspace ? (locale.startsWith('es') ? 'Gestiona las vendimias, su ciclo de vida y la campaña operativa predeterminada.' : 'Manage vintages, their lifecycle and the default operational campaign.') : t('admin.description')}</p></div>{!campaignWorkspace && <div className="page-header-action"><button className="primary-button" form="admin-settings-form" disabled={!dirty}><Save size={16} /> {dirty ? t('admin.saveChanges') : t('admin.saved')}</button></div>}</header>
 
-    <section className="admin-status-grid"><AdminStatus icon={<HardDrive />} label={t('admin.storage')} value={t('admin.browserLocal')} detail={t('admin.localRecords', { count: recordCount })} tone="wine" /><AdminStatus icon={<Users />} label={t('admin.access')} value={t('admin.demoOperator')} detail={t('admin.authPending')} tone="gold" /><AdminStatus icon={<Database />} label={t('admin.dataService')} value={t('admin.schemaReady')} detail={t('admin.catalystTables', { count: catalystFoundation.tables.length })} tone="blue" /><AdminStatus icon={<CheckCircle2 />} label={t('admin.configuration')} value={dirty ? t('admin.unsaved') : t('admin.upToDate')} detail={t('admin.lastSavedBy', { name: settings.updatedBy })} tone={dirty ? 'warning' : 'success'} /></section>
+    {!campaignWorkspace && <section className="admin-hero" style={{ backgroundImage: `url(${images.vineyard})` }}><div className="admin-hero-overlay" /><div className="admin-hero-copy"><span className="admin-season"><Building2 size={15} /> {t('admin.singleWinery')}</span><h2>{draft.wineryName}</h2><p>{draft.municipality} · {draft.province} · {draft.designation}</p><div className="admin-hero-badges"><span><ShieldCheck size={15} /> {t('admin.localCheckpoint')}</span><span><CloudOff size={15} /> {t('admin.backendDeferred')}</span></div></div><div className="winery-identity-card"><span className="winery-large-mark">{initials || 'VI'}</span><span><small>{t('admin.registry')}</small><strong>{draft.wineryCode}</strong><em>{t('admin.campaignLabel', { year: draft.campaignYear })}</em></span></div></section>}
+
+    {!campaignWorkspace && <section className="admin-status-grid"><AdminStatus icon={<HardDrive />} label={t('admin.storage')} value={t('admin.browserLocal')} detail={t('admin.localRecords', { count: recordCount })} tone="wine" /><AdminStatus icon={<Users />} label={t('admin.access')} value={t('admin.demoOperator')} detail={t('admin.authPending')} tone="gold" /><AdminStatus icon={<Database />} label={t('admin.dataService')} value={t('admin.schemaReady')} detail={t('admin.catalystTables', { count: catalystFoundation.tables.length })} tone="blue" /><AdminStatus icon={<CheckCircle2 />} label={t('admin.configuration')} value={dirty ? t('admin.unsaved') : t('admin.upToDate')} detail={t('admin.lastSavedBy', { name: settings.updatedBy })} tone={dirty ? 'warning' : 'success'} /></section>}
 
     <div className="admin-workspace"><aside className="admin-section-nav">{([
       ['winery', <Building2 />, 'admin.wineryProfile', 'admin.wineryProfileText'],
-      ['campaign', <CalendarDays />, 'admin.campaign', 'admin.campaignText'],
+      ['campaign', <CalendarDays />, 'admin.campaigns', 'admin.campaignsText'],
       ['operations', <SlidersHorizontal />, 'admin.operations', 'admin.operationsText'],
       ['system', <Database />, 'admin.systemData', 'admin.systemDataText'],
-    ] as const).map(([key, icon, label, text]) => <button key={key} className={view === key ? 'active' : ''} onClick={() => setView(key)}><span>{icon}</span><span><strong>{t(label)}</strong><small>{t(text)}</small></span><ChevronRight /></button>)}</aside>
+    ] as const).map(([key, icon, label, text]) => <button key={key} className={view === key ? 'active' : ''} onClick={() => switchView(key)}><span>{icon}</span><span><strong>{t(label)}</strong><small>{t(text)}</small></span><ChevronRight /></button>)}</aside>
 
       <form id="admin-settings-form" className="admin-form-panel" onSubmit={submit}>
         {view === 'winery' && <AdminSection icon={<Building2 />} title={t('admin.wineryProfile')} text={t('admin.profileIntro')}>
