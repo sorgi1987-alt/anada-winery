@@ -106,3 +106,11 @@ Version 0.32.0 introduces canonical vessel specifications, usable-capacity valid
 ## Version 0.33.0 — Campaign foundation
 
 Campaigns now have canonical lifecycle, default selection and audit fields. Lifecycle rules live in `src/campaigns.ts`; UI delivery follows in the next sprint. Browser schema v24 migrates existing v23 campaigns without losing operational relationships.
+
+## Version 0.34.0 — Grower master management
+
+Adds canonical grower master management under Administration, including legal/fiscal identity, contact details, active/inactive lifecycle, duplicate validation and migration of legacy grower records to browser schema v25.
+
+## Version 0.34.0 — Grower master management
+
+Growers are now permanent master records under Administration, independent of campaigns. The workspace supports create/edit, activate/deactivate, searchable status views, audited updates, and duplicate code/tax-ID validation. Browser schema v25 migrates existing v24 grower identities into the richer canonical master without changing parcel or operational history.

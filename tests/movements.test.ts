@@ -112,7 +112,7 @@ test('the v16 migration preserves process history and adds movement audit histor
     productionEvents: legacyEvents,
   })
 
-  assert.equal(migrated?.schemaVersion, 24)
+  assert.equal(migrated?.schemaVersion, 25)
   assert.equal(migrated?.productionEvents.length, legacyEvents.length)
   assert.equal(migrated?.movements.length, wineMovements.length)
   assert.equal(migrated?.movements[0].storageMode, 'browser-local')
@@ -135,7 +135,7 @@ test('the v13 migration preserves existing movements and never overwrites a know
     movements: legacyMovements,
   })
 
-  assert.equal(migrated?.schemaVersion, 24)
+  assert.equal(migrated?.schemaVersion, 25)
   assert.equal(migrated?.movements[0].notes, legacyMovements[0].notes)
   assert.equal(migrated?.tanks.find((tank) => tank.id === 'D-21')?.lot, 'TEST-LOT')
   assert.deepEqual(movementReserveTanks.map((tank) => migrated?.tanks.filter((item) => item.id === tank.id).length), [1, 1, 1, 1])
@@ -163,7 +163,7 @@ test('the v15 scope reset preserves legacy DOCa metadata without keeping it oper
     bottlingOrders: legacyOrders,
   })
 
-  assert.equal(migrated?.schemaVersion, 24)
+  assert.equal(migrated?.schemaVersion, 25)
   assert.equal(migrated?.packagingMaterials[8].controlledSeries, packagingMaterials[8].controlledSeries)
   assert.equal(migrated?.bottlingOrders[0].labelClaim, 'crianza')
   assert.equal(migrated?.bottlingOrders[0].originClaim, 'rioja')

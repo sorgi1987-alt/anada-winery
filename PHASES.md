@@ -197,3 +197,27 @@ Status: prepared for version 0.33.0.
 - Browser schema v24 migration preserving v23 campaign relationships
 
 UI CRUD is intentionally deferred to the next sprint.
+
+## Phase 10A.2 — Grower master management
+
+Status: implemented in version 0.34.0.
+
+- Permanent grower CRUD workspace under Administration
+- Legal/fiscal identity and contact master data
+- Active/inactive lifecycle without destructive deletion
+- Unique grower code and tax-ID validation
+- Existing parcel relationships retained through `growerId`
+- Schema v25 migration enriches legacy grower records without duplicating them
+
+## Phase 10A.1 — Grower master management
+
+Status: prepared for version 0.34.0.
+
+- Growers exposed as permanent Administration master data, not campaign records
+- Legal/trade identity, grower type, tax ID, contact and address fields
+- Active/inactive lifecycle with attributed updates
+- Unique grower code and normalized tax-ID validation
+- Parcel relationships remain through stable `growerId`
+- Browser schema v25 migration preserving v24 operational history
+
+Completion gate: create and edit a grower, reject duplicate fiscal identity, deactivate/reactivate it, and retain every existing parcel relationship through migration.

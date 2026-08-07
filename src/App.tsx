@@ -22,7 +22,8 @@ import { ProductUsePanel } from './ProductUse'
 import { browserWineryRepository } from './store'
 import { fetchWineryWeather, unavailableWeatherSnapshot, weatherSnapshotFromWeather } from './weather'
 import { activateCampaign, archiveCampaign, closeCampaign, createCampaign, reopenCampaign, setDefaultCampaign, updateCampaign, CampaignValidationError, type CampaignUpdateInput } from './campaigns'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WeatherSnapshot, WinerySettings, WineLot, WineMovement, WineType } from './types'
+import { createGrower, setGrowerStatus, updateGrower, GrowerValidationError, type GrowerUpdateInput } from './growers'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardParcel, WeatherSnapshot, WinerySettings, WineLot, WineMovement, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -123,7 +124,7 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 24, campaigns, growers, locations, vessels, vesselAllocations, vineyardSamples, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings })
+    browserWineryRepository.save({ schemaVersion: 25, campaigns, growers, locations, vessels, vesselAllocations, vineyardSamples, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings })
   }, [campaigns, growers, locations, vessels, vesselAllocations, vineyardSamples, demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings])
 
 
@@ -512,6 +513,29 @@ function App() {
     } catch (error) { handleCampaignError(error) }
   }
 
+  const growerOperator = 'Elena Martín'
+  const handleGrowerError = (error: unknown) => {
+    showCampaignResult(error instanceof GrowerValidationError ? error.message : (locale.startsWith('es') ? 'No se pudo guardar el viticultor' : 'Grower action failed'))
+  }
+  const addGrower = (input: NewGrowerInput) => {
+    try {
+      setGrowers((current) => createGrower(current, input))
+      showCampaignResult(locale.startsWith('es') ? 'Viticultor creado' : 'Grower created')
+    } catch (error) { handleGrowerError(error) }
+  }
+  const editGrower = (id: string, input: GrowerUpdateInput) => {
+    try {
+      setGrowers((current) => updateGrower(current, id, input))
+      showCampaignResult(locale.startsWith('es') ? 'Viticultor actualizado' : 'Grower updated')
+    } catch (error) { handleGrowerError(error) }
+  }
+  const runGrowerAction = (action: 'deactivate' | 'reactivate', id: string) => {
+    try {
+      setGrowers((current) => setGrowerStatus(current, id, action === 'deactivate' ? 'inactive' : 'active', growerOperator))
+      showCampaignResult(locale.startsWith('es') ? 'Estado del viticultor actualizado' : 'Grower status updated')
+    } catch (error) { handleGrowerError(error) }
+  }
+
   const saveWinerySettings = (nextSettings: WinerySettings) => {
     setSettings(nextSettings)
     setToast(t('toast.settingsSaved'))
@@ -579,10 +603,11 @@ function App() {
   else if (pathname === '/scan' && mobileViewport) currentPage = <ScannerPage lots={demoLots} tanks={demoTanks} barrels={barrels} parcels={parcels} deliveries={deliveries} bottlingOrders={bottlingOrders} onReading={setReadingLotId} />
   else if (pathname === '/register') currentPage = <OperationalRegisterPage lots={demoLots} deliveries={deliveries} productionEvents={productionEvents} movements={movements} productTransactions={productStockTransactions} barrelOperations={barrelOperations} bottlingOrders={bottlingOrders} weatherSnapshots={weatherSnapshots} timeZone={settings.timezone} />
   else if (pathname === '/reports') currentPage = <ReportsPage lots={activeLots} tasks={tasks} tanks={demoTanks} deliveries={deliveries} samples={samples} barrels={barrels} trials={blendTrials} orders={bottlingOrders} materials={packagingMaterials} traceabilityEntities={traceabilityEntities} traceabilityLinks={traceabilityLinks} settings={settings} />
-  else if (pathname === '/admin/campaigns') currentPage = <AdministrationPage initialView="campaign" settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
-  else if (pathname === '/admin/operations') currentPage = <AdministrationPage initialView="operations" settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
-  else if (pathname === '/admin/system') currentPage = <AdministrationPage initialView="system" settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
-  else if (pathname === '/admin/winery' || pathname === '/settings') currentPage = <AdministrationPage initialView="winery" settings={settings} campaigns={campaigns} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/growers') currentPage = <AdministrationPage initialView="growers" settings={settings} campaigns={campaigns} growers={growers} parcels={parcels} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onCreateGrower={addGrower} onUpdateGrower={editGrower} onGrowerAction={runGrowerAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/campaigns') currentPage = <AdministrationPage initialView="campaign" settings={settings} campaigns={campaigns} growers={growers} parcels={parcels} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onCreateGrower={addGrower} onUpdateGrower={editGrower} onGrowerAction={runGrowerAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/operations') currentPage = <AdministrationPage initialView="operations" settings={settings} campaigns={campaigns} growers={growers} parcels={parcels} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onCreateGrower={addGrower} onUpdateGrower={editGrower} onGrowerAction={runGrowerAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/system') currentPage = <AdministrationPage initialView="system" settings={settings} campaigns={campaigns} growers={growers} parcels={parcels} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onCreateGrower={addGrower} onUpdateGrower={editGrower} onGrowerAction={runGrowerAction} onResetData={resetDemoData} />
+  else if (pathname === '/admin/winery' || pathname === '/settings') currentPage = <AdministrationPage initialView="winery" settings={settings} campaigns={campaigns} growers={growers} parcels={parcels} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onCreateGrower={addGrower} onUpdateGrower={editGrower} onGrowerAction={runGrowerAction} onResetData={resetDemoData} />
   else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} />
 
   return (
@@ -647,7 +672,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.33.0</span>
+          <span>Añada 0.34.0</span>
         </div>
       </section>
     </main>

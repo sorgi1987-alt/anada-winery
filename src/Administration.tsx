@@ -9,15 +9,18 @@ import { images } from './data'
 import { useLanguage } from './i18n'
 import { useNavigate } from './router'
 import type { PwaStatus } from './pwa'
-import type { BottlingOrder, Campaign, GrapeDelivery, NewCampaignInput, WineLot, WinerySettings } from './types'
+import type { BottlingOrder, Campaign, GrapeDelivery, Grower, NewCampaignInput, NewGrowerInput, VineyardParcel, WineLot, WinerySettings } from './types'
 import type { CampaignUpdateInput } from './campaigns'
+import type { GrowerUpdateInput } from './growers'
 
-type AdministrationView = 'winery' | 'campaign' | 'operations' | 'system'
+type AdministrationView = 'winery' | 'campaign' | 'growers' | 'operations' | 'system'
 
 interface AdministrationPageProps {
   initialView?: AdministrationView
   settings: WinerySettings
   campaigns: Campaign[]
+  growers: Grower[]
+  parcels: VineyardParcel[]
   lots: WineLot[]
   deliveries: GrapeDelivery[]
   bottlingOrders: BottlingOrder[]
@@ -27,10 +30,13 @@ interface AdministrationPageProps {
   onCreateCampaign: (input: NewCampaignInput) => void
   onUpdateCampaign: (id: string, input: CampaignUpdateInput) => void
   onCampaignAction: (action: 'activate' | 'close' | 'reopen' | 'archive' | 'default', id: string) => void
+  onCreateGrower: (input: NewGrowerInput) => void
+  onUpdateGrower: (id: string, input: GrowerUpdateInput) => void
+  onGrowerAction: (action: 'deactivate' | 'reactivate', id: string) => void
   onResetData: () => void
 }
 
-export function AdministrationPage({ initialView = 'winery', settings, campaigns, lots, deliveries, bottlingOrders, recordCount, pwa, onSave, onCreateCampaign, onUpdateCampaign, onCampaignAction, onResetData }: AdministrationPageProps) {
+export function AdministrationPage({ initialView = 'winery', settings, campaigns, growers, parcels, lots, deliveries, bottlingOrders, recordCount, pwa, onSave, onCreateCampaign, onUpdateCampaign, onCampaignAction, onCreateGrower, onUpdateGrower, onGrowerAction, onResetData }: AdministrationPageProps) {
   const { t, locale } = useLanguage()
   const navigate = useNavigate()
   const [view, setView] = useState<AdministrationView>(initialView)
@@ -86,23 +92,26 @@ export function AdministrationPage({ initialView = 'winery', settings, campaigns
     })
   }, [view, catalystConnection.state])
 
-  const routeForView: Record<AdministrationView, string> = { winery: '/admin/winery', campaign: '/admin/campaigns', operations: '/admin/operations', system: '/admin/system' }
+  const routeForView: Record<AdministrationView, string> = { winery: '/admin/winery', campaign: '/admin/campaigns', growers: '/admin/growers', operations: '/admin/operations', system: '/admin/system' }
   const switchView = (next: AdministrationView) => { setView(next); navigate(routeForView[next]) }
-  const campaignWorkspace = view === 'campaign'
+  const masterWorkspace = view === 'campaign' || view === 'growers'
+  const workspaceTitle = view === 'campaign' ? (locale.startsWith('es') ? 'Campañas' : 'Campaigns') : view === 'growers' ? (locale.startsWith('es') ? 'Viticultores' : 'Growers') : t('admin.title')
+  const workspaceDescription = view === 'campaign' ? (locale.startsWith('es') ? 'Gestiona las vendimias, su ciclo de vida y la campaña operativa predeterminada.' : 'Manage vintages, their lifecycle and the default operational campaign.') : view === 'growers' ? (locale.startsWith('es') ? 'Mantén la identidad, contacto y estado de los viticultores sin duplicarlos entre campañas.' : 'Maintain grower identity, contact details and status without duplicating them between campaigns.') : t('admin.description')
 
-  return <main className={`admin-page ${campaignWorkspace ? 'admin-page-master-data' : ''}`}>
-    <header className="page-header"><div><span className="eyebrow">{t('admin.kicker')}</span><h1>{campaignWorkspace ? (locale.startsWith('es') ? 'Campañas' : 'Campaigns') : t('admin.title')}</h1><p>{campaignWorkspace ? (locale.startsWith('es') ? 'Gestiona las vendimias, su ciclo de vida y la campaña operativa predeterminada.' : 'Manage vintages, their lifecycle and the default operational campaign.') : t('admin.description')}</p></div>{!campaignWorkspace && <div className="page-header-action"><button className="primary-button" form="admin-settings-form" disabled={!dirty}><Save size={16} /> {dirty ? t('admin.saveChanges') : t('admin.saved')}</button></div>}</header>
+  return <main className={`admin-page ${masterWorkspace ? 'admin-page-master-data' : ''}`}>
+    <header className="page-header"><div><span className="eyebrow">{t('admin.kicker')}</span><h1>{workspaceTitle}</h1><p>{workspaceDescription}</p></div>{!masterWorkspace && <div className="page-header-action"><button className="primary-button" form="admin-settings-form" disabled={!dirty}><Save size={16} /> {dirty ? t('admin.saveChanges') : t('admin.saved')}</button></div>}</header>
 
-    {!campaignWorkspace && <section className="admin-hero" style={{ backgroundImage: `url(${images.vineyard})` }}><div className="admin-hero-overlay" /><div className="admin-hero-copy"><span className="admin-season"><Building2 size={15} /> {t('admin.singleWinery')}</span><h2>{draft.wineryName}</h2><p>{draft.municipality} · {draft.province} · {draft.designation}</p><div className="admin-hero-badges"><span><ShieldCheck size={15} /> {t('admin.localCheckpoint')}</span><span><CloudOff size={15} /> {t('admin.backendDeferred')}</span></div></div><div className="winery-identity-card"><span className="winery-large-mark">{initials || 'VI'}</span><span><small>{t('admin.registry')}</small><strong>{draft.wineryCode}</strong><em>{t('admin.campaignLabel', { year: draft.campaignYear })}</em></span></div></section>}
+    {!masterWorkspace && <section className="admin-hero" style={{ backgroundImage: `url(${images.vineyard})` }}><div className="admin-hero-overlay" /><div className="admin-hero-copy"><span className="admin-season"><Building2 size={15} /> {t('admin.singleWinery')}</span><h2>{draft.wineryName}</h2><p>{draft.municipality} · {draft.province} · {draft.designation}</p><div className="admin-hero-badges"><span><ShieldCheck size={15} /> {t('admin.localCheckpoint')}</span><span><CloudOff size={15} /> {t('admin.backendDeferred')}</span></div></div><div className="winery-identity-card"><span className="winery-large-mark">{initials || 'VI'}</span><span><small>{t('admin.registry')}</small><strong>{draft.wineryCode}</strong><em>{t('admin.campaignLabel', { year: draft.campaignYear })}</em></span></div></section>}
 
-    {!campaignWorkspace && <section className="admin-status-grid"><AdminStatus icon={<HardDrive />} label={t('admin.storage')} value={t('admin.browserLocal')} detail={t('admin.localRecords', { count: recordCount })} tone="wine" /><AdminStatus icon={<Users />} label={t('admin.access')} value={t('admin.demoOperator')} detail={t('admin.authPending')} tone="gold" /><AdminStatus icon={<Database />} label={t('admin.dataService')} value={t('admin.schemaReady')} detail={t('admin.catalystTables', { count: catalystFoundation.tables.length })} tone="blue" /><AdminStatus icon={<CheckCircle2 />} label={t('admin.configuration')} value={dirty ? t('admin.unsaved') : t('admin.upToDate')} detail={t('admin.lastSavedBy', { name: settings.updatedBy })} tone={dirty ? 'warning' : 'success'} /></section>}
+    {!masterWorkspace && <section className="admin-status-grid"><AdminStatus icon={<HardDrive />} label={t('admin.storage')} value={t('admin.browserLocal')} detail={t('admin.localRecords', { count: recordCount })} tone="wine" /><AdminStatus icon={<Users />} label={t('admin.access')} value={t('admin.demoOperator')} detail={t('admin.authPending')} tone="gold" /><AdminStatus icon={<Database />} label={t('admin.dataService')} value={t('admin.schemaReady')} detail={t('admin.catalystTables', { count: catalystFoundation.tables.length })} tone="blue" /><AdminStatus icon={<CheckCircle2 />} label={t('admin.configuration')} value={dirty ? t('admin.unsaved') : t('admin.upToDate')} detail={t('admin.lastSavedBy', { name: settings.updatedBy })} tone={dirty ? 'warning' : 'success'} /></section>}
 
     <div className="admin-workspace"><aside className="admin-section-nav">{([
-      ['winery', <Building2 />, 'admin.wineryProfile', 'admin.wineryProfileText'],
-      ['campaign', <CalendarDays />, 'admin.campaigns', 'admin.campaignsText'],
-      ['operations', <SlidersHorizontal />, 'admin.operations', 'admin.operationsText'],
-      ['system', <Database />, 'admin.systemData', 'admin.systemDataText'],
-    ] as const).map(([key, icon, label, text]) => <button key={key} className={view === key ? 'active' : ''} onClick={() => switchView(key)}><span>{icon}</span><span><strong>{t(label)}</strong><small>{t(text)}</small></span><ChevronRight /></button>)}</aside>
+      ['winery', <Building2 />, t('admin.wineryProfile'), t('admin.wineryProfileText')],
+      ['campaign', <CalendarDays />, t('admin.campaigns'), t('admin.campaignsText')],
+      ['growers', <Users />, locale.startsWith('es') ? 'Viticultores' : 'Growers', locale.startsWith('es') ? 'Identidad y contacto' : 'Identity and contact'],
+      ['operations', <SlidersHorizontal />, t('admin.operations'), t('admin.operationsText')],
+      ['system', <Database />, t('admin.systemData'), t('admin.systemDataText')],
+    ] as const).map(([key, icon, label, text]) => <button key={key} className={view === key ? 'active' : ''} onClick={() => switchView(key)}><span>{icon}</span><span><strong>{label}</strong><small>{text}</small></span><ChevronRight /></button>)}</aside>
 
       <form id="admin-settings-form" className="admin-form-panel" onSubmit={submit}>
         {view === 'winery' && <AdminSection icon={<Building2 />} title={t('admin.wineryProfile')} text={t('admin.profileIntro')}>
@@ -111,6 +120,7 @@ export function AdministrationPage({ initialView = 'winery', settings, campaigns
         </AdminSection>}
 
         {view === 'campaign' && <CampaignManager campaigns={campaigns} lots={lots} deliveries={deliveries} bottlingOrders={bottlingOrders} locale={locale} onCreate={onCreateCampaign} onUpdate={onUpdateCampaign} onAction={onCampaignAction} />}
+        {view === 'growers' && <GrowerManager growers={growers} parcels={parcels} locale={locale} onCreate={onCreateGrower} onUpdate={onUpdateGrower} onAction={onGrowerAction} />}
 
         {view === 'operations' && <AdminSection icon={<SlidersHorizontal />} title={t('admin.operations')} text={t('admin.operationsIntro')}>
           <div className="admin-threshold-grid"><ThresholdField icon={<Thermometer />} label={t('admin.cellarTemperature')} value={draft.cellarTemperatureTarget} unit="°C" min={5} max={25} onChange={(value) => update('cellarTemperatureTarget', value)} /><ThresholdField icon={<Gauge />} label={t('admin.cellarHumidity')} value={draft.cellarHumidityTarget} unit="%" min={40} max={95} onChange={(value) => update('cellarHumidityTarget', value)} /><ThresholdField icon={<BellRing />} label={t('admin.taskReminder')} value={draft.taskReminderHours} unit="h" min={1} max={24} onChange={(value) => update('taskReminderHours', value)} /><ThresholdField icon={<Warehouse />} label={t('admin.lowStock')} value={draft.lowStockThreshold} unit="%" min={1} max={50} onChange={(value) => update('lowStockThreshold', value)} /><ThresholdField icon={<FlaskConical />} label={t('admin.labReview')} value={draft.labReviewHours} unit="h" min={1} max={48} onChange={(value) => update('labReviewHours', value)} /></div>
@@ -144,12 +154,69 @@ export function AdministrationPage({ initialView = 'winery', settings, campaigns
           <div className="danger-zone"><span><Trash2 /><span><strong>{t('admin.demoData')}</strong><small>{t('admin.demoDataText')}</small></span></span><button type="button" className="danger-button" onClick={() => setResetOpen(true)}>{t('common.reset')}</button></div>
         </AdminSection>}
         {error && <div className="form-error admin-form-error">{error}</div>}
-        {view !== 'system' && view !== 'campaign' && <footer className="admin-form-actions"><span>{dirty ? t('admin.unsavedChanges') : t('admin.noPendingChanges')}</span><button className="primary-button" disabled={!dirty}><Save size={16} /> {t('admin.saveChanges')}</button></footer>}
+        {view !== 'system' && view !== 'campaign' && view !== 'growers' && <footer className="admin-form-actions"><span>{dirty ? t('admin.unsavedChanges') : t('admin.noPendingChanges')}</span><button className="primary-button" disabled={!dirty}><Save size={16} /> {t('admin.saveChanges')}</button></footer>}
       </form>
     </div>
 
     {resetOpen && <div className="sheet-layer" role="dialog" aria-modal="true"><button className="sheet-scrim" onClick={() => setResetOpen(false)} aria-label={t('common.close')} /><section className="reset-confirm"><span className="reset-confirm-icon"><Trash2 /></span><h2>{t('admin.resetTitle')}</h2><p>{t('admin.resetText')}</p><div><button className="secondary-button" onClick={() => setResetOpen(false)}>{t('common.cancel')}</button><button className="danger-button" onClick={() => { onResetData(); setResetOpen(false) }}>{t('admin.resetConfirm')}</button></div></section></div>}
   </main>
+}
+
+function GrowerManager({ growers, parcels, locale, onCreate, onUpdate, onAction }: {
+  growers: Grower[]
+  parcels: VineyardParcel[]
+  locale: string
+  onCreate: (input: NewGrowerInput) => void
+  onUpdate: (id: string, input: GrowerUpdateInput) => void
+  onAction: (action: 'deactivate' | 'reactivate', id: string) => void
+}) {
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all')
+  const [editing, setEditing] = useState<Grower | 'new' | null>(null)
+  const [menuId, setMenuId] = useState<string | null>(null)
+  const es = locale.startsWith('es')
+  const copy = es ? {
+    title: 'Viticultores', intro: 'Maestro permanente de productores y proveedores de uva. No se duplica entre campañas.', add: 'Nuevo viticultor', search: 'Buscar por nombre, código o NIF/CIF', all: 'Todos', active: 'Activos', inactive: 'Inactivos', grower: 'Viticultor', contact: 'Contacto', location: 'Ubicación', parcels: 'Parcelas', status: 'Estado', actions: 'Acciones', noResults: 'No hay viticultores que coincidan.', edit: 'Editar', deactivate: 'Desactivar', reactivate: 'Reactivar', createTitle: 'Crear viticultor', editTitle: 'Editar viticultor', code: 'Código', legalName: 'Razón social / nombre legal', tradeName: 'Nombre comercial', type: 'Tipo', taxId: 'NIF / CIF', contactName: 'Persona de contacto', phone: 'Teléfono', email: 'Correo electrónico', address: 'Dirección', municipality: 'Municipio', province: 'Provincia', country: 'País', notes: 'Notas', save: 'Guardar viticultor', cancel: 'Cancelar', individual: 'Particular', company: 'Empresa', cooperative: 'Cooperativa', unknown: 'Sin clasificar', blocked: 'Bloqueado'
+  } : {
+    title: 'Growers', intro: 'Permanent master for grape growers and suppliers. Records are shared across campaigns.', add: 'New grower', search: 'Search by name, code or tax ID', all: 'All', active: 'Active', inactive: 'Inactive', grower: 'Grower', contact: 'Contact', location: 'Location', parcels: 'Parcels', status: 'Status', actions: 'Actions', noResults: 'No matching growers.', edit: 'Edit', deactivate: 'Deactivate', reactivate: 'Reactivate', createTitle: 'Create grower', editTitle: 'Edit grower', code: 'Code', legalName: 'Legal name', tradeName: 'Trade name', type: 'Type', taxId: 'Tax ID', contactName: 'Primary contact', phone: 'Phone', email: 'Email', address: 'Address', municipality: 'Municipality', province: 'Province', country: 'Country', notes: 'Notes', save: 'Save grower', cancel: 'Cancel', individual: 'Individual', company: 'Company', cooperative: 'Cooperative', unknown: 'Unclassified', blocked: 'Blocked'
+  }
+  const normalizedQuery = query.trim().toLowerCase()
+  const filtered = growers.filter((grower) => {
+    const matchesQuery = !normalizedQuery || `${grower.code} ${grower.name} ${grower.legalName} ${grower.tradeName ?? ''} ${grower.taxId ?? ''} ${grower.contactName ?? ''}`.toLowerCase().includes(normalizedQuery)
+    const matchesStatus = status === 'all' || (status === 'active' ? grower.status === 'active' : grower.status !== 'active')
+    return matchesQuery && matchesStatus
+  })
+  const parcelCount = (growerId: string) => parcels.filter((parcel) => parcel.growerId === growerId).length
+  const activeCount = growers.filter((grower) => grower.status === 'active').length
+  const inactiveCount = growers.length - activeCount
+  return <AdminSection icon={<Users />} title={copy.title} text={copy.intro}>
+    <div className="grower-manager-summary"><span><strong>{growers.length}</strong><small>{copy.title}</small></span><span><strong>{activeCount}</strong><small>{copy.active}</small></span><span><strong>{inactiveCount}</strong><small>{copy.inactive}</small></span><button type="button" className="primary-button" onClick={() => setEditing('new')}><Plus /> {copy.add}</button></div>
+    <div className="grower-manager-toolbar"><label><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.search} /></label><div className="grower-filter-chips">{(['all', 'active', 'inactive'] as const).map((value) => <button type="button" key={value} className={status === value ? 'active' : ''} onClick={() => setStatus(value)}>{copy[value]}</button>)}</div></div>
+    <div className="grower-table-wrap"><table className="grower-table"><thead><tr><th>{copy.grower}</th><th>{copy.contact}</th><th>{copy.location}</th><th>{copy.parcels}</th><th>{copy.status}</th><th>{copy.actions}</th></tr></thead><tbody>{filtered.map((grower) => <tr key={grower.id}><td><span className="grower-name-cell"><strong>{grower.tradeName || grower.legalName}</strong><small>{grower.code}{grower.taxId ? ` · ${grower.taxId}` : ''}</small><em>{copy[grower.growerType]}</em></span></td><td><span className="grower-contact-cell"><strong>{grower.contactName || '—'}</strong><small>{grower.email || grower.phone || '—'}</small></span></td><td><span className="grower-contact-cell"><strong>{grower.municipality || '—'}</strong><small>{[grower.province, grower.country].filter(Boolean).join(' · ')}</small></span></td><td><span className="grower-parcel-count">{parcelCount(grower.id)}</span></td><td><span className={`grower-status ${grower.status}`}>{grower.status === 'active' ? copy.active : grower.status === 'blocked' ? copy.blocked : copy.inactive}</span></td><td><div className="campaign-row-actions"><button type="button" className="icon-button" onClick={() => setEditing(grower)} aria-label={copy.edit}><Edit3 /></button><button type="button" className="icon-button" onClick={() => setMenuId(menuId === grower.id ? null : grower.id)} aria-label={copy.actions}><MoreHorizontal /></button>{menuId === grower.id && <div className="campaign-action-menu">{grower.status === 'active' ? <button type="button" onClick={() => { onAction('deactivate', grower.id); setMenuId(null) }}><Archive /> {copy.deactivate}</button> : <button type="button" onClick={() => { onAction('reactivate', grower.id); setMenuId(null) }}><RotateCcw /> {copy.reactivate}</button>}</div>}</div></td></tr>)}</tbody></table>{!filtered.length && <div className="campaign-empty">{copy.noResults}</div>}</div>
+    {editing && <GrowerEditor grower={editing === 'new' ? undefined : editing} locale={locale} copy={copy} existingCodes={growers.map((grower) => grower.code)} onCancel={() => setEditing(null)} onSave={(input) => { if (editing === 'new') onCreate(input); else onUpdate(editing.id, input); setEditing(null) }} />}
+  </AdminSection>
+}
+
+function GrowerEditor({ grower, locale, copy, existingCodes, onCancel, onSave }: { grower?: Grower; locale: string; copy: Record<string, string>; existingCodes: string[]; onCancel: () => void; onSave: (input: NewGrowerInput & GrowerUpdateInput) => void }) {
+  const nextCode = (() => { for (let i = 1; i < 10000; i += 1) { const candidate = `VIT-${String(i).padStart(3, '0')}`; if (!existingCodes.includes(candidate)) return candidate } return `VIT-${Date.now()}` })()
+  const [draft, setDraft] = useState({
+    code: grower?.code ?? nextCode,
+    legalName: grower?.legalName ?? '',
+    tradeName: grower?.tradeName ?? '',
+    growerType: grower?.growerType ?? 'unknown' as Grower['growerType'],
+    taxId: grower?.taxId ?? '',
+    contactName: grower?.contactName ?? '',
+    phone: grower?.phone ?? '',
+    email: grower?.email ?? '',
+    address: grower?.address ?? '',
+    municipality: grower?.municipality ?? '',
+    province: grower?.province ?? '',
+    country: grower?.country ?? (locale.startsWith('es') ? 'España' : 'Spain'),
+    notes: grower?.notes ?? '',
+  })
+  const valid = draft.code.trim().length >= 2 && draft.legalName.trim().length >= 2
+  const set = (key: keyof typeof draft, value: string) => setDraft((current) => ({ ...current, [key]: value }))
+  return <div className="sheet-layer campaign-editor-layer" role="dialog" aria-modal="true"><button type="button" className="sheet-scrim" onClick={onCancel} aria-label={copy.cancel} /><section className="campaign-editor grower-editor"><header><span><Users /></span><div><small>{grower ? copy.editTitle : copy.createTitle}</small><h2>{grower?.tradeName || grower?.legalName || copy.createTitle}</h2></div><button type="button" className="icon-button" onClick={onCancel}><X /></button></header><div className="campaign-editor-body"><div className="campaign-editor-grid"><label><span>{copy.code}</span><input value={draft.code} onChange={(event) => set('code', event.target.value.toUpperCase())} /></label><label><span>{copy.type}</span><select value={draft.growerType} onChange={(event) => setDraft((current) => ({ ...current, growerType: event.target.value as Grower['growerType'] }))}><option value="unknown">{copy.unknown}</option><option value="individual">{copy.individual}</option><option value="company">{copy.company}</option><option value="cooperative">{copy.cooperative}</option></select></label><label className="wide"><span>{copy.legalName}</span><input value={draft.legalName} onChange={(event) => set('legalName', event.target.value)} /></label><label className="wide"><span>{copy.tradeName}</span><input value={draft.tradeName} onChange={(event) => set('tradeName', event.target.value)} /></label><label><span>{copy.taxId}</span><input value={draft.taxId} onChange={(event) => set('taxId', event.target.value.toUpperCase())} /></label><label><span>{copy.contactName}</span><input value={draft.contactName} onChange={(event) => set('contactName', event.target.value)} /></label><label><span>{copy.phone}</span><input value={draft.phone} onChange={(event) => set('phone', event.target.value)} /></label><label><span>{copy.email}</span><input type="email" value={draft.email} onChange={(event) => set('email', event.target.value)} /></label><label className="wide"><span>{copy.address}</span><input value={draft.address} onChange={(event) => set('address', event.target.value)} /></label><label><span>{copy.municipality}</span><input value={draft.municipality} onChange={(event) => set('municipality', event.target.value)} /></label><label><span>{copy.province}</span><input value={draft.province} onChange={(event) => set('province', event.target.value)} /></label><label><span>{copy.country}</span><input value={draft.country} onChange={(event) => set('country', event.target.value)} /></label><label className="wide"><span>{copy.notes}</span><textarea value={draft.notes} onChange={(event) => set('notes', event.target.value)} /></label></div></div><footer><button type="button" className="secondary-button" onClick={onCancel}>{copy.cancel}</button><button type="button" className="primary-button" disabled={!valid} onClick={() => onSave({ ...draft, operator: 'Elena Martín' })}><Save /> {copy.save}</button></footer></section></div>
 }
 
 function CampaignManager({ campaigns, lots, deliveries, bottlingOrders, locale, onCreate, onUpdate, onAction }: {

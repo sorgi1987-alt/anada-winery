@@ -88,15 +88,47 @@ export interface NewCampaignInput {
   operator: string
 }
 
+export type GrowerType = 'individual' | 'company' | 'cooperative' | 'unknown'
+export type GrowerStatus = 'active' | 'inactive' | 'blocked'
+
 export interface Grower {
   id: string
   code: string
   name: string
+  legalName: string
+  tradeName?: string
+  growerType: GrowerType
   taxId?: string
   contactName?: string
   email?: string
   phone?: string
-  status: 'active' | 'blocked'
+  address?: string
+  municipality?: string
+  province?: string
+  country: string
+  status: GrowerStatus
+  notes: string
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
+}
+
+export interface NewGrowerInput {
+  code: string
+  legalName: string
+  tradeName?: string
+  growerType: GrowerType
+  taxId?: string
+  contactName?: string
+  email?: string
+  phone?: string
+  address?: string
+  municipality?: string
+  province?: string
+  country?: string
+  notes?: string
+  operator: string
 }
 
 export interface WineryLocation {
@@ -284,7 +316,7 @@ export interface WeatherSnapshot {
 }
 
 export interface WineryState {
-  schemaVersion: 24
+  schemaVersion: 25
   campaigns: Campaign[]
   growers: Grower[]
   locations: WineryLocation[]

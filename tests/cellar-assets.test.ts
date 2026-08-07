@@ -35,7 +35,7 @@ test('v22 migration enriches vessels without changing operational records', () =
   const legacy = { schemaVersion: 22, lots: structuredClone(lots), tasks: [], tanks: structuredClone(tanks), productionEvents: [], movements: [], parcels: structuredClone(parcels), deliveries: structuredClone(deliveries), samples: [], barrels: [], barrelOperations: [], blendCandidates: [], blendTrials: [], packagingMaterials: [], bottlingOrders: [], traceabilityEntities: [], traceabilityLinks: [], recallSimulations: [], suppliers: [], productMasters: [], productLots: [], productStockTransactions: [], weatherSnapshots: [], settings: structuredClone(winerySettings) }
   const migrated = migrateLegacyState(legacy)
   assert.ok(migrated)
-  assert.equal(migrated.schemaVersion, 24)
+  assert.equal(migrated.schemaVersion, 25)
   assert.equal(migrated.lots.length, legacy.lots.length)
   assert.ok(migrated.vessels.every((vessel) => vessel.usableCapacity > 0 && vessel.nominalCapacity >= vessel.usableCapacity))
 })

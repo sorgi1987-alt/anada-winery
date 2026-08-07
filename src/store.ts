@@ -1,9 +1,11 @@
 import { barrelOperations, barrels, blendCandidates, blendTrials, bottlingOrders, deliveries, initialTasks, labSamples, lots, movementReserveTanks, packagingMaterials, parcels, productLots, productMasters, productStockTransactions, productionEvents, recallSimulations, roseLot, roseTank, roseTask, suppliers, tanks, traceabilityEntities, traceabilityLinks, winerySettings, wineMovements } from './data'
 import { buildCanonicalRelationshipModel } from './relationships'
 import { normalizeCampaigns } from './campaigns'
+import { normalizeGrowers } from './growers'
 import type { WineryState } from './types'
 
-const STORAGE_KEY = 'anada-winery-state-v24'
+const STORAGE_KEY = 'anada-winery-state-v25'
+const LEGACY_V24_STORAGE_KEY = 'anada-winery-state-v24'
 const LEGACY_V23_STORAGE_KEY = 'anada-winery-state-v23'
 const LEGACY_V22_STORAGE_KEY = 'anada-winery-state-v22'
 const LEGACY_V21_STORAGE_KEY = 'anada-winery-state-v21'
@@ -31,7 +33,7 @@ const LEGACY_V1_STORAGE_KEY = 'anada-winery-state-v1'
 const seedState = (): WineryState => {
   const canonical = buildCanonicalRelationshipModel(winerySettings, structuredClone(parcels), structuredClone(deliveries), structuredClone(lots), structuredClone(tanks))
   return {
-  schemaVersion: 24,
+  schemaVersion: 25,
   campaigns: canonical.campaigns,
   growers: canonical.growers,
   locations: canonical.locations,
@@ -73,7 +75,7 @@ export interface WineryRepository {
 const isWineryState = (value: unknown): value is WineryState => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<WineryState>
-  return candidate.schemaVersion === 24
+  return candidate.schemaVersion === 25
     && Array.isArray(candidate.campaigns)
     && Array.isArray(candidate.growers)
     && Array.isArray(candidate.locations)
@@ -165,22 +167,24 @@ export const migrateLegacyState = (value: unknown): WineryState | null => {
   if (!value || typeof value !== 'object') return null
   const candidate = value as Record<string, unknown>
   const version = candidate.schemaVersion as number
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].includes(version) || !Array.isArray(candidate.lots) || !Array.isArray(candidate.tasks) || !Array.isArray(candidate.tanks)) return null
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].includes(version) || !Array.isArray(candidate.lots) || !Array.isArray(candidate.tasks) || !Array.isArray(candidate.tanks)) return null
   const core = withRoseDemo(candidate.lots as WineryState['lots'], candidate.tasks as WineryState['tasks'], candidate.tanks as WineryState['tanks'])
   const migratedSettings = version >= 8 && candidate.settings && typeof candidate.settings === 'object' ? { ...structuredClone(winerySettings), ...(candidate.settings as WineryState['settings']) } : structuredClone(winerySettings)
   const migratedParcels = version >= 2 && Array.isArray(candidate.parcels) ? candidate.parcels as WineryState['parcels'] : structuredClone(parcels)
   const migratedDeliveries = version >= 2 && Array.isArray(candidate.deliveries) ? candidate.deliveries as WineryState['deliveries'] : structuredClone(deliveries)
   const canonical = buildCanonicalRelationshipModel(migratedSettings, migratedParcels, migratedDeliveries, core.lots, withMovementReserveTanks(core.tanks))
   return {
-    schemaVersion: 24,
+    schemaVersion: 25,
     campaigns: version >= 23 && Array.isArray(candidate.campaigns)
       ? normalizeCampaigns(candidate.campaigns as Array<Partial<WineryState['campaigns'][number]> & { id: string; code: string }>, migratedSettings.campaignYear)
       : canonical.campaigns,
-    growers: canonical.growers,
-    locations: canonical.locations,
-    vessels: canonical.vessels,
-    vesselAllocations: canonical.vesselAllocations,
-    vineyardSamples: canonical.vineyardSamples,
+    growers: version >= 24 && Array.isArray(candidate.growers)
+      ? normalizeGrowers(candidate.growers as Array<Partial<WineryState['growers'][number]>>)
+      : canonical.growers,
+    locations: version >= 24 && Array.isArray(candidate.locations) ? candidate.locations as WineryState['locations'] : canonical.locations,
+    vessels: version >= 24 && Array.isArray(candidate.vessels) ? candidate.vessels as WineryState['vessels'] : canonical.vessels,
+    vesselAllocations: version >= 24 && Array.isArray(candidate.vesselAllocations) ? candidate.vesselAllocations as WineryState['vesselAllocations'] : canonical.vesselAllocations,
+    vineyardSamples: version >= 24 && Array.isArray(candidate.vineyardSamples) ? candidate.vineyardSamples as WineryState['vineyardSamples'] : canonical.vineyardSamples,
     lots: canonical.lots,
     tasks: core.tasks,
     tanks: withMovementReserveTanks(core.tanks),
@@ -217,7 +221,7 @@ export const browserWineryRepository: WineryRepository = {
         const parsed: unknown = JSON.parse(stored)
         return isWineryState(parsed) ? parsed : seedState()
       }
-      const legacy = localStorage.getItem(LEGACY_V23_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V22_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V21_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V20_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V19_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V18_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V17_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V16_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V15_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V14_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V13_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V12_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V11_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V10_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V9_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V8_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V7_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V6_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V5_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V4_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V3_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V2_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V1_STORAGE_KEY)
+      const legacy = localStorage.getItem(LEGACY_V24_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V23_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V22_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V21_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V20_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V19_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V18_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V17_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V16_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V15_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V14_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V13_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V12_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V11_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V10_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V9_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V8_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V7_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V6_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V5_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V4_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V3_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V2_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V1_STORAGE_KEY)
       if (!legacy) return seedState()
       return migrateLegacyState(JSON.parse(legacy)) ?? seedState()
     } catch {
@@ -229,6 +233,7 @@ export const browserWineryRepository: WineryRepository = {
   },
   clear() {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(LEGACY_V24_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V23_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V22_STORAGE_KEY)
     localStorage.removeItem(LEGACY_V21_STORAGE_KEY)

@@ -33,3 +33,18 @@ Legacy fields such as `grower`, `vessel` and embedded `sample` remain temporaril
 ## Campaign lifecycle (schema v24)
 
 Campaigns are persistent operational masters. Exactly one campaign is default and no more than one campaign is active. Closing is blocked while campaign-linked lots, receptions or bottling orders remain unresolved. Reopen and archive actions preserve audit attribution.
+
+## v0.34 Grower master
+
+`Grower` is permanent winery master data and is not campaign-scoped. A grower may remain linked to parcels and historical receptions after being made inactive.
+
+Authoritative grower relationships:
+
+- `VineyardParcel.growerId -> Grower.id`
+- `GrapeDelivery.growerId -> Grower.id` (historical operational attribution)
+
+Grower lifecycle is non-destructive. Records are activated/deactivated; they are never deleted to preserve parcel and reception genealogy. `code` and non-empty fiscal identities are unique within the winery.
+
+## Grower master (schema v25)
+
+`Grower` is permanent winery master data and never belongs directly to a campaign. `VineyardParcel.growerId` is the authoritative relationship; legacy grower-name strings remain display projections only. Grower code and normalized fiscal identity are unique. Deactivation preserves historical parcel and delivery links and prevents destructive deletion.

@@ -80,3 +80,11 @@ Vessels now include material, nominal and usable capacity, location, equipment c
 ## Browser schema v24 — Campaign lifecycle
 
 `campaigns` is the authoritative campaign master. Required fields include `id`, `code`, `name`, `vintage`, `status`, `startsAt`, `isDefault`, audit timestamps and audit users. Operational records continue to reference `campaignId`.
+
+### Growers (planned Catalyst Schema v2 master)
+
+Browser schema v25 treats growers as permanent master data. Future Catalyst persistence should expose one `Growers` table keyed by immutable `id`, with unique `code` and optional unique normalized `taxId`. Parcels and grape receptions should store the grower row ID rather than duplicated legal-name text.
+
+## Browser schema v25 — Grower master management
+
+Schema v25 enriches `Grower` as a permanent master record with legal/trade identity, grower type, fiscal identity, contact/address fields, status and audit attribution. Growers remain campaign-independent. Parcels and deliveries continue to reference growers by stable `growerId`. This browser model is the target structure for the future Catalyst Schema v2 grower table.

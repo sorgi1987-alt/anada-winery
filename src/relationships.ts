@@ -63,7 +63,15 @@ export const buildCanonicalRelationshipModel = (
     id: `grower-${slug(name)}`,
     code: growerCode(index),
     name,
+    legalName: name,
+    growerType: 'unknown',
+    country: 'España',
     status: 'active',
+    notes: '',
+    createdAt: `${settings.campaignStart}T00:00:00.000Z`,
+    updatedAt: `${settings.campaignStart}T00:00:00.000Z`,
+    createdBy: 'System migration',
+    updatedBy: 'System migration',
   }))
   const growerByName = new Map(growers.map((grower) => [grower.name.toLowerCase(), grower]))
 
