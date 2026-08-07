@@ -53,7 +53,7 @@ Añada is a Spanish-first winery-operations application for small and medium win
 
 ## Current phase
 
-Phase 10A.2 is the version 0.34.0 checkpoint. Growers are permanent Administration master data with legal/trade identity, contact details, active/inactive lifecycle and duplicate code/tax-ID validation; browser schema v25 migrates legacy grower records without duplicating them. Campaign lifecycle logic (Phase 10A.1) is implemented in `src/campaigns.ts` — single-active and single-default invariants, closure blockers, audit attribution — but its UI CRUD remains deferred. Authentication, shared persistence and remote writes remain deferred until Phase 9.
+Phase 10A.2 is the version 0.34.0 checkpoint. Growers are permanent Administration master data with legal/trade identity, contact details, active/inactive lifecycle and duplicate code/tax-ID validation; browser schema v25 migrates legacy grower records without duplicating them. Campaign lifecycle (Phase 10A.1) shipped in version 0.33.0: single-active and single-default invariants, closure blockers, audit attribution and a full Administration workspace at `/admin/campaigns`. Authentication, shared persistence and remote writes remain deferred until Phase 9.
 
 ## Migration rules
 

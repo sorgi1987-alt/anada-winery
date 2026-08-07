@@ -193,15 +193,16 @@ Status: prepared for version 0.32.0. Canonical vessel specifications, usable-cap
 
 ## Phase 10A.1 — Campaign foundation
 
-Status: prepared for version 0.33.0.
+Status: implemented in version 0.33.0.
 
 - Canonical campaign lifecycle fields and audit attribution
 - Create, activate, close, reopen and archive domain operations
-- Single active and single default campaign invariants
+- Single active and single default campaign invariants, enforced as separate rules
 - Closure blockers for active lots, pending deliveries and unfinished bottling
 - Browser schema v24 migration preserving v23 campaign relationships
+- Campaign workspace under Administration (`/admin/campaigns`) exposing every lifecycle operation, with Spanish and English at parity
 
-UI CRUD is intentionally deferred to the next sprint.
+Completion gate: create a campaign, activate it, attempt an invalid close and see it blocked, archive it.
 
 ## Phase 10A.2 — Grower master management
 
