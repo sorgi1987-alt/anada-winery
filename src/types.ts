@@ -54,10 +54,83 @@ export interface ProcessStage {
   status: 'complete' | 'current' | 'upcoming' | 'optional'
 }
 
+export type WineryStatus = 'active' | 'inactive'
+
+export interface Winery {
+  id: string
+  code: string
+  name: string
+  legalName: string
+  municipality: string
+  province: string
+  designation: string
+  timezone: string
+  status: WineryStatus
+  notes: string
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
+}
+
+export interface NewWineryInput {
+  code: string
+  name: string
+  legalName: string
+  municipality: string
+  province: string
+  designation?: string
+  timezone: string
+  notes?: string
+  operator: string
+}
+
+export type UserStatus = 'active' | 'inactive'
+
+export interface User {
+  id: string
+  name: string
+  email?: string
+  status: UserStatus
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
+}
+
+export interface NewUserInput {
+  name: string
+  email?: string
+  operator: string
+}
+
+export type MembershipRole = 'owner' | 'winemaker' | 'cellar' | 'laboratory' | 'viewer'
+export type MembershipStatus = 'active' | 'inactive'
+
+export interface Membership {
+  id: string
+  wineryId: string
+  userId: string
+  role: MembershipRole
+  status: MembershipStatus
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
+}
+
+export interface NewMembershipInput {
+  wineryId: string
+  userId: string
+  role: MembershipRole
+  operator: string
+}
+
 export type CampaignStatus = 'planned' | 'active' | 'closed' | 'archived'
 
 export interface Campaign {
   id: string
+  wineryId?: string
   code: string
   name: string
   vintage: number
@@ -93,6 +166,7 @@ export type GrowerStatus = 'active' | 'inactive' | 'blocked'
 
 export interface Grower {
   id: string
+  wineryId?: string
   code: string
   name: string
   legalName: string
@@ -136,6 +210,7 @@ export type VineyardStatus = 'active' | 'inactive'
 
 export interface VineyardEstate {
   id: string
+  wineryId?: string
   code: string
   name: string
   growerId: string
@@ -167,6 +242,7 @@ export type CampaignParcelStatus = 'planned' | 'sampling' | 'ready' | 'scheduled
 
 export interface CampaignParcelPlan {
   id: string
+  wineryId?: string
   campaignId: string
   parcelId: string
   expectedKg?: number
@@ -204,6 +280,7 @@ export interface NewParcelInput {
 
 export interface WineryLocation {
   id: string
+  wineryId?: string
   code: string
   name: string
   type: 'winery' | 'vineyard' | 'tank_room' | 'barrel_room' | 'warehouse' | 'processing' | 'external'
@@ -216,6 +293,7 @@ export type VesselMaterial = 'stainless_steel' | 'concrete' | 'wood' | 'fibergla
 
 export interface Vessel {
   id: string
+  wineryId?: string
   code: string
   name: string
   type: 'tank' | 'barrel' | 'hopper' | 'press' | 'ibc' | 'flexitank' | 'other'
@@ -244,6 +322,7 @@ export interface VesselOccupancy {
 
 export interface VesselAllocation {
   id: string
+  wineryId?: string
   vesselId: string
   wineLotId: string
   campaignId: string
@@ -256,6 +335,7 @@ export interface VesselAllocation {
 
 export interface VineyardSampleRecord extends VineyardSample {
   id: string
+  wineryId?: string
   parcelId: string
   campaignId: string
   sampledBy: string
@@ -265,6 +345,7 @@ export interface VineyardSampleRecord extends VineyardSample {
 
 export interface WineLot {
   id: string
+  wineryId?: string
   name: string
   type: WineType
   varieties: string
@@ -293,6 +374,7 @@ export interface WineLot {
 
 export interface CellarTask {
   id: string
+  wineryId?: string
   title: string
   lot: string
   time: string
@@ -303,6 +385,7 @@ export interface CellarTask {
 
 export interface Tank {
   id: string
+  wineryId?: string
   capacity: number
   usableCapacity?: number
   volume: number
@@ -327,6 +410,7 @@ export interface VineyardSample {
 
 export interface VineyardParcel {
   id: string
+  wineryId?: string
   code?: string
   name: string
   grower: string
@@ -363,6 +447,7 @@ export interface VineyardParcel {
 
 export interface GrapeDelivery {
   id: string
+  wineryId?: string
   code: string
   parcelId: string
   grower: string
@@ -388,6 +473,7 @@ export interface GrapeDelivery {
 
 export interface WeatherSnapshot {
   id: string
+  wineryId?: string
   entityType: 'grape_delivery' | 'production_event' | 'wine_movement' | 'bottling_order'
   entityId: string
   capturedAt: string
@@ -406,7 +492,10 @@ export interface WeatherSnapshot {
 }
 
 export interface WineryState {
-  schemaVersion: 26
+  schemaVersion: 27
+  wineries: Winery[]
+  users: User[]
+  memberships: Membership[]
   campaigns: Campaign[]
   growers: Grower[]
   vineyards: VineyardEstate[]
@@ -444,6 +533,7 @@ export type SupplierStatus = 'active' | 'blocked'
 
 export interface Supplier {
   id: string
+  wineryId?: string
   code: string
   name: string
   taxId: string
@@ -469,6 +559,7 @@ export type ProductUnit = 'kg' | 'g' | 'L' | 'mL' | 'units'
 
 export interface ProductMaster {
   id: string
+  wineryId?: string
   code: string
   name: string
   category: ProductCategory
@@ -494,6 +585,7 @@ export type ProductLotStatus = 'quarantine' | 'approved' | 'rejected' | 'expired
 
 export interface ProductLot {
   id: string
+  wineryId?: string
   code: string
   productId: string
   supplierId: string
@@ -516,6 +608,7 @@ export type ProductStockTransactionType = 'receipt' | 'release' | 'rejection' | 
 
 export interface ProductStockTransaction {
   id: string
+  wineryId?: string
   productLotId: string
   type: ProductStockTransactionType
   quantity: number
@@ -671,6 +764,7 @@ export interface ProductionEventMetrics {
 
 export interface ProductionEvent {
   id: string
+  wineryId?: string
   lotId: string
   wineType: WineType
   kind: 'operation' | 'transition'
@@ -806,6 +900,7 @@ export interface WineMovementLeg {
 
 export interface WineMovement {
   id: string
+  wineryId?: string
   code: string
   kind: WineMovementKind
   wineType: Exclude<WineType, 'espumoso'>
@@ -882,6 +977,7 @@ export interface LabResult {
 
 export interface LabSample {
   id: string
+  wineryId?: string
   code: string
   sourceType: LabSampleSource
   sourceId: string
@@ -923,6 +1019,7 @@ export type BarrelOperationType = 'top_up' | 'tasting' | 'so2_check' | 'racking'
 
 export interface Barrel {
   id: string
+  wineryId?: string
   code: string
   cooperage: string
   oakOrigin: OakOrigin
@@ -948,6 +1045,7 @@ export interface Barrel {
 
 export interface BarrelOperation {
   id: string
+  wineryId?: string
   type: BarrelOperationType
   barrelIds: string[]
   targetLabel: string
@@ -995,6 +1093,7 @@ export interface BlendAnalysis {
 
 export interface BlendCandidate {
   id: string
+  wineryId?: string
   lotId: string
   name: string
   type: Extract<WineType, 'tinto' | 'blanco'>
@@ -1028,6 +1127,7 @@ export interface BlendTasting {
 
 export interface BlendTrial {
   id: string
+  wineryId?: string
   code: string
   name: string
   type: Extract<WineType, 'tinto' | 'blanco'>
@@ -1074,6 +1174,7 @@ export interface BottlingReleaseGate {
 
 export interface PackagingMaterial {
   id: string
+  wineryId?: string
   code: string
   type: PackagingMaterialType
   name: string
@@ -1111,6 +1212,7 @@ export interface BottlingCompletion {
 
 export interface BottlingOrder {
   id: string
+  wineryId?: string
   code: string
   sourceTrialId: string
   sourceCode: string
@@ -1162,6 +1264,7 @@ export type TraceabilityDirection = 'backward' | 'forward' | 'both'
 
 export interface TraceabilityEntity {
   id: string
+  wineryId?: string
   type: TraceabilityEntityType
   code: string
   name: string
@@ -1176,6 +1279,7 @@ export interface TraceabilityEntity {
 
 export interface TraceabilityLink {
   id: string
+  wineryId?: string
   sourceId: string
   targetId: string
   relation: TraceabilityRelation
@@ -1191,6 +1295,7 @@ export type RecallReason = 'quality' | 'packaging' | 'labelling' | 'trace_test'
 
 export interface RecallSimulation {
   id: string
+  wineryId?: string
   code: string
   targetEntityId: string
   targetCode: string

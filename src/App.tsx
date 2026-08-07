@@ -26,7 +26,7 @@ import { createGrower, setGrowerStatus, updateGrower, GrowerValidationError, typ
 import { createVineyard, setVineyardStatus, updateVineyard, VineyardValidationError, type VineyardUpdateInput } from './vineyards'
 import { setTankUsableCapacity, tankUsableCapacity } from './cellar'
 import { createParcel, setParcelCampaignMembership, setParcelStatus, updateParcel, ParcelValidationError, type ParcelUpdateInput } from './parcels'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewVineyardInput, NewParcelInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardEstate, CampaignParcelPlan, VineyardParcel, WeatherSnapshot, WinerySettings, WineLot, WineMovement, WineType } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewVineyardInput, NewParcelInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardEstate, CampaignParcelPlan, VineyardParcel, WeatherSnapshot, Winery, WinerySettings, WineLot, WineMovement, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -89,6 +89,9 @@ function App() {
     return () => query.removeEventListener('change', updateViewport)
   }, [])
   const [initialState] = useState(() => browserWineryRepository.load())
+  const [wineries] = useState(initialState.wineries)
+  const [users] = useState(initialState.users)
+  const [memberships] = useState(initialState.memberships)
   const [campaigns, setCampaigns] = useState(initialState.campaigns)
   const [growers, setGrowers] = useState(initialState.growers)
   const [vineyards, setVineyards] = useState<VineyardEstate[]>(initialState.vineyards)
@@ -129,8 +132,8 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 26, campaigns, growers, vineyards, campaignParcels, locations, vessels, vesselAllocations, vineyardSamples, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings })
-  }, [campaigns, growers, vineyards, campaignParcels, locations, vessels, vesselAllocations, vineyardSamples, demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings])
+    browserWineryRepository.save({ schemaVersion: 27, wineries, users, memberships, campaigns, growers, vineyards, campaignParcels, locations, vessels, vesselAllocations, vineyardSamples, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings })
+  }, [wineries, users, memberships, campaigns, growers, vineyards, campaignParcels, locations, vessels, vesselAllocations, vineyardSamples, demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings])
 
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
@@ -659,6 +662,7 @@ function App() {
           window.setTimeout(() => setToast(null), 3200)
         }}
         settings={settings}
+        wineries={wineries}
         pwa={pwa}
         mobileViewport={mobileViewport}
       >
@@ -750,16 +754,19 @@ interface ShellProps {
   setMenuOpen: (open: boolean) => void
   onNotifications: () => void
   settings: WinerySettings
+  wineries: Winery[]
   pwa: PwaStatus
   mobileViewport: boolean
 }
 
-function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, pwa, mobileViewport }: ShellProps) {
+function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, wineries, pwa, mobileViewport }: ShellProps) {
   const location = useHashLocation()
   const { t } = useLanguage()
   const pageItem = navItems.find((item) => location.pathname.startsWith(item.path))
   const page = location.pathname.startsWith('/admin') || location.pathname === '/settings' ? t('nav.admin') : pageItem ? t(pageItem.labelKey) : 'Añada'
-  const wineryInitials = settings.wineryName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
+  const currentWinery = wineries[0]
+  const wineryDisplayName = currentWinery?.name || settings.wineryName
+  const wineryInitials = wineryDisplayName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
   return (
     <div className="shell">
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
@@ -769,7 +776,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
         </div>
         <div className="winery-mini">
           <span className="winery-mark small">{wineryInitials || 'VI'}</span>
-          <span><strong>{settings.wineryName}</strong><small>{t('admin.campaignLabel', { year: settings.campaignYear })}</small></span>
+          <span><strong>{wineryDisplayName}</strong><small>{t('admin.campaignLabel', { year: settings.campaignYear })}</small></span>
           <ChevronDown size={15} />
         </div>
         <nav className="primary-nav" aria-label={t('nav.primary')}>

@@ -4,6 +4,8 @@ Version 0.31 introduces an additive canonical relationship layer. Existing displ
 
 ## Canonical masters
 
+- `Winery`: one record per winery tenant; the root scope every operational collection's `wineryId` points to.
+- `User`: one record per person; never scoped to a single winery on its own.
 - `Campaign`: campaign identity and date range.
 - `Grower`: one record per viticulturist or supplying organisation.
 - `WineryLocation`: controlled vineyard, winery and processing locations.
@@ -52,3 +54,9 @@ Grower lifecycle is non-destructive. Records are activated/deactivated; they are
 ## Vineyard and parcel master model (v0.35)
 
 `Grower 1—N VineyardEstate 1—N VineyardParcel` is permanent master data. `Campaign N—N VineyardParcel` is represented by `CampaignParcelPlan`; expected yield, harvest window and readiness belong to that junction record rather than to the parcel master. Legacy parcel fields remain as UI projections during migration.
+
+## Winery and User foundational model (schema v27, Phase 9.1)
+
+`Winery` is the root tenant scope. Every other top-level collection carries a `wineryId` foreign key to it, added additively — no other relationship changed. `User` is a person, independent of any winery; `Membership` is the `Winery N—N User` junction carrying `role` and `status`, and is the only place a user's relationship to a winery is recorded. At most one active `Membership` may exist per `(wineryId, userId)` pair.
+
+This model exists but is not yet enforced: every browser session today still operates against a single derived default winery, and no page filters by `wineryId`. That enforcement is Phase 9.2.

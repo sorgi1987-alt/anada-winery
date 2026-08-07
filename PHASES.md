@@ -119,6 +119,8 @@ Real multi-winery persistence and authentication, staged as five ordered sub-pha
 
 ### Phase 9.1 — Winery and User foundational entities
 
+Status: implemented in version 0.37.0.
+
 - `Winery` and `User`/`Member` added as real domain entities with stable IDs
 - `Membership` junction records role-per-winery
 - `wineryId` added to every top-level collection in the browser schema

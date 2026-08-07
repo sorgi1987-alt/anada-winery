@@ -92,3 +92,13 @@ Schema v25 enriches `Grower` as a permanent master record with legal/trade ident
 ## Browser schema v26 — vineyard master separation
 
 The browser model now contains `vineyards` (permanent Grower → VineyardEstate master data) and `campaignParcels` (Campaign ↔ Parcel planning junctions). Parcel agronomic identity is permanent; expected yield, harvest readiness and campaign inclusion belong to `campaignParcels`. These collections are currently browser-local and are candidates for dedicated Catalyst tables in the remote persistence milestone.
+
+## Browser schema v27 — Winery and User foundational entities (Phase 9.1)
+
+The browser model now contains `wineries`, `users` and `memberships` (a Winery ↔ User role junction), and every other top-level collection carries a `wineryId` foreign key. This is additive scaffolding only: scoping is not yet enforced anywhere in the app (Phase 9.2), and the seven already-provisioned Phase 3A tables plus the "planned" tables listed above are all stale relative to this model — none of them have a `Wineries`, `Users` or `Memberships` equivalent, and none of the campaign/grower/vineyard/parcel/vessel tables from schema v22–v26 have been provisioned either. Provisioning a real Catalyst Schema v2 covering `wineries`/`users`/`memberships` plus every collection since v22 is Phase 9.3 — do not expose any of this to the Slate client, with or without a table, until winery membership and role checks exist (Phase 9.4).
+
+Authoritative relationships:
+
+- `Membership.wineryId -> Winery.id`
+- `Membership.userId -> User.id`
+- every operational collection's `wineryId -> Winery.id`

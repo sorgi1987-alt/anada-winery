@@ -34,7 +34,7 @@ test('v21 migration preserves operational data and adds canonical relationships'
   }
   const migrated = migrateLegacyState(legacy)
   assert.ok(migrated)
-  assert.equal(migrated.schemaVersion, 26)
+  assert.equal(migrated.schemaVersion, 27)
   assert.equal(migrated.lots.length, legacy.lots.length)
   assert.equal(migrated.parcels.length, legacy.parcels.length)
   assert.ok(migrated.growers.length > 0)

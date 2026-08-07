@@ -41,7 +41,7 @@ test('v25 migration preserves parcel identity, derives vineyards and campaign pl
   }
   const migrated = migrateLegacyState(legacy)
   assert.ok(migrated)
-  assert.equal(migrated.schemaVersion, 26)
+  assert.equal(migrated.schemaVersion, 27)
 
   const migratedFirst = migrated.parcels.find((parcel) => parcel.id === 'PAR-LEGACY-1')
   assert.ok(migratedFirst, 'parcel id must survive migration unchanged')
