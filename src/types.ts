@@ -304,6 +304,7 @@ export interface CellarTask {
 export interface Tank {
   id: string
   capacity: number
+  usableCapacity?: number
   volume: number
   lot?: string
   type?: WineType

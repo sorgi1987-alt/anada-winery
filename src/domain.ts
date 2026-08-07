@@ -1,4 +1,5 @@
 import { images, redProcess, roseProcesses, whiteProcess } from './data'
+import { tankUsableCapacity } from './cellar'
 import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
@@ -360,17 +361,21 @@ export const createTask = (input: NewTaskInput): CellarTask => ({
   complete: false,
 })
 
-export const assignLotToTank = (tanks: Tank[], lot: WineLot) => tanks.map((tank) => tank.id === lot.vessel
-  ? {
-      ...tank,
-      volume: lot.volume,
-      lot: lot.id,
-      type: lot.type,
-      stage: 'Recepción',
-      temperature: lot.temperature,
-      attention: 'normal' as const,
-    }
-  : tank)
+export const assignLotToTank = (tanks: Tank[], lot: WineLot) => {
+  const tank = tanks.find((item) => item.id === lot.vessel)
+  if (tank && lot.volume > tankUsableCapacity(tank)) throw new Error('Destination usable capacity is insufficient')
+  return tanks.map((item) => item.id === lot.vessel
+    ? {
+        ...item,
+        volume: lot.volume,
+        lot: lot.id,
+        type: lot.type,
+        stage: 'Recepción',
+        temperature: lot.temperature,
+        attention: 'normal' as const,
+      }
+    : item)
+}
 
 export const receiveGrapeDelivery = (
   deliveries: GrapeDelivery[],
@@ -1425,7 +1430,7 @@ export const transferWine = (lots: WineLot[], tanks: Tank[], movements: WineMove
   const destinationTank = emptyDestinationTank(tanks, input.destinationTankId)
   const loss = movementLoss(input.lossVolume, lot.volume)
   const received = lot.volume - loss
-  if (received > destinationTank.capacity) throw new Error('Destination capacity is insufficient')
+  if (received > tankUsableCapacity(destinationTank)) throw new Error('Destination usable capacity is insufficient')
 
   const movement = movementRecord(movements, {
     kind: 'transfer', wineType: lot.type, grossSourceVolume: lot.volume, receivedVolume: received, lossVolume: loss,
@@ -1466,7 +1471,7 @@ export const splitWine = (lots: WineLot[], tanks: Tank[], movements: WineMovemen
   if (uniqueTankIds.size !== input.destinations.length || uniqueTankIds.has(sourceTank.id)) throw new Error('Split destinations must be unique and differ from the source')
   const destinations = input.destinations.map((destination) => {
     const tank = emptyDestinationTank(tanks, destination.tankId)
-    const volume = requiredNumber(destination.volume, 'Destination volume is required', 0.01, tank.capacity)
+    const volume = requiredNumber(destination.volume, 'Destination volume is required', 0.01, tankUsableCapacity(tank))
     return { tank, volume }
   })
   const destinationVolume = destinations.reduce((total, destination) => total + destination.volume, 0)
@@ -1547,7 +1552,7 @@ export const mergeWine = (lots: WineLot[], tanks: Tank[], movements: WineMovemen
   const gross = sources.reduce((total, source) => total + source.volume, 0)
   const loss = movementLoss(input.lossVolume, gross)
   const received = gross - loss
-  if (received > destination.capacity) throw new Error('Destination capacity is insufficient')
+  if (received > tankUsableCapacity(destination)) throw new Error('Destination usable capacity is insufficient')
   const mergedLotId = nextMergedLotId(reference.vintage, lots)
 
   const movement = movementRecord(movements, {

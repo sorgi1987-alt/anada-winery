@@ -1,6 +1,26 @@
-import type { Vessel, VesselAllocation, VesselOccupancy, VesselStatus } from './types'
+import type { Tank, Vessel, VesselAllocation, VesselOccupancy, VesselStatus } from './types'
 
 const round = (value: number) => Math.round(value * 100) / 100
+
+export class CellarValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CellarValidationError'
+  }
+}
+
+export const tankUsableCapacity = (tank: Pick<Tank, 'capacity' | 'usableCapacity'>) => tank.usableCapacity ?? tank.capacity
+
+export const setTankUsableCapacity = (tanks: Tank[], tankId: string, usableCapacity: number | undefined): Tank[] => {
+  const tank = tanks.find((item) => item.id === tankId)
+  if (!tank) throw new CellarValidationError('Vessel not found')
+  if (usableCapacity !== undefined) {
+    if (!(usableCapacity > 0)) throw new CellarValidationError('Usable capacity must be greater than zero')
+    if (usableCapacity > tank.capacity) throw new CellarValidationError('Usable capacity cannot exceed nominal capacity')
+    if (usableCapacity < tank.volume) throw new CellarValidationError('Usable capacity cannot be less than the volume currently allocated')
+  }
+  return tanks.map((item) => item.id === tankId ? { ...item, usableCapacity } : item)
+}
 
 export const activeAllocationForVessel = (allocations: VesselAllocation[], vesselId: string) =>
   allocations.find((allocation) => allocation.vesselId === vesselId && allocation.status === 'active')

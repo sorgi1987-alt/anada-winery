@@ -5,6 +5,7 @@ import {
   Droplets, Grape, Leaf, MapPin, Save, Scale, Sparkles, Thermometer, Warehouse, X,
 } from 'lucide-react'
 import { nextLotCode, roseConfigurationIssues } from './domain'
+import { tankUsableCapacity } from './cellar'
 import { useLanguage } from './i18n'
 import type { NewLotInput, NewTaskInput, RoseMethod, Tank, WineLot } from './types'
 
@@ -30,7 +31,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
   const vintage = 2026
   const freeTanks = useMemo(() => tanks.filter((tank) => tank.volume === 0), [tanks])
   const initialVolume = type === 'tinto' ? 6500 : type === 'rosado' ? 4500 : 4800
-  const initialTank = freeTanks.find((tank) => tank.capacity >= initialVolume)?.id ?? freeTanks[0]?.id ?? ''
+  const initialTank = freeTanks.find((tank) => tankUsableCapacity(tank) >= initialVolume)?.id ?? freeTanks[0]?.id ?? ''
   const [step, setStep] = useState(0)
   const [error, setError] = useState('')
   const [draft, setDraft] = useState<NewLotInput>({
@@ -86,7 +87,7 @@ export function CreateLotSheet({ type, lots, tanks, onClose, onCreate }: CreateL
       if (!draft.vessel) return t('flow.errorTank')
       if (!selectedTank) return t('flow.errorUnavailable')
       if (draft.volume <= 0 || draft.receivedKg <= 0) return t('flow.errorPositive')
-      if (draft.volume > selectedTank.capacity) return t('flow.errorCapacity', { id: selectedTank.id })
+      if (draft.volume > tankUsableCapacity(selectedTank)) return t('flow.errorCapacity', { id: selectedTank.id })
       if (draft.density < 0.98 || draft.density > 1.2) return t('flow.errorDensity')
       if (draft.temperature < 0 || draft.temperature > 40) return t('flow.errorTemperature')
       if (type === 'rosado') {

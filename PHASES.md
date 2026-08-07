@@ -188,7 +188,14 @@ Completion gate: all current parcels, deliveries, vineyard samples and active ve
 
 ### Phase 9B.1 — Cellar asset normalization
 
-Status: prepared for version 0.32.0. Canonical vessel specifications, usable-capacity controls, operational status and derived occupancy are established while legacy tank UI remains compatible.
+Status: implemented in version 0.36.0.
+
+- Canonical vessel specifications and derived occupancy established in version 0.32.0
+- Usable capacity is configurable per vessel, independent of nominal capacity, editable from the cellar map vessel detail
+- New-lot assignment, transfers, splits and merges all validate against usable capacity, not nominal capacity
+- The canonical `Vessel`/`VesselAllocation` model remains a load-only snapshot; the live production engine continues to operate on the tank model directly, now carrying real usable-capacity data rather than the tank UI being fully unified with the canonical model — that unification is a separate, larger undertaking
+
+Completion gate: a vessel's usable capacity can be set below its nominal capacity, reducing it below the currently allocated volume is rejected, and every assignment or movement into that vessel is blocked once it would exceed the usable capacity.
 
 
 ## Phase 10A.1 — Campaign foundation

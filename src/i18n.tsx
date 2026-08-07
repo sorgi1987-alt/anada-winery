@@ -123,6 +123,7 @@ const es = {
   'cellar.harvestEntrance': 'ENTRADA DE VENDIMIA', 'cellar.workArea': 'ZONA DE TRABAJO', 'cellar.press': 'Prensa', 'cellar.lab': 'Laboratorio', 'cellar.ageingAccess': 'Acceso a crianza',
   'cellar.requiresAttention': 'Requiere atención', 'cellar.limit': 'Nivel próximo al límite operativo', 'cellar.review': 'Revisar seguimiento del lote', 'cellar.openLot': 'Abrir lote',
   'cellar.availableTank': 'Depósito disponible', 'cellar.cleanReady': '{{capacity}} L limpios y preparados para asignación.', 'cellar.availableAssignment': 'Disponible para asignación',
+  'cellar.usableCapacity': 'Capacidad útil', 'cellar.usableCapacityHint': 'Déjalo vacío para usar la capacidad nominal ({{capacity}} L).', 'cellar.usableCapacityInvalid': 'Introduce una capacidad útil válida.',
   'movements.kicker': 'Operaciones físicas de bodega', 'movements.title': 'Movimientos de vino', 'movements.description': 'Trasiega, divide o combina lotes con cada litro reconciliado entre origen, destino y merma.', 'movements.localAudit': 'Registro atribuido y persistente en este navegador',
   'movements.records': 'Movimientos', 'movements.persistedLocal': 'Historial local', 'movements.receivedVolume': 'Volumen recibido', 'movements.reconciled': 'Reconciliado en destino', 'movements.averageLoss': 'Merma media', 'movements.emptyVessels': 'Depósitos vacíos', 'movements.availableNow': 'Disponibles ahora',
   'movements.noFreeTitle': 'No hay depósitos limpios disponibles', 'movements.noFreeText': 'Finaliza un movimiento que libere un origen o registra otro depósito antes de continuar.', 'movements.requiresVessels': 'Requiere {{count}} depósitos vacíos',
@@ -297,6 +298,7 @@ const es = {
   'toast.whiteOperationSaved': 'Operación de blanco guardada en {{id}}', 'toast.whiteStageAdvanced': '{{id}} avanzó a {{stage}}',
   'toast.roseOperationSaved': 'Operación de rosado/clarete guardada en {{id}}', 'toast.roseStageAdvanced': '{{id}} avanzó a {{stage}}',
   'toast.movementSaved': '{{code}} guardado y depósitos reconciliados',
+  'toast.tankCapacityUpdated': 'Capacidad útil de {{id}} actualizada',
 } as const
 
 const en: Record<keyof typeof es, string> = {
@@ -420,6 +422,7 @@ const en: Record<keyof typeof es, string> = {
   'cellar.harvestEntrance': 'HARVEST ENTRANCE', 'cellar.workArea': 'WORK AREA', 'cellar.press': 'Press', 'cellar.lab': 'Laboratory', 'cellar.ageingAccess': 'Ageing access',
   'cellar.requiresAttention': 'Requires attention', 'cellar.limit': 'Level nearing operational limit', 'cellar.review': 'Review lot monitoring', 'cellar.openLot': 'Open lot',
   'cellar.availableTank': 'Available tank', 'cellar.cleanReady': '{{capacity}} L clean and ready for assignment.', 'cellar.availableAssignment': 'Available for assignment',
+  'cellar.usableCapacity': 'Usable capacity', 'cellar.usableCapacityHint': 'Leave empty to use the nominal capacity ({{capacity}} L).', 'cellar.usableCapacityInvalid': 'Enter a valid usable capacity.',
   'movements.kicker': 'Physical cellar operations', 'movements.title': 'Wine movements', 'movements.description': 'Transfer, split or combine lots with every litre reconciled across source, destination and loss.', 'movements.localAudit': 'Attributed history persisted in this browser',
   'movements.records': 'Movements', 'movements.persistedLocal': 'Local history', 'movements.receivedVolume': 'Received volume', 'movements.reconciled': 'Reconciled at destination', 'movements.averageLoss': 'Average loss', 'movements.emptyVessels': 'Empty vessels', 'movements.availableNow': 'Available now',
   'movements.noFreeTitle': 'No clean vats are available', 'movements.noFreeText': 'Complete a movement that releases a source or register another vat before continuing.', 'movements.requiresVessels': 'Requires {{count}} empty vats',
@@ -594,6 +597,7 @@ const en: Record<keyof typeof es, string> = {
   'toast.whiteOperationSaved': 'White-wine operation saved to {{id}}', 'toast.whiteStageAdvanced': '{{id}} advanced to {{stage}}',
   'toast.roseOperationSaved': 'Rosé/clarete operation saved to {{id}}', 'toast.roseStageAdvanced': '{{id}} advanced to {{stage}}',
   'toast.movementSaved': '{{code}} saved and vessels reconciled',
+  'toast.tankCapacityUpdated': 'Usable capacity for {{id}} updated',
 }
 
 const domainEnglish: Record<string, string> = {

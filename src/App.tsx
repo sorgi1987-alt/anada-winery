@@ -24,6 +24,7 @@ import { fetchWineryWeather, unavailableWeatherSnapshot, weatherSnapshotFromWeat
 import { activateCampaign, archiveCampaign, closeCampaign, createCampaign, reopenCampaign, setDefaultCampaign, updateCampaign, CampaignValidationError, type CampaignUpdateInput } from './campaigns'
 import { createGrower, setGrowerStatus, updateGrower, GrowerValidationError, type GrowerUpdateInput } from './growers'
 import { createVineyard, setVineyardStatus, updateVineyard, VineyardValidationError, type VineyardUpdateInput } from './vineyards'
+import { setTankUsableCapacity, tankUsableCapacity } from './cellar'
 import { createParcel, setParcelCampaignMembership, setParcelStatus, updateParcel, ParcelValidationError, type ParcelUpdateInput } from './parcels'
 import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewVineyardInput, NewParcelInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardEstate, CampaignParcelPlan, VineyardParcel, WeatherSnapshot, WinerySettings, WineLot, WineMovement, WineType } from './types'
 
@@ -319,14 +320,28 @@ function App() {
 
   const createNewLot = (input: NewLotInput) => {
     const lot = buildLot(input)
+    let updatedTanks: Tank[]
+    try {
+      updatedTanks = assignLotToTank(demoTanks, lot)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : String(error))
+      window.setTimeout(() => setToast(null), 4200)
+      return
+    }
+    setDemoTanks(updatedTanks)
     setDemoLots((current) => [lot, ...current])
     setTasks((current) => [createOpeningTask(lot), ...current])
-    setDemoTanks((current) => assignLotToTank(current, lot))
     setNewLotType(null)
     setUndoLot(null)
     setToast(t('toast.lotCreated', { id: lot.id, vessel: lot.vessel }))
     window.setTimeout(() => setToast(null), 4200)
     navigate(`/lots/${lot.id}`)
+  }
+
+  const updateTankUsableCapacity = (tankId: string, usableCapacity: number | undefined) => {
+    setDemoTanks(setTankUsableCapacity(demoTanks, tankId, usableCapacity))
+    setToast(t('toast.tankCapacityUpdated', { id: tankId }))
+    window.setTimeout(() => setToast(null), 3200)
   }
 
   const addTask = (input: NewTaskInput) => {
@@ -611,7 +626,7 @@ function App() {
   else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={activeLots} />
   else if (pathname.startsWith('/lots/')) currentPage = <LotDetail lots={demoLots} tanks={demoTanks} productionEvents={productionEvents} productMasters={productMasters} productLots={productLots} productTransactions={productStockTransactions} lotId={decodeURIComponent(pathname.slice('/lots/'.length))} onReading={setReadingLotId} onConsumeProduct={useInputLot} onRecordRedOperation={saveRedOperation} onAdvanceRedStage={moveRedStage} onRecordWhiteOperation={saveWhiteOperation} onAdvanceWhiteStage={moveWhiteStage} onRecordRoseOperation={saveRoseOperation} onAdvanceRoseStage={moveRoseStage} />
-  else if (pathname === '/cellar') currentPage = <CellarMap tanks={demoTanks} />
+  else if (pathname === '/cellar') currentPage = <CellarMap tanks={demoTanks} onSetUsableCapacity={updateTankUsableCapacity} />
   else if (pathname === '/movements') currentPage = <MovementsPage lots={demoLots} tanks={demoTanks} movements={movements} onTransfer={completeTransfer} onSplit={completeSplit} onMerge={completeMerge} />
   else if (pathname === '/tasks') currentPage = <TasksPage lots={activeLots} tasks={tasks} setTasks={setTasks} onCreate={addTask} timeZone={settings.timezone} />
   else if (pathname === '/laboratory') currentPage = <LaboratoryPage samples={samples} lots={demoLots} deliveries={deliveries} parcels={parcels} onCreate={addLabSample} onRecordResults={saveLabResults} />
@@ -1217,11 +1232,12 @@ function ProcessTimeline({ lot }: { lot: WineLot }) {
   )
 }
 
-function CellarMap({ tanks }: { tanks: Tank[] }) {
+function CellarMap({ tanks, onSetUsableCapacity }: { tanks: Tank[]; onSetUsableCapacity: (tankId: string, usableCapacity: number | undefined) => void }) {
   const [filter, setFilter] = useState<'all' | 'empty' | 'tinto' | 'blanco' | 'rosado' | 'attention'>('all')
-  const [selected, setSelected] = useState<Tank | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const { t } = useLanguage()
   const visible = tanks.filter((tank) => filter === 'all' || (filter === 'empty' ? tank.volume === 0 : filter === 'attention' ? tank.attention !== 'normal' : tank.type === filter))
+  const selected = selectedId ? tanks.find((tank) => tank.id === selectedId) ?? null : null
   return (
     <main>
       <PageHeader eyebrow={t('cellar.kicker')} title={t('cellar.title')} description={t('cellar.description')} />
@@ -1230,11 +1246,11 @@ function CellarMap({ tanks }: { tanks: Tank[] }) {
       <section className="cellar-map-shell">
         <div className="cellar-map-header"><span>{t('cellar.harvestEntrance')}</span><i /><span>{t('cellar.workArea')}</span></div>
         <div className="tank-grid">
-          {visible.map((tank) => <TankVisual key={tank.id} tank={tank} selected={selected?.id === tank.id} onSelect={() => setSelected(tank)} />)}
+          {visible.map((tank) => <TankVisual key={tank.id} tank={tank} selected={selectedId === tank.id} onSelect={() => setSelectedId(tank.id)} />)}
         </div>
         <div className="cellar-map-footer"><span><Factory size={16} /> {t('cellar.press')}</span><span><Beaker size={16} /> {t('cellar.lab')}</span><span><Warehouse size={16} /> {t('cellar.ageingAccess')}</span></div>
       </section>
-      {selected && <TankDrawer tank={selected} onClose={() => setSelected(null)} />}
+      {selected && <TankDrawer key={selected.id} tank={selected} onClose={() => setSelectedId(null)} onSetUsableCapacity={onSetUsableCapacity} />}
     </main>
   )
 }
@@ -1250,18 +1266,38 @@ function TankVisual({ tank, selected, onSelect }: { tank: Tank; selected: boolea
   )
 }
 
-function TankDrawer({ tank, onClose }: { tank: Tank; onClose: () => void }) {
+function TankDrawer({ tank, onClose, onSetUsableCapacity }: { tank: Tank; onClose: () => void; onSetUsableCapacity: (tankId: string, usableCapacity: number | undefined) => void }) {
   const navigate = useNavigate()
   const { t, d, locale } = useLanguage()
+  const usable = tankUsableCapacity(tank)
+  const [usableDraft, setUsableDraft] = useState(tank.usableCapacity !== undefined ? String(tank.usableCapacity) : '')
+  const [capacityError, setCapacityError] = useState('')
+  const saveUsableCapacity = () => {
+    const trimmed = usableDraft.trim()
+    const value = trimmed ? Number(trimmed) : undefined
+    if (trimmed && !Number.isFinite(value)) return setCapacityError(t('cellar.usableCapacityInvalid'))
+    try {
+      onSetUsableCapacity(tank.id, value)
+      setCapacityError('')
+    } catch (error) {
+      setCapacityError(error instanceof Error ? error.message : t('cellar.usableCapacityInvalid'))
+    }
+  }
   return (
     <aside className="tank-drawer">
       <div className="drawer-head"><div><span className="eyebrow">{t('detail.vessel')}</span><h2>{tank.id}</h2></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X size={20} /></button></div>
       {tank.volume ? <>
         <div className={`drawer-wine-card ${tank.type}`}><span>{typeIcon[tank.type!]}</span><div><small>{t(wineLabelKey[tank.type!])}</small><strong>{tank.lot}</strong><em>{d(tank.stage ?? '')}</em></div></div>
-        <div className="drawer-data"><span><small>{t('common.volume')}</small><strong>{formatVolume(tank.volume, locale)}</strong></span><span><small>{t('common.capacity')}</small><strong>{new Intl.NumberFormat(locale).format(tank.capacity)} L</strong></span><span><small>{t('common.temperature')}</small><strong>{tank.temperature?.toFixed(1)} °C</strong></span><span><small>{t('common.occupancy')}</small><strong>{Math.round(tank.volume / tank.capacity * 100)}%</strong></span></div>
+        <div className="drawer-data"><span><small>{t('common.volume')}</small><strong>{formatVolume(tank.volume, locale)}</strong></span><span><small>{t('cellar.usableCapacity')}</small><strong>{new Intl.NumberFormat(locale).format(usable)} L</strong></span><span><small>{t('common.temperature')}</small><strong>{tank.temperature?.toFixed(1)} °C</strong></span><span><small>{t('common.occupancy')}</small><strong>{Math.round(tank.volume / usable * 100)}%</strong></span></div>
         {tank.attention !== 'normal' && <div className={`drawer-alert ${tank.attention}`}><Activity size={18} /><span><strong>{t('cellar.requiresAttention')}</strong><small>{tank.attention === 'critical' ? t('cellar.limit') : t('cellar.review')}</small></span></div>}
         <button className="primary-button full" onClick={() => tank.lot && navigate(`/lots/${tank.lot}`)}>{t('cellar.openLot')} <ArrowUpRight size={18} /></button>
       </> : <div className="empty-tank-copy"><Warehouse size={30} /><h3>{t('cellar.availableTank')}</h3><p>{t('cellar.cleanReady', { capacity: tank.capacity.toLocaleString(locale) })}</p><span className="available-label"><CheckCircle2 size={16} /> {t('cellar.availableAssignment')}</span></div>}
+      <div className="drawer-capacity-form">
+        <label><span>{t('cellar.usableCapacity')}</span><div className="unit-input"><input type="number" min="1" max={tank.capacity} placeholder={String(tank.capacity)} value={usableDraft} onChange={(event) => { setUsableDraft(event.target.value); setCapacityError('') }} /><em>L</em></div></label>
+        <small>{t('cellar.usableCapacityHint', { capacity: tank.capacity.toLocaleString(locale) })}</small>
+        {capacityError && <span className="form-error">{capacityError}</span>}
+        <button type="button" className="secondary-button" onClick={saveUsableCapacity}>{t('common.save')}</button>
+      </div>
     </aside>
   )
 }
