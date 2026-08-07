@@ -713,7 +713,7 @@ function Welcome() {
         </button>
         <div className="welcome-meta">
           <span><ClipboardCheck size={16} /> {t('welcome.demoData')}</span>
-          <span>Añada 0.35.0</span>
+          <span>Añada {__APP_VERSION__}</span>
         </div>
       </section>
     </main>
