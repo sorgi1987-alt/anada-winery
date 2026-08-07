@@ -5,7 +5,7 @@ import {
   MembershipValidationError, normalizeMemberships, normalizeUsers, normalizeWineries, setMembershipStatus, setUserStatus,
   setWineryStatus, updateUser, updateWinery, UserValidationError, validateMemberships, withWineryId, WineryValidationError,
 } from '../src/winery'
-import { migrateLegacyState } from '../src/store'
+import { migrateLegacyState, seedState } from '../src/store'
 import { lots, tanks, winerySettings } from '../src/data'
 
 test('createWinery and updateWinery enforce unique codes', () => {
@@ -96,4 +96,28 @@ test('normalizeWineries, normalizeUsers and normalizeMemberships preserve well-f
   assert.equal(normalizedMembership.wineryId, 'winery-custom')
   assert.equal(normalizedMembership.userId, 'user-custom')
   assert.deepEqual(validateMemberships([normalizedMembership], [normalizedWinery], [normalizedUser]), [])
+})
+
+test('seedState produces two isolated wineries proving cross-winery scoping (Phase 9.2 completion gate)', () => {
+  const state = seedState()
+  assert.equal(state.wineries.length, 2, 'seed data must include a second winery to prove isolation')
+  const [primaryWinery, secondaryWinery] = state.wineries
+  assert.notEqual(primaryWinery.id, secondaryWinery.id)
+
+  const sameUserMemberships = state.memberships.filter((membership) => membership.userId === state.users[0].id)
+  assert.equal(sameUserMemberships.length, 2, 'the demo user is a member of both wineries')
+  assert.deepEqual(new Set(sameUserMemberships.map((membership) => membership.wineryId)), new Set([primaryWinery.id, secondaryWinery.id]))
+
+  const primaryGrowers = state.growers.filter((grower) => grower.wineryId === primaryWinery.id)
+  const secondaryGrowers = state.growers.filter((grower) => grower.wineryId === secondaryWinery.id)
+  assert.ok(primaryGrowers.length > 0, 'the primary winery must have its own growers')
+  assert.ok(secondaryGrowers.length > 0, 'the secondary winery must have its own growers')
+
+  const primaryGrowerIds = new Set(primaryGrowers.map((grower) => grower.id))
+  const secondaryGrowerIds = new Set(secondaryGrowers.map((grower) => grower.id))
+  assert.equal([...primaryGrowerIds].filter((id) => secondaryGrowerIds.has(id)).length, 0, 'no grower id may appear under both wineries')
+
+  assert.ok(state.campaigns.every((campaign) => campaign.wineryId === primaryWinery.id), 'operational demo data (campaigns, lots, etc.) belongs entirely to the primary winery')
+  assert.ok(state.lots.every((lot) => lot.wineryId === primaryWinery.id))
+  assert.equal(state.campaigns.some((campaign) => campaign.wineryId === secondaryWinery.id), false, 'the secondary winery must not see the primary winery operational records')
 })

@@ -35,19 +35,34 @@ const LEGACY_V3_STORAGE_KEY = 'anada-winery-state-v3'
 const LEGACY_V2_STORAGE_KEY = 'anada-winery-state-v2'
 const LEGACY_V1_STORAGE_KEY = 'anada-winery-state-v1'
 
-const seedState = (): WineryState => {
+export const seedState = (): WineryState => {
   const canonical = buildCanonicalRelationshipModel(winerySettings, structuredClone(parcels), structuredClone(deliveries), structuredClone(lots), structuredClone(tanks))
   const vineyards = deriveVineyardsFromParcels(canonical.parcels, canonical.growers)
   const normalizedParcels = normalizeParcels(canonical.parcels, vineyards, canonical.growers)
   const { winery, user, membership } = deriveDefaultWineryMembership(winerySettings)
   const scope = <T extends { wineryId?: string }>(items: T[]) => withWineryId(items, winery.id)
+  const secondaryDemoWineryAt = '2026-01-15T00:00:00.000Z'
+  const secondaryDemoWinery: WineryState['wineries'][number] = {
+    id: 'winery-demo-secondary', code: 'DEMO-02', name: 'Bodega Ejemplo Dos', legalName: 'Bodega Ejemplo Dos, S.L.',
+    municipality: 'Fuenmayor', province: 'La Rioja', designation: 'DOCa Rioja', timezone: 'Europe/Madrid', status: 'active',
+    notes: 'Demo winery seeded to prove multi-winery isolation (Phase 9.2).',
+    createdAt: secondaryDemoWineryAt, updatedAt: secondaryDemoWineryAt, createdBy: 'System migration', updatedBy: 'System migration',
+  }
+  const secondaryDemoMembership: WineryState['memberships'][number] = {
+    id: `membership-${secondaryDemoWinery.id}-${user.id}`, wineryId: secondaryDemoWinery.id, userId: user.id, role: 'owner', status: 'active',
+    createdAt: secondaryDemoWineryAt, updatedAt: secondaryDemoWineryAt, createdBy: 'System migration', updatedBy: 'System migration',
+  }
+  const secondaryDemoGrowers: WineryState['growers'] = [
+    { id: 'grower-demo-secondary-1', wineryId: secondaryDemoWinery.id, code: 'VIT-D01', name: 'Viñedos Fuenmayor', legalName: 'Viñedos Fuenmayor SAT', growerType: 'cooperative', country: 'España', status: 'active', notes: '', createdAt: secondaryDemoWineryAt, updatedAt: secondaryDemoWineryAt, createdBy: 'System migration', updatedBy: 'System migration' },
+    { id: 'grower-demo-secondary-2', wineryId: secondaryDemoWinery.id, code: 'VIT-D02', name: 'Familia Ochoa', legalName: 'Familia Ochoa Bodegas SL', growerType: 'company', country: 'España', status: 'active', notes: '', createdAt: secondaryDemoWineryAt, updatedAt: secondaryDemoWineryAt, createdBy: 'System migration', updatedBy: 'System migration' },
+  ]
   return {
   schemaVersion: 27,
-  wineries: [winery],
+  wineries: [winery, secondaryDemoWinery],
   users: [user],
-  memberships: [membership],
+  memberships: [membership, secondaryDemoMembership],
   campaigns: scope(canonical.campaigns),
-  growers: scope(canonical.growers),
+  growers: [...scope(canonical.growers), ...secondaryDemoGrowers],
   vineyards: scope(vineyards),
   campaignParcels: scope(deriveCampaignParcelPlans(normalizedParcels, canonical.campaigns.find((c) => c.isDefault)?.id ?? canonical.campaigns[0].id)),
   locations: scope(canonical.locations),

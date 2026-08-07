@@ -60,3 +60,7 @@ Grower lifecycle is non-destructive. Records are activated/deactivated; they are
 `Winery` is the root tenant scope. Every other top-level collection carries a `wineryId` foreign key to it, added additively — no other relationship changed. `User` is a person, independent of any winery; `Membership` is the `Winery N—N User` junction carrying `role` and `status`, and is the only place a user's relationship to a winery is recorded. At most one active `Membership` may exist per `(wineryId, userId)` pair.
 
 This model exists but is not yet enforced: every browser session today still operates against a single derived default winery, and no page filters by `wineryId`. That enforcement is Phase 9.2.
+
+## Winery scoping enforcement (Phase 9.2)
+
+Every operational collection is scoped by `wineryId` in both directions: reads are filtered to the selected winery, writes are stamped with it. The browser keeps the full unscoped dataset as the source of truth at all times — the scoped view is a derived projection, never a replacement — so switching wineries can never silently discard another winery's records. `Winery`, `User` and `Membership` themselves remain unscoped (they define the tenancy, not participate in it). `WinerySettings` is a deliberate exception: still one shared object across every winery, not yet split per tenant.

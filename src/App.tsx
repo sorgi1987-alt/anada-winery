@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   Activity, ArrowLeft, ArrowRightLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
@@ -25,6 +25,7 @@ import { activateCampaign, archiveCampaign, closeCampaign, createCampaign, reope
 import { createGrower, setGrowerStatus, updateGrower, GrowerValidationError, type GrowerUpdateInput } from './growers'
 import { createVineyard, setVineyardStatus, updateVineyard, VineyardValidationError, type VineyardUpdateInput } from './vineyards'
 import { setTankUsableCapacity, tankUsableCapacity } from './cellar'
+import { DEFAULT_WINERY_ID, withWineryId } from './winery'
 import { createParcel, setParcelCampaignMembership, setParcelStatus, updateParcel, ParcelValidationError, type ParcelUpdateInput } from './parcels'
 import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewVineyardInput, NewParcelInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardEstate, CampaignParcelPlan, VineyardParcel, WeatherSnapshot, Winery, WinerySettings, WineLot, WineMovement, WineType } from './types'
 
@@ -74,6 +75,20 @@ const navItems = [
   { labelKey: 'nav.reports' as const, path: '/reports', icon: BarChart3 },
 ]
 
+function useWineryScopedState<T extends { wineryId?: string }>(
+  all: T[],
+  setAll: React.Dispatch<React.SetStateAction<T[]>>,
+  wineryId: string,
+): [T[], (updater: T[] | ((current: T[]) => T[])) => void] {
+  const scoped = useMemo(() => all.filter((item) => item.wineryId === wineryId), [all, wineryId])
+  const setScoped = (updater: T[] | ((current: T[]) => T[])) => {
+    const nextScoped = typeof updater === 'function' ? (updater as (current: T[]) => T[])(scoped) : updater
+    const stamped = withWineryId(nextScoped, wineryId)
+    setAll((prevAll) => [...prevAll.filter((item) => item.wineryId !== wineryId), ...stamped])
+  }
+  return [scoped, setScoped]
+}
+
 function App() {
   const { pathname } = useHashLocation()
   const { t, d, locale } = useLanguage()
@@ -89,39 +104,66 @@ function App() {
     return () => query.removeEventListener('change', updateViewport)
   }, [])
   const [initialState] = useState(() => browserWineryRepository.load())
-  const [wineries] = useState(initialState.wineries)
-  const [users] = useState(initialState.users)
-  const [memberships] = useState(initialState.memberships)
-  const [campaigns, setCampaigns] = useState(initialState.campaigns)
-  const [growers, setGrowers] = useState(initialState.growers)
-  const [vineyards, setVineyards] = useState<VineyardEstate[]>(initialState.vineyards)
-  const [campaignParcels, setCampaignParcels] = useState<CampaignParcelPlan[]>(initialState.campaignParcels)
-  const [locations, setLocations] = useState(initialState.locations)
-  const [vessels, setVessels] = useState(initialState.vessels)
-  const [vesselAllocations, setVesselAllocations] = useState(initialState.vesselAllocations)
-  const [vineyardSamples, setVineyardSamples] = useState(initialState.vineyardSamples)
-  const [demoLots, setDemoLots] = useState<WineLot[]>(initialState.lots)
-  const [tasks, setTasks] = useState<CellarTask[]>(initialState.tasks)
-  const [demoTanks, setDemoTanks] = useState<Tank[]>(initialState.tanks)
-  const [productionEvents, setProductionEvents] = useState<ProductionEvent[]>(initialState.productionEvents)
-  const [movements, setMovements] = useState<WineMovement[]>(initialState.movements)
-  const [parcels, setParcels] = useState<VineyardParcel[]>(initialState.parcels)
-  const [deliveries, setDeliveries] = useState<GrapeDelivery[]>(initialState.deliveries)
-  const [samples, setSamples] = useState<LabSample[]>(initialState.samples)
-  const [barrels, setBarrels] = useState<Barrel[]>(initialState.barrels)
-  const [barrelOperations, setBarrelOperations] = useState<BarrelOperation[]>(initialState.barrelOperations)
-  const [blendCandidates, setBlendCandidates] = useState<BlendCandidate[]>(initialState.blendCandidates)
-  const [blendTrials, setBlendTrials] = useState<BlendTrial[]>(initialState.blendTrials)
-  const [packagingMaterials, setPackagingMaterials] = useState<PackagingMaterial[]>(initialState.packagingMaterials)
-  const [bottlingOrders, setBottlingOrders] = useState<BottlingOrder[]>(initialState.bottlingOrders)
-  const [traceabilityEntities, setTraceabilityEntities] = useState<TraceabilityEntity[]>(initialState.traceabilityEntities)
-  const [traceabilityLinks, setTraceabilityLinks] = useState<TraceabilityLink[]>(initialState.traceabilityLinks)
-  const [recallSimulations, setRecallSimulations] = useState<RecallSimulation[]>(initialState.recallSimulations)
-  const [suppliers, setSuppliers] = useState<Supplier[]>(initialState.suppliers)
-  const [productMasters, setProductMasters] = useState<ProductMaster[]>(initialState.productMasters)
-  const [productLots, setProductLots] = useState<ProductLot[]>(initialState.productLots)
-  const [productStockTransactions, setProductStockTransactions] = useState<ProductStockTransaction[]>(initialState.productStockTransactions)
-  const [weatherSnapshots, setWeatherSnapshots] = useState<WeatherSnapshot[]>(initialState.weatherSnapshots)
+  const [wineries, setWineries] = useState(initialState.wineries)
+  const [users, setUsers] = useState(initialState.users)
+  const [memberships, setMemberships] = useState(initialState.memberships)
+  const [currentWineryId, setCurrentWineryId] = useState(() => wineries[0]?.id ?? DEFAULT_WINERY_ID)
+  const [allCampaigns, setAllCampaigns] = useState(initialState.campaigns)
+  const [campaigns, setCampaigns] = useWineryScopedState(allCampaigns, setAllCampaigns, currentWineryId)
+  const [allGrowers, setAllGrowers] = useState(initialState.growers)
+  const [growers, setGrowers] = useWineryScopedState(allGrowers, setAllGrowers, currentWineryId)
+  const [allVineyards, setAllVineyards] = useState<VineyardEstate[]>(initialState.vineyards)
+  const [vineyards, setVineyards] = useWineryScopedState(allVineyards, setAllVineyards, currentWineryId)
+  const [allCampaignParcels, setAllCampaignParcels] = useState<CampaignParcelPlan[]>(initialState.campaignParcels)
+  const [campaignParcels, setCampaignParcels] = useWineryScopedState(allCampaignParcels, setAllCampaignParcels, currentWineryId)
+  const [allLocations, setAllLocations] = useState(initialState.locations)
+  const [allVessels, setAllVessels] = useState(initialState.vessels)
+  const [allVesselAllocations, setAllVesselAllocations] = useState(initialState.vesselAllocations)
+  const [allVineyardSamples, setAllVineyardSamples] = useState(initialState.vineyardSamples)
+  const [allDemoLots, setAllDemoLots] = useState<WineLot[]>(initialState.lots)
+  const [demoLots, setDemoLots] = useWineryScopedState(allDemoLots, setAllDemoLots, currentWineryId)
+  const [allTasks, setAllTasks] = useState<CellarTask[]>(initialState.tasks)
+  const [tasks, setTasks] = useWineryScopedState(allTasks, setAllTasks, currentWineryId)
+  const [allDemoTanks, setAllDemoTanks] = useState<Tank[]>(initialState.tanks)
+  const [demoTanks, setDemoTanks] = useWineryScopedState(allDemoTanks, setAllDemoTanks, currentWineryId)
+  const [allProductionEvents, setAllProductionEvents] = useState<ProductionEvent[]>(initialState.productionEvents)
+  const [productionEvents, setProductionEvents] = useWineryScopedState(allProductionEvents, setAllProductionEvents, currentWineryId)
+  const [allMovements, setAllMovements] = useState<WineMovement[]>(initialState.movements)
+  const [movements, setMovements] = useWineryScopedState(allMovements, setAllMovements, currentWineryId)
+  const [allParcels, setAllParcels] = useState<VineyardParcel[]>(initialState.parcels)
+  const [parcels, setParcels] = useWineryScopedState(allParcels, setAllParcels, currentWineryId)
+  const [allDeliveries, setAllDeliveries] = useState<GrapeDelivery[]>(initialState.deliveries)
+  const [deliveries, setDeliveries] = useWineryScopedState(allDeliveries, setAllDeliveries, currentWineryId)
+  const [allSamples, setAllSamples] = useState<LabSample[]>(initialState.samples)
+  const [samples, setSamples] = useWineryScopedState(allSamples, setAllSamples, currentWineryId)
+  const [allBarrels, setAllBarrels] = useState<Barrel[]>(initialState.barrels)
+  const [barrels, setBarrels] = useWineryScopedState(allBarrels, setAllBarrels, currentWineryId)
+  const [allBarrelOperations, setAllBarrelOperations] = useState<BarrelOperation[]>(initialState.barrelOperations)
+  const [barrelOperations, setBarrelOperations] = useWineryScopedState(allBarrelOperations, setAllBarrelOperations, currentWineryId)
+  const [allBlendCandidates, setAllBlendCandidates] = useState<BlendCandidate[]>(initialState.blendCandidates)
+  const [blendCandidates] = useWineryScopedState(allBlendCandidates, setAllBlendCandidates, currentWineryId)
+  const [allBlendTrials, setAllBlendTrials] = useState<BlendTrial[]>(initialState.blendTrials)
+  const [blendTrials, setBlendTrials] = useWineryScopedState(allBlendTrials, setAllBlendTrials, currentWineryId)
+  const [allPackagingMaterials, setAllPackagingMaterials] = useState<PackagingMaterial[]>(initialState.packagingMaterials)
+  const [packagingMaterials, setPackagingMaterials] = useWineryScopedState(allPackagingMaterials, setAllPackagingMaterials, currentWineryId)
+  const [allBottlingOrders, setAllBottlingOrders] = useState<BottlingOrder[]>(initialState.bottlingOrders)
+  const [bottlingOrders, setBottlingOrders] = useWineryScopedState(allBottlingOrders, setAllBottlingOrders, currentWineryId)
+  const [allTraceabilityEntities, setAllTraceabilityEntities] = useState<TraceabilityEntity[]>(initialState.traceabilityEntities)
+  const [traceabilityEntities, setTraceabilityEntities] = useWineryScopedState(allTraceabilityEntities, setAllTraceabilityEntities, currentWineryId)
+  const [allTraceabilityLinks, setAllTraceabilityLinks] = useState<TraceabilityLink[]>(initialState.traceabilityLinks)
+  const [traceabilityLinks, setTraceabilityLinks] = useWineryScopedState(allTraceabilityLinks, setAllTraceabilityLinks, currentWineryId)
+  const [allRecallSimulations, setAllRecallSimulations] = useState<RecallSimulation[]>(initialState.recallSimulations)
+  const [recallSimulations, setRecallSimulations] = useWineryScopedState(allRecallSimulations, setAllRecallSimulations, currentWineryId)
+  const [allSuppliers, setAllSuppliers] = useState<Supplier[]>(initialState.suppliers)
+  const [suppliers, setSuppliers] = useWineryScopedState(allSuppliers, setAllSuppliers, currentWineryId)
+  const [allProductMasters, setAllProductMasters] = useState<ProductMaster[]>(initialState.productMasters)
+  const [productMasters, setProductMasters] = useWineryScopedState(allProductMasters, setAllProductMasters, currentWineryId)
+  const [allProductLots, setAllProductLots] = useState<ProductLot[]>(initialState.productLots)
+  const [productLots, setProductLots] = useWineryScopedState(allProductLots, setAllProductLots, currentWineryId)
+  const [allProductStockTransactions, setAllProductStockTransactions] = useState<ProductStockTransaction[]>(initialState.productStockTransactions)
+  const [productStockTransactions, setProductStockTransactions] = useWineryScopedState(allProductStockTransactions, setAllProductStockTransactions, currentWineryId)
+  const [allWeatherSnapshots, setAllWeatherSnapshots] = useState<WeatherSnapshot[]>(initialState.weatherSnapshots)
+  const [weatherSnapshots, setWeatherSnapshots] = useWineryScopedState(allWeatherSnapshots, setAllWeatherSnapshots, currentWineryId)
   const [settings, setSettings] = useState<WinerySettings>(initialState.settings)
   const [cellarMode, setCellarMode] = useState(() => localStorage.getItem('anada-theme') === 'cellar')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -132,8 +174,8 @@ function App() {
   const [undoLot, setUndoLot] = useState<WineLot | null>(null)
 
   useEffect(() => {
-    browserWineryRepository.save({ schemaVersion: 27, wineries, users, memberships, campaigns, growers, vineyards, campaignParcels, locations, vessels, vesselAllocations, vineyardSamples, lots: demoLots, tasks, tanks: demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings })
-  }, [wineries, users, memberships, campaigns, growers, vineyards, campaignParcels, locations, vessels, vesselAllocations, vineyardSamples, demoLots, tasks, demoTanks, productionEvents, movements, parcels, deliveries, samples, barrels, barrelOperations, blendCandidates, blendTrials, packagingMaterials, bottlingOrders, traceabilityEntities, traceabilityLinks, recallSimulations, suppliers, productMasters, productLots, productStockTransactions, weatherSnapshots, settings])
+    browserWineryRepository.save({ schemaVersion: 27, wineries, users, memberships, campaigns: allCampaigns, growers: allGrowers, vineyards: allVineyards, campaignParcels: allCampaignParcels, locations: allLocations, vessels: allVessels, vesselAllocations: allVesselAllocations, vineyardSamples: allVineyardSamples, lots: allDemoLots, tasks: allTasks, tanks: allDemoTanks, productionEvents: allProductionEvents, movements: allMovements, parcels: allParcels, deliveries: allDeliveries, samples: allSamples, barrels: allBarrels, barrelOperations: allBarrelOperations, blendCandidates: allBlendCandidates, blendTrials: allBlendTrials, packagingMaterials: allPackagingMaterials, bottlingOrders: allBottlingOrders, traceabilityEntities: allTraceabilityEntities, traceabilityLinks: allTraceabilityLinks, recallSimulations: allRecallSimulations, suppliers: allSuppliers, productMasters: allProductMasters, productLots: allProductLots, productStockTransactions: allProductStockTransactions, weatherSnapshots: allWeatherSnapshots, settings })
+  }, [wineries, users, memberships, allCampaigns, allGrowers, allVineyards, allCampaignParcels, allLocations, allVessels, allVesselAllocations, allVineyardSamples, allDemoLots, allTasks, allDemoTanks, allProductionEvents, allMovements, allParcels, allDeliveries, allSamples, allBarrels, allBarrelOperations, allBlendCandidates, allBlendTrials, allPackagingMaterials, allBottlingOrders, allTraceabilityEntities, allTraceabilityLinks, allRecallSimulations, allSuppliers, allProductMasters, allProductLots, allProductStockTransactions, allWeatherSnapshots, settings])
 
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
@@ -578,38 +620,48 @@ function App() {
     window.setTimeout(() => setToast(null), 3200)
   }
 
+  const switchWinery = (wineryId: string) => {
+    if (wineryId === currentWineryId) return
+    setCurrentWineryId(wineryId)
+    navigate('/dashboard')
+  }
+
   const resetDemoData = () => {
     const reset = browserWineryRepository.clear()
-    setCampaigns(reset.campaigns)
-    setGrowers(reset.growers)
-    setVineyards(reset.vineyards)
-    setCampaignParcels(reset.campaignParcels)
-    setLocations(reset.locations)
-    setVessels(reset.vessels)
-    setVesselAllocations(reset.vesselAllocations)
-    setVineyardSamples(reset.vineyardSamples)
-    setDemoLots(reset.lots)
-    setTasks(reset.tasks)
-    setDemoTanks(reset.tanks)
-    setProductionEvents(reset.productionEvents)
-    setMovements(reset.movements)
-    setParcels(reset.parcels)
-    setDeliveries(reset.deliveries)
-    setSamples(reset.samples)
-    setBarrels(reset.barrels)
-    setBarrelOperations(reset.barrelOperations)
-    setBlendCandidates(reset.blendCandidates)
-    setBlendTrials(reset.blendTrials)
-    setPackagingMaterials(reset.packagingMaterials)
-    setBottlingOrders(reset.bottlingOrders)
-    setTraceabilityEntities(reset.traceabilityEntities)
-    setTraceabilityLinks(reset.traceabilityLinks)
-    setRecallSimulations(reset.recallSimulations)
-    setSuppliers(reset.suppliers)
-    setProductMasters(reset.productMasters)
-    setProductLots(reset.productLots)
-    setProductStockTransactions(reset.productStockTransactions)
-    setWeatherSnapshots(reset.weatherSnapshots)
+    setWineries(reset.wineries)
+    setUsers(reset.users)
+    setMemberships(reset.memberships)
+    setCurrentWineryId(reset.wineries[0]?.id ?? DEFAULT_WINERY_ID)
+    setAllCampaigns(reset.campaigns)
+    setAllGrowers(reset.growers)
+    setAllVineyards(reset.vineyards)
+    setAllCampaignParcels(reset.campaignParcels)
+    setAllLocations(reset.locations)
+    setAllVessels(reset.vessels)
+    setAllVesselAllocations(reset.vesselAllocations)
+    setAllVineyardSamples(reset.vineyardSamples)
+    setAllDemoLots(reset.lots)
+    setAllTasks(reset.tasks)
+    setAllDemoTanks(reset.tanks)
+    setAllProductionEvents(reset.productionEvents)
+    setAllMovements(reset.movements)
+    setAllParcels(reset.parcels)
+    setAllDeliveries(reset.deliveries)
+    setAllSamples(reset.samples)
+    setAllBarrels(reset.barrels)
+    setAllBarrelOperations(reset.barrelOperations)
+    setAllBlendCandidates(reset.blendCandidates)
+    setAllBlendTrials(reset.blendTrials)
+    setAllPackagingMaterials(reset.packagingMaterials)
+    setAllBottlingOrders(reset.bottlingOrders)
+    setAllTraceabilityEntities(reset.traceabilityEntities)
+    setAllTraceabilityLinks(reset.traceabilityLinks)
+    setAllRecallSimulations(reset.recallSimulations)
+    setAllSuppliers(reset.suppliers)
+    setAllProductMasters(reset.productMasters)
+    setAllProductLots(reset.productLots)
+    setAllProductStockTransactions(reset.productStockTransactions)
+    setAllWeatherSnapshots(reset.weatherSnapshots)
     setSettings(reset.settings)
     setUndoLot(null)
     setToast(t('toast.reset'))
@@ -663,6 +715,8 @@ function App() {
         }}
         settings={settings}
         wineries={wineries}
+        currentWineryId={currentWineryId}
+        onSwitchWinery={switchWinery}
         pwa={pwa}
         mobileViewport={mobileViewport}
       >
@@ -755,16 +809,19 @@ interface ShellProps {
   onNotifications: () => void
   settings: WinerySettings
   wineries: Winery[]
+  currentWineryId: string
+  onSwitchWinery: (wineryId: string) => void
   pwa: PwaStatus
   mobileViewport: boolean
 }
 
-function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, wineries, pwa, mobileViewport }: ShellProps) {
+function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, wineries, currentWineryId, onSwitchWinery, pwa, mobileViewport }: ShellProps) {
   const location = useHashLocation()
   const { t } = useLanguage()
+  const [switcherOpen, setSwitcherOpen] = useState(false)
   const pageItem = navItems.find((item) => location.pathname.startsWith(item.path))
   const page = location.pathname.startsWith('/admin') || location.pathname === '/settings' ? t('nav.admin') : pageItem ? t(pageItem.labelKey) : 'Añada'
-  const currentWinery = wineries[0]
+  const currentWinery = wineries.find((winery) => winery.id === currentWineryId) ?? wineries[0]
   const wineryDisplayName = currentWinery?.name || settings.wineryName
   const wineryInitials = wineryDisplayName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
   return (
@@ -774,10 +831,22 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
           <Brand />
           <button className="icon-button sidebar-close" onClick={() => setMenuOpen(false)} aria-label={t('common.close')}><X size={20} /></button>
         </div>
-        <div className="winery-mini">
-          <span className="winery-mark small">{wineryInitials || 'VI'}</span>
-          <span><strong>{wineryDisplayName}</strong><small>{t('admin.campaignLabel', { year: settings.campaignYear })}</small></span>
-          <ChevronDown size={15} />
+        <div className="winery-mini-wrap">
+          <button type="button" className="winery-mini" onClick={() => setSwitcherOpen((current) => !current)} aria-expanded={switcherOpen} aria-haspopup="true">
+            <span className="winery-mark small">{wineryInitials || 'VI'}</span>
+            <span><strong>{wineryDisplayName}</strong><small>{t('admin.campaignLabel', { year: settings.campaignYear })}</small></span>
+            <ChevronDown size={15} />
+          </button>
+          {switcherOpen && (
+            <div className="winery-switcher-menu" role="menu">
+              {wineries.map((winery) => (
+                <button key={winery.id} type="button" role="menuitemradio" aria-checked={winery.id === currentWineryId} className={winery.id === currentWineryId ? 'active' : ''} onClick={() => { onSwitchWinery(winery.id); setSwitcherOpen(false) }}>
+                  <span>{winery.name}</span>
+                  {winery.id === currentWineryId && <Check size={14} />}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <nav className="primary-nav" aria-label={t('nav.primary')}>
           {navItems.filter((item) => item.path !== '/scan').map(({ labelKey, path, icon: Icon }) => (

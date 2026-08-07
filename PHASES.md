@@ -131,11 +131,15 @@ Completion gate: every existing collection carries a valid `wineryId`; a `User`/
 
 ### Phase 9.2 — Winery scoping enforcement
 
-- Every page and mutation handler filters by the selected winery
-- Winery switcher becomes functional
-- Multi-winery demo data proves isolation between wineries
+Status: implemented in version 0.38.0.
 
-Completion gate: two wineries' demo data coexist in the browser state without either being visible from the other's context.
+- Every one of the 30 operational collections is filtered by the selected winery at read time and stamped with it at write time, via a single generic mechanism (`useWineryScopedState`) rather than 120+ individually-touched call sites
+- The full unscoped dataset remains the persistence source of truth; switching wineries never loses another winery's data
+- The sidebar winery switcher is functional — lists every winery, switches the active scope, navigates to a safe page
+- A second demo winery (`Bodega Ejemplo Dos`) with its own growers is seeded to prove isolation, sharing the same demo user across both wineries via separate `Membership` records
+- `WinerySettings` remains a single shared object, not yet winery-scoped — flagged explicitly, not silently left inconsistent
+
+Completion gate: two wineries' demo data coexist in the browser state without either being visible from the other's context; a record created while scoped to one winery is verified absent from the other after switching, both for pre-seeded and newly-created data.
 
 ### Phase 9.3 — Catalyst Schema v2 provisioning
 
