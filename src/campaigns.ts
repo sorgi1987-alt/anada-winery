@@ -37,8 +37,8 @@ export const normalizeCampaign = (campaign: Partial<Campaign> & { id: string; co
   }
 }
 
-export const normalizeCampaigns = (campaigns: Array<Partial<Campaign> & { id: string; code: string }>, fallbackYear: number): Campaign[] => {
-  const normalized = campaigns.map((item) => normalizeCampaign(item, fallbackYear))
+export const normalizeCampaigns = (campaigns: Array<Partial<Campaign> & { id: string; code: string }> | undefined, fallbackYear: number): Campaign[] => {
+  const normalized = (campaigns ?? []).map((item) => normalizeCampaign(item, fallbackYear))
   if (!normalized.length) {
     return [normalizeCampaign({ id: `campaign-${fallbackYear}`, code: String(fallbackYear), status: 'active', isDefault: true }, fallbackYear)]
   }

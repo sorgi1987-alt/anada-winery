@@ -29,12 +29,14 @@ interface HarvestPageProps {
   parcels: VineyardParcel[]
   deliveries: GrapeDelivery[]
   onOpenIntake: (deliveryId?: string) => void
+  campaignName?: string
+  campaignStatus?: 'planned' | 'active' | 'closed' | 'archived'
   timeZone: string
   latitude: number
   longitude: number
 }
 
-export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone, latitude, longitude }: HarvestPageProps) {
+export function HarvestPage({ parcels, deliveries, onOpenIntake, campaignName, campaignStatus, timeZone, latitude, longitude }: HarvestPageProps) {
   const [view, setView] = useState<'overview' | 'parcels' | 'schedule'>('overview')
   const [currentDate, setCurrentDate] = useState(() => new Date())
   const [weather, setWeather] = useState<WineryWeather | null>(null)
@@ -83,13 +85,13 @@ export function HarvestPage({ parcels, deliveries, onOpenIntake, timeZone, latit
     <main className="harvest-page">
       <header className="page-header">
         <div><span className="eyebrow">{t('harvest.kicker')}</span><h1>{t('harvest.title')}</h1><p>{t('harvest.description')}</p></div>
-        <div className="page-header-action"><button className="primary-button" onClick={() => onOpenIntake()}><Scale size={18} /> {t('harvest.registerIntake')}</button></div>
+        <div className="page-header-action"><button className="primary-button" disabled={campaignStatus !== 'active'} onClick={() => onOpenIntake()}><Scale size={18} /> {t('harvest.registerIntake')}</button></div>
       </header>
 
       <section className="harvest-hero" style={{ backgroundImage: `url(${images.vineyard})` }}>
         <div className="harvest-hero-overlay" />
         <div className="harvest-hero-copy">
-          <span className="hero-season"><Sprout size={15} /> {t('harvest.campaign')}</span>
+          <span className="hero-season"><Sprout size={15} /> {campaignName ?? t('harvest.campaign')}</span>
           <h2>{t('harvest.heroTitle')}</h2>
           <p>{harvestDate} · {t('harvest.heroWindow')}</p>
           <div className={`harvest-assessment ${weatherAssessment.level}`} aria-live="polite"><strong>{weatherAssessment.title}</strong><span>{weatherAssessment.detail}</span></div>

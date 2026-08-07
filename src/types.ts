@@ -131,6 +131,77 @@ export interface NewGrowerInput {
   operator: string
 }
 
+
+export type VineyardStatus = 'active' | 'inactive'
+
+export interface VineyardEstate {
+  id: string
+  code: string
+  name: string
+  growerId: string
+  municipality: string
+  province?: string
+  country: string
+  locationId?: string
+  status: VineyardStatus
+  notes: string
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
+}
+
+export interface NewVineyardInput {
+  code: string
+  name: string
+  growerId: string
+  municipality: string
+  province?: string
+  country?: string
+  notes?: string
+  operator: string
+}
+
+export type ParcelStatus = 'active' | 'inactive'
+export type CampaignParcelStatus = 'planned' | 'sampling' | 'ready' | 'scheduled' | 'harvested' | 'cancelled'
+
+export interface CampaignParcelPlan {
+  id: string
+  campaignId: string
+  parcelId: string
+  expectedKg?: number
+  expectedHarvestDate?: string
+  harvestWindow?: string
+  status: CampaignParcelStatus
+  notes: string
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
+}
+
+export interface NewParcelInput {
+  code: string
+  name: string
+  growerId: string
+  estateId: string
+  varieties: string
+  hectares: number
+  clone?: string
+  rootstock?: string
+  plantingYear?: number
+  trainingSystem?: string
+  irrigation?: boolean
+  altitudeM?: number
+  orientation?: string
+  organic?: boolean
+  latitude?: number
+  longitude?: number
+  notes?: string
+  campaignId?: string
+  operator: string
+}
+
 export interface WineryLocation {
   id: string
   code: string
@@ -255,6 +326,7 @@ export interface VineyardSample {
 
 export interface VineyardParcel {
   id: string
+  code?: string
   name: string
   grower: string
   municipality: string
@@ -269,6 +341,23 @@ export interface VineyardParcel {
   growerId?: string
   locationId?: string
   campaignId?: string
+  estateId?: string
+  status?: ParcelStatus
+  clone?: string
+  rootstock?: string
+  plantingYear?: number
+  trainingSystem?: string
+  irrigation?: boolean
+  altitudeM?: number
+  orientation?: string
+  organic?: boolean
+  latitude?: number
+  longitude?: number
+  notes?: string
+  createdAt?: string
+  updatedAt?: string
+  createdBy?: string
+  updatedBy?: string
 }
 
 export interface GrapeDelivery {
@@ -316,9 +405,11 @@ export interface WeatherSnapshot {
 }
 
 export interface WineryState {
-  schemaVersion: 25
+  schemaVersion: 26
   campaigns: Campaign[]
   growers: Grower[]
+  vineyards: VineyardEstate[]
+  campaignParcels: CampaignParcelPlan[]
   locations: WineryLocation[]
   vessels: Vessel[]
   vesselAllocations: VesselAllocation[]

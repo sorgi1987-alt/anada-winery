@@ -30,7 +30,7 @@ test('v24 migration preserves grower identity while enriching the master record'
   const legacy = { schemaVersion: 24, lots: structuredClone(lots), tasks: structuredClone(initialTasks), tanks: structuredClone(tanks), settings: structuredClone(winerySettings), growers: [{ id: 'grower-legacy', code: 'VIT-099', name: 'Viñas Legacy', taxId: 'A00000001', status: 'active' }] }
   const migrated = migrateLegacyState(legacy)
   assert.ok(migrated)
-  assert.equal(migrated.schemaVersion, 25)
+  assert.equal(migrated.schemaVersion, 26)
   const grower = migrated.growers.find((item) => item.id === 'grower-legacy')
   assert.ok(grower)
   assert.equal(grower.legalName, 'Viñas Legacy')

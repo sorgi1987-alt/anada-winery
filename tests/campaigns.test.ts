@@ -71,7 +71,7 @@ test('v23 migration enriches campaign lifecycle fields and preserves records', (
     settings: { campaignYear: 2026, campaignStart: '2026-08-01', campaignEnd: '2026-12-31' },
   }
   const migrated = migrateLegacyState(legacy)
-  assert.equal(migrated?.schemaVersion, 25)
+  assert.equal(migrated?.schemaVersion, 26)
   assert.equal(migrated?.campaigns[0].name, 'Vendimia 2026')
   assert.equal(migrated?.campaigns[0].vintage, 2026)
   assert.equal(migrated?.campaigns[0].isDefault, true)

@@ -48,3 +48,7 @@ Grower lifecycle is non-destructive. Records are activated/deactivated; they are
 ## Grower master (schema v25)
 
 `Grower` is permanent winery master data and never belongs directly to a campaign. `VineyardParcel.growerId` is the authoritative relationship; legacy grower-name strings remain display projections only. Grower code and normalized fiscal identity are unique. Deactivation preserves historical parcel and delivery links and prevents destructive deletion.
+
+## Vineyard and parcel master model (v0.35)
+
+`Grower 1—N VineyardEstate 1—N VineyardParcel` is permanent master data. `Campaign N—N VineyardParcel` is represented by `CampaignParcelPlan`; expected yield, harvest window and readiness belong to that junction record rather than to the parcel master. Legacy parcel fields remain as UI projections during migration.
