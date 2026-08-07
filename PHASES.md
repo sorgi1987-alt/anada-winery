@@ -216,3 +216,16 @@ Status: implemented in version 0.34.0.
 - Schema v25 migration enriches legacy grower records without duplicating them, preserving v24 operational history
 
 Completion gate: create and edit a grower, reject duplicate fiscal identity, deactivate/reactivate it, and retain every existing parcel relationship through migration.
+
+## Phase 10A.3 — Vineyard and parcel master management
+
+Status: implemented in version 0.35.0.
+
+- `Grower -> Vineyard -> Parcel` as permanent, campaign-independent master data
+- `Campaign -> CampaignParcelPlan -> Parcel` for campaign-specific planning, separating expected yield, harvest window and readiness from the parcel master
+- Permanent vineyard-estate CRUD linked to growers, and permanent parcel CRUD with agronomic identity and grower/vineyard ownership validation
+- Administration workspace at `/admin/vineyards` and `/admin/parcels`, matching the grower workspace pattern, with Spanish and English at parity
+- Harvest scoped to the active/default campaign through `CampaignParcelPlan`; intake registration disabled when no campaign is active
+- Browser schema v26 migration derives vineyards and campaign-parcel plans from every existing `parcel.campaignId`; parcel IDs and `growerId`/`locationId` relationships are never regenerated; `parcel.campaignId` is deprecated, not deleted; legacy parcels with no campaign reference are tolerated
+
+Completion gate: every existing parcel resolves to a valid grower and location; every former `parcel.campaignId` value is represented as a `CampaignParcelPlan`; no operational history changes.
