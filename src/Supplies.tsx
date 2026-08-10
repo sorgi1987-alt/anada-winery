@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { getCurrentOperatorName } from './operator'
 import { AlertTriangle, ArrowRightLeft, Beaker, Check, ChevronRight, ClipboardCheck, FileText, FlaskConical, PackageCheck, Plus, RotateCcw, Scale, Search, ShieldAlert, Trash2, Truck, X } from 'lucide-react'
 import { useLanguage } from './i18n'
 import { effectiveProductLotStatus } from './domain'
@@ -161,7 +162,7 @@ function StockActionSheet({ action, lot, transaction, onClose, onAdjust, onTrans
   const submit = (event: FormEvent) => {
     event.preventDefault(); setError('')
     try {
-      const common = { performedAt: new Date().toISOString(), operator: 'Elena Martín', notes }
+      const common = { performedAt: new Date().toISOString(), operator: getCurrentOperatorName(), notes }
       if (action === 'adjust') onAdjust({ productLotId: lot.id, quantity, reason, ...common })
       if (action === 'transfer') onTransfer({ productLotId: lot.id, fromLocation, toLocation, quantity, ...common })
       if (action === 'dispose') onDispose({ productLotId: lot.id, location: fromLocation, quantity, reason, ...common })

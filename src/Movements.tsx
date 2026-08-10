@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { getCurrentOperatorName } from './operator'
 import { ArrowRight, ArrowRightLeft, Check, CircleGauge, GitMerge, Layers3, Plus, ShieldCheck, Split, Warehouse, X } from 'lucide-react'
 import { images } from './data'
 import { useLanguage } from './i18n'
@@ -93,7 +94,7 @@ function MovementSheet({ kind, lots, tanks, onClose, onTransfer, onSplit, onMerg
   const { t, locale } = useLanguage()
   const emptyTanks = tanks.filter((tank) => !tank.lot && tank.volume === 0)
   const [performedAt, setPerformedAt] = useState(nowForInput)
-  const [operator, setOperator] = useState('Elena Martín')
+  const [operator, setOperator] = useState(getCurrentOperatorName())
   const [notes, setNotes] = useState('')
   const [sourceId, setSourceId] = useState(lots[0]?.id ?? '')
   const source = lots.find((lot) => lot.id === sourceId)

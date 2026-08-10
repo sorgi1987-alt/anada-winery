@@ -155,11 +155,13 @@ Completion gate: schema v2 tables are provisioned in the Development environment
 
 ### Phase 9.4 — Catalyst authentication
 
-- Real login backed by Zoho Catalyst authentication
-- Replaces hardcoded operator attribution everywhere with the authenticated user's identity
-- Role-based access aligned with `Membership` records
+Status: in progress, 10 August 2026.
 
-Completion gate: a user logs in, their identity is attributed on every mutation, and an unauthenticated request is rejected.
+- Real login backed by Zoho Catalyst authentication — done. Embedded auth enabled; `src/Login.tsx`/`src/auth.ts` integrate Catalyst's Web SDK v4; the app gates its entry point on `isUserAuthenticated()`. Verified live on the deployed Slate domain (the real sign-in iframe renders); not completable end-to-end by the agent, since Zoho's email confirmation step needs a human with inbox access — a real App User was provisioned (`sorgi1987@gmail.com`) for that.
+- Replaces hardcoded operator attribution everywhere with the authenticated user's identity — done for every real mutation call site (`domain.ts` and all UI files); seed/historical/explicitly-decorative demo content deliberately left alone.
+- Role-based access aligned with `Membership` records — not yet done.
+
+Completion gate: a user logs in, their identity is attributed on every mutation, and an unauthenticated request is rejected. The unauthenticated-rejection half is proven live (`GET /whoami` on `anada_data_api` returns 401 with no session). The login-and-attribution half is implemented and code-verified but awaits a human completing the real sign-in to confirm end-to-end.
 
 ### Phase 9.5 — Remote reads, then remote writes
 

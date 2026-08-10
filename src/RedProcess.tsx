@@ -1,4 +1,5 @@
 import { useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { getCurrentOperatorName } from './operator'
 import { ArrowRight, Beaker, Check, CheckCircle2, Clock3, Droplets, FlaskConical, Grape, RefreshCw, ShieldCheck, Thermometer, Wine, X } from 'lucide-react'
 import { redOperationTypesByStage, redStageGate } from './domain'
 import { useLanguage } from './i18n'
@@ -73,7 +74,7 @@ export function RedProcessControl({ lot, events, onRecordOperation, onAdvanceSta
 
   const confirmAdvance = () => {
     try {
-      onAdvanceStage({ lotId: lot.id, performedAt: new Date().toISOString(), operator: 'Elena Martín', notes: transitionNote })
+      onAdvanceStage({ lotId: lot.id, performedAt: new Date().toISOString(), operator: getCurrentOperatorName(), notes: transitionNote })
       setAdvanceOpen(false)
       setTransitionNote('')
       setTransitionError(false)
@@ -134,7 +135,7 @@ export function RedProcessControl({ lot, events, onRecordOperation, onAdvanceSta
 function RedOperationSheet({ lot, type, onClose, onSave }: { lot: WineLot; type: RedOperationType; onClose: () => void; onSave: (input: NewRedOperationInput) => void }) {
   const { t, d, locale } = useLanguage()
   const [performedAt, setPerformedAt] = useState(nowForInput)
-  const [operator, setOperator] = useState('Elena Martín')
+  const [operator, setOperator] = useState(getCurrentOperatorName())
   const [notes, setNotes] = useState('')
   const [duration, setDuration] = useState(type === 'pump_over' ? '15' : type === 'punch_down' ? '10' : '')
   const [temperature, setTemperature] = useState(lot.temperature?.toFixed(1) ?? '')

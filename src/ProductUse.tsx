@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { getCurrentOperatorName } from './operator'
 import { AlertTriangle, Beaker, CheckCircle2, Clock3, FlaskConical, PackageCheck, Plus, ShieldCheck, X } from 'lucide-react'
 import { effectiveProductLotStatus } from './domain'
 import { useLanguage } from './i18n'
@@ -40,7 +41,7 @@ function ProductUseSheet({ wineLot, products, productLots, onClose, onSave }: {
   onSave: (input: NewProductConsumptionInput) => void
 }) {
   const { t, locale } = useLanguage()
-  const [draft, setDraft] = useState<NewProductConsumptionInput>({ productLotId: productLots[0]?.id ?? '', wineLotId: wineLot.id, quantity: 0, performedAt: nowForInput(), operator: 'Elena Martín', notes: '' })
+  const [draft, setDraft] = useState<NewProductConsumptionInput>({ productLotId: productLots[0]?.id ?? '', wineLotId: wineLot.id, quantity: 0, performedAt: nowForInput(), operator: getCurrentOperatorName(), notes: '' })
   const [error, setError] = useState('')
   const selected = productLots.find((lot) => lot.id === draft.productLotId)
   const product = selected && products.get(selected.productId)

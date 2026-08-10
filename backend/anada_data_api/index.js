@@ -36,6 +36,23 @@ app.get('/health', async (request, response) => {
   }
 })
 
+app.get('/whoami', async (request, response) => {
+  try {
+    const catalystApp = catalyst.initialize(request, { scope: 'user' })
+    const currentUser = await catalystApp.userManagement().getCurrentUser()
+    if (!currentUser || !currentUser.email_id) {
+      response.status(401).json({ status: 'unauthenticated', message: 'No authenticated Catalyst session was found.' })
+      return
+    }
+    response.status(200).json({
+      status: 'authenticated',
+      user: { email_id: currentUser.email_id, first_name: currentUser.first_name, last_name: currentUser.last_name },
+    })
+  } catch {
+    response.status(401).json({ status: 'unauthenticated', message: 'No authenticated Catalyst session was found.' })
+  }
+})
+
 
 const weatherCache = new Map()
 app.get('/weather', async (request, response) => {

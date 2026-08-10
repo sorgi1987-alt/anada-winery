@@ -1,4 +1,5 @@
 import { useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { getCurrentOperatorName } from './operator'
 import { ArrowRight, Beaker, Check, CheckCircle2, Clock3, Droplets, FlaskConical, GitMerge, Grape, RefreshCw, Scale, ShieldCheck, Sparkles, Thermometer, Waves, X } from 'lucide-react'
 import { roseOperationsForLot, roseStageGate } from './domain'
 import { useLanguage } from './i18n'
@@ -95,7 +96,7 @@ export function RoseProcessControl({ lot, events, onRecordOperation, onAdvanceSt
 
   const confirmAdvance = () => {
     try {
-      onAdvanceStage({ lotId: lot.id, performedAt: new Date().toISOString(), operator: 'Elena Martín', notes: transitionNote })
+      onAdvanceStage({ lotId: lot.id, performedAt: new Date().toISOString(), operator: getCurrentOperatorName(), notes: transitionNote })
       setAdvanceOpen(false)
       setTransitionNote('')
       setTransitionError(false)
@@ -138,7 +139,7 @@ function RoseOperationSheet({ lot, type, onClose, onSave }: { lot: WineLot; type
   const details = lot.productionDetails?.rose
   const stageId = lot.process.find((stage) => stage.status === 'current')?.id
   const [performedAt, setPerformedAt] = useState(nowForInput)
-  const [operator, setOperator] = useState('Elena Martín')
+  const [operator, setOperator] = useState(getCurrentOperatorName())
   const [notes, setNotes] = useState('')
   const [temperature, setTemperature] = useState(lot.temperature?.toFixed(1) ?? '')
   const [density, setDensity] = useState(lot.density?.toFixed(3) ?? '')

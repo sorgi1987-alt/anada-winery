@@ -1,5 +1,6 @@
 import { images, redProcess, roseProcesses, whiteProcess } from './data'
 import { tankUsableCapacity } from './cellar'
+import { getCurrentOperatorName } from './operator'
 import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendAnalysis, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabAnalysisKey, LabResult, LabResultsInput, LabSample, LabProfile, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProcessStage, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, RecallSimulation, RedOperationType, RedStageGate, RoseMethod, RoseOperationType, RoseStageGate, Supplier, Tank, TraceabilityDirection, TraceabilityEntity, TraceabilityLink, VineyardParcel, WhiteOperationType, WhiteStageGate, WineLot, WineMovement } from './types'
 
 const nowId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
@@ -63,7 +64,7 @@ export const receiveProductLot = (input: NewProductLotInput, products: ProductMa
   }
   const transaction: ProductStockTransaction = {
     id: nowId('stock'), productLotId: lot.id, type: 'receipt', quantity: input.quantity, unit: input.unit, occurredAt: input.receivedAt, recordedAt,
-    operator: 'Elena Martín', toLocation: lot.location, reference: lot.supplierLot, notes: input.notes.trim(),
+    operator: getCurrentOperatorName(), toLocation: lot.location, reference: lot.supplierLot, notes: input.notes.trim(),
   }
   return { lot, lots: [lot, ...lots], transaction, transactions: [transaction, ...transactions] }
 }
@@ -220,11 +221,11 @@ export const changeProductLotStatus = (lots: ProductLot[], transactions: Product
   const recordedAt = new Date().toISOString()
   const updated: ProductLot = {
     ...current, status, notes: notes.trim() || current.notes,
-    ...(status === 'approved' ? { releasedAt: recordedAt, releasedBy: 'Elena Martín' } : { releasedAt: undefined, releasedBy: undefined }),
+    ...(status === 'approved' ? { releasedAt: recordedAt, releasedBy: getCurrentOperatorName() } : { releasedAt: undefined, releasedBy: undefined }),
   }
   const transaction: ProductStockTransaction = {
     id: nowId('stock'), productLotId: current.id, type: status === 'approved' ? 'release' : status === 'rejected' ? 'rejection' : 'recall', quantity: 0,
-    unit: current.unit, occurredAt: recordedAt, recordedAt, operator: 'Elena Martín', reference: current.code, notes: notes.trim(),
+    unit: current.unit, occurredAt: recordedAt, recordedAt, operator: getCurrentOperatorName(), reference: current.code, notes: notes.trim(),
   }
   return { lot: updated, lots: lots.map((lot) => lot.id === lotId ? updated : lot), transaction, transactions: [transaction, ...transactions] }
 }
@@ -286,7 +287,7 @@ export const createLot = (input: NewLotInput): WineLot => {
   const activity: LotActivity = {
     id: nowId('activity'),
     title: 'Lote creado',
-    person: 'Elena Martín',
+    person: getCurrentOperatorName(),
     time: 'Ahora',
     detail: `${input.receivedKg.toLocaleString('es-ES')} kg recibidos · ${input.vessel}`,
     recordedAt,
@@ -471,7 +472,7 @@ export const createLabSample = (
   return {
     id: nowId('sample'), code: `LAB-${String(new Date().getFullYear()).slice(-2)}-${String(highest + 1).padStart(3, '0')}`,
     sourceType: input.sourceType, sourceId: input.sourceId, sourceName: lot?.name ?? parcel?.name ?? delivery?.varieties ?? input.sourceId,
-    wineType: lot?.type, profile: input.profile, collectedAt: now, collectedBy: 'Elena Martín', assignedTo: input.assignedTo,
+    wineType: lot?.type, profile: input.profile, collectedAt: now, collectedBy: getCurrentOperatorName(), assignedTo: input.assignedTo,
     dueAt: input.dueAt, priority: input.priority, status: 'queued', requestedAnalyses: labAnalysisProfiles[input.profile], results: [], notes: input.notes.trim(),
   }
 }
@@ -543,7 +544,7 @@ export const recordBarrelOperation = (
   const targetLabel = input.targetType === 'lot' ? `${targets[0].lotId} · ${targets[0].lotName}` : targets[0].code
   const operation: BarrelOperation = {
     id: nowId('barrel-op'), type: input.type, barrelIds: targets.map((barrel) => barrel.id), targetLabel, performedAt: input.performedAt,
-    person: 'Elena Martín', volumeAdded: input.type === 'top_up' ? input.volumeAdded : undefined, notes: input.notes.trim(),
+    person: getCurrentOperatorName(), volumeAdded: input.type === 'top_up' ? input.volumeAdded : undefined, notes: input.notes.trim(),
   }
   return { barrels: updatedBarrels, operations: [operation, ...operations], operation }
 }
@@ -594,7 +595,7 @@ export const createBlendTrial = (input: NewBlendTrialInput, candidates: BlendCan
   return {
     id: nowId('blend-trial'), code: nextBlendCode(trials), name: input.name.trim(), type: input.type, targetVolume: input.targetVolume,
     objective: input.objective.trim(), status: 'draft', components: input.components.map((component) => ({ ...component })),
-    estimatedAnalysis: estimateBlendAnalysis(input.components, candidates), createdAt: new Date().toISOString(), createdBy: 'Elena Martín',
+    estimatedAnalysis: estimateBlendAnalysis(input.components, candidates), createdAt: new Date().toISOString(), createdBy: getCurrentOperatorName(),
   }
 }
 
@@ -608,7 +609,7 @@ export const recordBlendTasting = (trials: BlendTrial[], input: BlendTastingInpu
     status: input.recommendation === 'reject' ? 'rejected' : 'tasting',
     tasting: {
       visual: input.visual, aroma: input.aroma, palate: input.palate, balance: input.balance,
-      recommendation: input.recommendation, notes: input.notes.trim(), tastedAt: new Date().toISOString(), tastedBy: 'Elena Martín',
+      recommendation: input.recommendation, notes: input.notes.trim(), tastedAt: new Date().toISOString(), tastedBy: getCurrentOperatorName(),
     },
   }
   return { trial: updated, trials: trials.map((item) => item.id === updated.id ? updated : item) }
@@ -619,7 +620,7 @@ export const approveBlendTrial = (trials: BlendTrial[], candidates: BlendCandida
   if (!trial || trial.status === 'approved' || trial.tasting?.recommendation !== 'promising') throw new Error('Blend trial requires a favourable tasting')
   validateBlendFormula({ name: trial.name, type: trial.type, targetVolume: trial.targetVolume, objective: trial.objective, components: trial.components }, candidates, trials, trial.id)
   if (trial.components.some((component) => candidates.find((candidate) => candidate.id === component.candidateId)?.readiness !== 'ready')) throw new Error('All components must be released before approval')
-  const updated: BlendTrial = { ...trial, status: 'approved', approvedAt: new Date().toISOString(), approvedBy: 'Elena Martín' }
+  const updated: BlendTrial = { ...trial, status: 'approved', approvedAt: new Date().toISOString(), approvedBy: getCurrentOperatorName() }
   return { trial: updated, trials: trials.map((item) => item.id === updated.id ? updated : item) }
 }
 
@@ -655,8 +656,8 @@ export const createBottlingOrder = (input: NewBottlingOrderInput, trials: BlendT
   const draftOrder: BottlingOrder = {
     id: nowId('bottling-order'), code: nextBottlingCode(orders), sourceTrialId: trial.id, sourceCode: trial.code, wineName: input.wineName.trim(), type: trial.type,
     vintage: input.vintage, targetVolume: input.targetVolume, targetBottles, scheduledAt: input.scheduledAt,
-    line: input.line.trim(), status: 'preparation', packaging, gates: bottlingGateKeys.map((key) => ({ key, complete: key === 'wine_release', ...(key === 'wine_release' ? { verifiedAt: new Date().toISOString(), verifiedBy: 'Elena Martín' } : {}) })),
-    createdAt: new Date().toISOString(), createdBy: 'Elena Martín',
+    line: input.line.trim(), status: 'preparation', packaging, gates: bottlingGateKeys.map((key) => ({ key, complete: key === 'wine_release', ...(key === 'wine_release' ? { verifiedAt: new Date().toISOString(), verifiedBy: getCurrentOperatorName() } : {}) })),
+    createdAt: new Date().toISOString(), createdBy: getCurrentOperatorName(),
   }
   const requirements = bottlingMaterialRequirements(draftOrder)
   requirements.forEach(({ materialId, quantity }) => {
@@ -673,9 +674,9 @@ export const createBottlingOrder = (input: NewBottlingOrderInput, trials: BlendT
 export const setBottlingGate = (orders: BottlingOrder[], orderId: string, gateKey: BottlingGateKey, complete: boolean) => {
   const order = orders.find((item) => item.id === orderId)
   if (!order || ['completed', 'in_progress'].includes(order.status)) throw new Error('Bottling gates cannot be edited')
-  const gates = order.gates.map((gate) => gate.key === gateKey ? { key: gate.key, complete, ...(complete ? { verifiedAt: new Date().toISOString(), verifiedBy: 'Elena Martín' } : {}) } : gate)
+  const gates = order.gates.map((gate) => gate.key === gateKey ? { key: gate.key, complete, ...(complete ? { verifiedAt: new Date().toISOString(), verifiedBy: getCurrentOperatorName() } : {}) } : gate)
   const released = gates.every((gate) => gate.complete)
-  const updated: BottlingOrder = { ...order, gates, status: released ? 'ready' : 'preparation', ...(released ? { releasedAt: new Date().toISOString(), releasedBy: 'Elena Martín' } : { releasedAt: undefined, releasedBy: undefined }) }
+  const updated: BottlingOrder = { ...order, gates, status: released ? 'ready' : 'preparation', ...(released ? { releasedAt: new Date().toISOString(), releasedBy: getCurrentOperatorName() } : { releasedAt: undefined, releasedBy: undefined }) }
   return { order: updated, orders: orders.map((item) => item.id === updated.id ? updated : item) }
 }
 
@@ -706,7 +707,7 @@ export const completeBottlingOrder = (orders: BottlingOrder[], materials: Packag
     ...order, status: 'completed', completion: {
       goodBottles: input.goodBottles, rejectedBottles: input.rejectedBottles, actualVolume: input.actualVolume, finishedProductLot: input.finishedProductLot.trim().toUpperCase(),
       ...(input.labelSerialFrom !== undefined ? { labelSerialFrom: input.labelSerialFrom, labelSerialTo: input.labelSerialFrom + input.goodBottles - 1 } : {}),
-      completedAt: new Date().toISOString(), completedBy: 'Elena Martín', notes: input.notes.trim(),
+      completedAt: new Date().toISOString(), completedBy: getCurrentOperatorName(), notes: input.notes.trim(),
     },
   }
   return { order: updated, orders: orders.map((item) => item.id === updated.id ? updated : item), materials: nextMaterials }
@@ -751,7 +752,7 @@ export const createRecallSimulation = (input: NewRecallSimulationInput, entities
     affectedFinishedLotIds: scope.filter((entity) => entity.type === 'finished_lot').map((entity) => entity.id),
     affectedBottlingOrderIds: scope.filter((entity) => entity.type === 'bottling_order').map((entity) => entity.id),
     sourceParcelIds: scope.filter((entity) => entity.type === 'parcel').map((entity) => entity.id),
-    createdAt: new Date().toISOString(), createdBy: 'Elena Martín', status: 'completed',
+    createdAt: new Date().toISOString(), createdBy: getCurrentOperatorName(), status: 'completed',
   }
   return { simulation, simulations: [simulation, ...simulations] }
 }

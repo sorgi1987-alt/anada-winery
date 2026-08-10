@@ -2,14 +2,18 @@ import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent, type Reac
 import {
   Activity, ArrowLeft, ArrowRightLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
-  Factory, FlaskConical, Gauge, GitMerge, Grape, Grid2X2, Home, Languages, Leaf, List, MapPin, Menu, Moon,
-  Download, MoreHorizontal, Package, Plus, Save, ScanLine, Search, Settings2,
+  Factory, FlaskConical, Gauge, GitMerge, Grape, Grid2X2, Home, Languages, Leaf, List, LogOut, MapPin, Menu, Moon,
+  Download, Package, Plus, Save, ScanLine, Search, Settings2,
   Sparkles, Sprout, Sun, Thermometer, Undo2, Warehouse,
   Waypoints, Wifi, WifiOff, Wine, X,
 } from 'lucide-react'
 import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
+import { Brand } from './Brand'
 import { BlendingPage } from './Blending'
+import { catalystUserDisplayName, getCurrentCatalystUser, isCatalystUserAuthenticated, loadCatalystAuthSdk, signOutCatalystUser, type CatalystAuthenticatedUser } from './auth'
+import { Login } from './Login'
+import { getCurrentOperatorName, resetCurrentOperatorName, setCurrentOperatorName } from './operator'
 import { images, lots as seedLots } from './data'
 import { advanceRedStage, advanceRoseStage, advanceWhiteStage, approveBlendTrial, assignLotToTank, adjustProductStock, changeProductLotStatus, completeBottlingOrder, consumeProductLot, correctProductConsumption, disposeProductStock, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createProductMaster, createRecallSimulation, createSupplier, createTask, mergeWine, receiveGrapeDelivery, receiveProductLot, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, recordRoseOperation, recordWhiteOperation, setBottlingGate, splitWine, startBottlingOrder, transferProductStock, transferWine } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
@@ -103,6 +107,38 @@ function App() {
     query.addEventListener('change', updateViewport)
     return () => query.removeEventListener('change', updateViewport)
   }, [])
+
+  const [authUser, setAuthUser] = useState<CatalystAuthenticatedUser | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    loadCatalystAuthSdk()
+      .catch(() => {})
+      .then(() => isCatalystUserAuthenticated())
+      .then(async (authenticated) => {
+        if (!authenticated) {
+          if (!cancelled) setAuthChecked(true)
+          return
+        }
+        const user = await getCurrentCatalystUser()
+        if (cancelled) return
+        if (user) setAuthUser(user)
+        setAuthChecked(true)
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (authUser) setCurrentOperatorName(catalystUserDisplayName(authUser))
+  }, [authUser])
+
+  const signOut = () => {
+    resetCurrentOperatorName()
+    setAuthUser(null)
+    signOutCatalystUser(window.location.origin)
+  }
+
   const [initialState] = useState(() => browserWineryRepository.load())
   const [wineries, setWineries] = useState(initialState.wineries)
   const [users, setUsers] = useState(initialState.users)
@@ -208,7 +244,7 @@ function App() {
           activities: [{
             id: activityId,
             title: 'Lectura de bodega',
-            person: 'Elena Martín',
+            person: getCurrentOperatorName(),
             time: 'Ahora',
             detail: `${reading.density.toFixed(3)} · ${reading.temperature.toFixed(1)} °C${reading.note ? ` · ${reading.note}` : ''}`,
             recordedAt,
@@ -226,7 +262,7 @@ function App() {
         operationType: 'density_check',
         performedAt: recordedAt,
         recordedAt,
-        operator: 'Elena Martín',
+        operator: getCurrentOperatorName(),
         notes: reading.note ?? '',
         metrics: {
           temperature: reading.temperature,
@@ -404,7 +440,7 @@ function App() {
     const campaignDelivery = { ...result.delivery, campaignId: activeCampaign.id }
     setDeliveries(result.deliveries.map((delivery) => delivery.id === campaignDelivery.id ? campaignDelivery : delivery))
     setParcels(result.parcels)
-    setCampaignParcels((current) => current.map((plan) => plan.campaignId === activeCampaign.id && plan.parcelId === input.parcelId ? { ...plan, status: result.parcels.find((p) => p.id === input.parcelId)?.readiness ?? plan.status, updatedAt: new Date().toISOString(), updatedBy: 'Elena Martín' } : plan))
+    setCampaignParcels((current) => current.map((plan) => plan.campaignId === activeCampaign.id && plan.parcelId === input.parcelId ? { ...plan, status: result.parcels.find((p) => p.id === input.parcelId)?.readiness ?? plan.status, updatedAt: new Date().toISOString(), updatedBy: getCurrentOperatorName() } : plan))
     setIntakeFlow({ open: false })
     captureWeather('grape_delivery', result.delivery.id)
     setToast(t('toast.intakeRegistered', { code: result.delivery.code }))
@@ -548,7 +584,7 @@ function App() {
   const disposeInputStock = (input: ProductDisposalInput) => { const result = disposeProductStock(input, productLots, productStockTransactions); setProductLots(result.lots); setProductStockTransactions(result.transactions) }
   const correctInputConsumption = (input: ProductConsumptionCorrectionInput) => { const result = correctProductConsumption(input, demoLots, productLots, productMasters, productStockTransactions, productionEvents, traceabilityEntities, traceabilityLinks); if ('wineLots' in result) setDemoLots(result.wineLots); setProductLots(result.productLots); setProductStockTransactions(result.transactions); setProductionEvents(result.events); setTraceabilityEntities(result.entities); setTraceabilityLinks(result.links) }
 
-  const campaignOperator = 'Elena Martín'
+  const campaignOperator = getCurrentOperatorName()
   const showCampaignResult = (message: string) => {
     setToast(message)
     window.setTimeout(() => setToast(null), 3600)
@@ -581,7 +617,7 @@ function App() {
     } catch (error) { handleCampaignError(error) }
   }
 
-  const growerOperator = 'Elena Martín'
+  const growerOperator = getCurrentOperatorName()
   const handleGrowerError = (error: unknown) => {
     showCampaignResult(error instanceof GrowerValidationError ? error.message : (locale.startsWith('es') ? 'No se pudo guardar el viticultor' : 'Grower action failed'))
   }
@@ -604,7 +640,7 @@ function App() {
     } catch (error) { handleGrowerError(error) }
   }
 
-  const masterOperator = 'Elena Martín'
+  const masterOperator = getCurrentOperatorName()
   const handleMasterError = (error: unknown) => showCampaignResult(error instanceof VineyardValidationError || error instanceof ParcelValidationError ? error.message : (locale.startsWith('es') ? 'No se pudo guardar el registro' : 'Master-data action failed'))
   const addVineyard = (input: NewVineyardInput) => { try { setVineyards((current) => createVineyard(current, growers, input)); showCampaignResult(locale.startsWith('es') ? 'Viñedo creado' : 'Vineyard created') } catch (error) { handleMasterError(error) } }
   const editVineyard = (id: string, input: VineyardUpdateInput) => { try { setVineyards((current) => updateVineyard(current, growers, id, input)); showCampaignResult(locale.startsWith('es') ? 'Viñedo actualizado' : 'Vineyard updated') } catch (error) { handleMasterError(error) } }
@@ -673,6 +709,9 @@ function App() {
   const readingLot = activeLots.find((lot) => lot.id === readingLotId)
   const operationalRecordCount = demoLots.length + tasks.length + demoTanks.length + productionEvents.length + movements.length + parcels.length + deliveries.length + samples.length + barrels.length + barrelOperations.length + blendTrials.length + packagingMaterials.length + bottlingOrders.length + traceabilityEntities.length + traceabilityLinks.length + recallSimulations.length + suppliers.length + productMasters.length + productLots.length + productStockTransactions.length
 
+  if (!authChecked) return <div className="app-loading"><span className="avatar">🍇</span></div>
+  if (!authUser) return <Login onAuthenticated={setAuthUser} />
+
   if (pathname === '/welcome') return <div className={cellarMode ? 'app cellar-theme' : 'app'}><Welcome /></div>
 
   let currentPage: ReactNode
@@ -719,6 +758,8 @@ function App() {
         onSwitchWinery={switchWinery}
         pwa={pwa}
         mobileViewport={mobileViewport}
+        operatorName={catalystUserDisplayName(authUser)}
+        onSignOut={signOut}
       >
         <Suspense fallback={<div className="module-loading"><Package size={24} /><span>{t('common.loading')}</span></div>}>{currentPage}</Suspense>
       </Shell>
@@ -774,15 +815,6 @@ function Welcome() {
   )
 }
 
-function Brand({ light = false }: { light?: boolean }) {
-  return (
-    <div className={`brand ${light ? 'brand-light' : ''}`}>
-      <span className="brand-glyph"><Grape size={22} strokeWidth={1.7} /></span>
-      <span>Añada</span>
-    </div>
-  )
-}
-
 function LiveClock({ timeZone }: { timeZone: string }) {
   const { locale } = useLanguage()
   const [now, setNow] = useState(() => new Date())
@@ -813,9 +845,11 @@ interface ShellProps {
   onSwitchWinery: (wineryId: string) => void
   pwa: PwaStatus
   mobileViewport: boolean
+  operatorName: string
+  onSignOut: () => void
 }
 
-function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, wineries, currentWineryId, onSwitchWinery, pwa, mobileViewport }: ShellProps) {
+function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, onNotifications, settings, wineries, currentWineryId, onSwitchWinery, pwa, mobileViewport, operatorName, onSignOut }: ShellProps) {
   const location = useHashLocation()
   const { t } = useLanguage()
   const [switcherOpen, setSwitcherOpen] = useState(false)
@@ -824,6 +858,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
   const currentWinery = wineries.find((winery) => winery.id === currentWineryId) ?? wineries[0]
   const wineryDisplayName = currentWinery?.name || settings.wineryName
   const wineryInitials = wineryDisplayName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
+  const operatorInitials = operatorName.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').toUpperCase()
   return (
     <div className="shell">
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
@@ -860,9 +895,11 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
           <LanguageSelector />
           <NavLink to="/admin/campaigns" className="nav-item"><Settings2 size={19} /><span>{t('nav.admin')}</span></NavLink>
           <div className="user-mini">
-            <span className="avatar">EM</span>
-            <span><strong>Elena Martín</strong><small>{t('shell.role')}</small></span>
-            <MoreHorizontal size={18} />
+            <span className="avatar">{operatorInitials || 'AN'}</span>
+            <span><strong>{operatorName}</strong><small>{t('shell.role')}</small></span>
+            <button type="button" className="icon-button" onClick={onSignOut} aria-label={t('shell.signOut')} title={t('shell.signOut')}>
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
       </aside>
@@ -885,7 +922,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
               <span>{cellarMode ? t('shell.light') : t('shell.cellar')}</span>
             </button>
             <button className="icon-button notification-button" onClick={onNotifications} aria-label={t('shell.notifications')}><Bell size={19} /><i /></button>
-            <span className="avatar top-avatar">EM</span>
+            <span className="avatar top-avatar">{operatorInitials || 'AN'}</span>
           </div>
         </header>
         {!pwa.online && <div className="offline-notice" role="status"><WifiOff /><span><strong>{t('pwa.offlineTitle')}</strong><small>{t('pwa.offlineText')}</small></span></div>}
