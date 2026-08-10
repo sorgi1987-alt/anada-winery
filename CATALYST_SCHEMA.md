@@ -128,3 +128,7 @@ Provisioned 7–10 August 2026 in the Development environment. Structure only: e
 FK columns (`WineryID`, `GrowerID`, `LocationID`, etc.) are plain string columns holding the referenced entity's stable app `id`, matching the pattern the Phase 3A tables already use (`Anada_Tanks.LotID`, `Anada_WineLots.VesselID`). Catalyst Datastore does not enforce referential integrity; validation is deferred to the Catalyst function layer whenever Phase 9.5 introduces real writes. `Latitude`/`Longitude` on `Anada_VineyardParcels` were requested at 6 decimal digits but Catalyst silently capped both at 4 — sufficient precision for Rioja-scale coordinates, noted here in case it matters later.
 
 Still not provisioned: `VineyardSampleRecord` (historical vineyard samples) and the four planned supply-register tables listed above. Neither was in Phase 9.3's scope.
+
+## Phase 9.4 — Catalyst authentication (in progress)
+
+Embedded authentication was enabled on the project 10 August 2026 (`embedded_auth: true`, `public_signup: false` — new accounts are provisioned via `Membership`, not open signup). The `anada_data_api` health contract was reconciled to schema v2 (17 tables) the same day and redeployed; see the table above. The login UI, session wiring, replacement of the hardcoded demo-operator attribution, and role gating against `Membership.role` are not yet built — API Gateway remains disabled and no route requires authentication yet, so this does not change what the deployed frontend can do.
