@@ -4,6 +4,7 @@ const express = require('express')
 const catalyst = require('zcatalyst-sdk-node')
 const { TABLES, healthPayload } = require('./contract')
 const { resolveUser } = require('./identity')
+const { getContextForUser } = require('./wineryContext')
 
 const app = express()
 
@@ -45,10 +46,24 @@ app.get('/whoami', async (request, response) => {
   }
   response.status(200).json({
     status: 'authenticated',
-    user: { email_id: user.emailId, first_name: user.firstName, last_name: user.lastName },
+    user: { user_id: user.userId, zuid: user.zuid, email_id: user.emailId, first_name: user.firstName, last_name: user.lastName },
   })
 })
 
+app.get('/me/context', async (request, response) => {
+  const identity = await resolveUser(request)
+  if (!identity) {
+    response.status(401).json({ status: 'unauthenticated', message: 'No authenticated Catalyst session was found.' })
+    return
+  }
+  try {
+    const catalystApp = catalyst.initialize(request, { scope: 'admin' })
+    const context = await getContextForUser(catalystApp, identity)
+    response.status(200).json(context)
+  } catch {
+    response.status(503).json({ status: 'context_unavailable', message: 'Winery context could not be resolved.' })
+  }
+})
 
 const weatherCache = new Map()
 app.get('/weather', async (request, response) => {
@@ -86,7 +101,7 @@ app.get('/weather', async (request, response) => {
 app.all('*', (_request, response) => {
   response.status(404).json({
     status: 'not_found',
-    message: 'Phase 3B.1 exposes schema health only. Operational reads and every mutation remain disabled.',
+    message: 'Unknown route. Operational reads are limited to /me/context, scoped to the caller\'s own winery membership; every mutation remains disabled.',
   })
 })
 

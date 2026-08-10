@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
-    "test:backend": "node --test backend/anada_data_api/contract.test.js",
+    "test:backend": "node --test backend/anada_data_api/*.test.js",
     "test:pwa": "node --import tsx --test tests/pwa.test.ts",
     "test:process": "node --import tsx --test tests/*.test.ts",
     "preview": "vite preview"
