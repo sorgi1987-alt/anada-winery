@@ -161,11 +161,10 @@ Status: implemented in version 0.38.0, verified with a real end-to-end login, 10
 - **The app moved from Slate to Catalyst's own Web Client Hosting** (`https://anada-winery-20117369913.development.catalystserverless.eu/app/`) — the actual fix that made login work reliably. Auth cookies are scoped to the Catalyst project's own domain; Slate is a separate domain and cannot see them. See `CATALYST_SCHEMA.md` for the full diagnosis, confirmed against a sibling project in the same org with the working architecture.
 - Identity resolution has a cookie-forwarding fallback (`backend/anada_data_api/identity.js`) for a credential-resolution bug in the Web SDK observed on this Zoho org — the browser now trusts the backend's `GET /whoami` as the authority, not the SDK's own session check.
 - Replaces hardcoded operator attribution everywhere with the authenticated user's identity — done for every real mutation call site (`domain.ts` and all UI files); seed/historical/explicitly-decorative demo content deliberately left alone.
+- The Welcome/Dashboard greeting and the Administration status tile also now show the real authenticated name (fixed a React reactivity race where a module-level getter was read one tick before the effect that updates it); remaining gendered Spanish copy ("Enóloga", "Bienvenida") switched to gender-neutral phrasing since the app has no gender data for the user.
 - Role-based access aligned with `Membership` records — not yet done.
 
-Completion gate: a user logs in, their identity is attributed on every mutation, and an unauthenticated request is rejected. Met — verified live end-to-end.
-
-Completion gate: a user logs in, their identity is attributed on every mutation, and an unauthenticated request is rejected. The unauthenticated-rejection half is proven live (`GET /whoami` on `anada_data_api` returns 401 with no session). The login-and-attribution half is implemented and code-verified but awaits a human completing the real sign-in to confirm end-to-end.
+Completion gate: a user logs in, their identity is attributed on every mutation, and an unauthenticated request is rejected. Met — verified live end-to-end, including `GET /whoami` on `anada_data_api` returning 401 with no session.
 
 ### Phase 9.5 — Remote reads, then remote writes
 
