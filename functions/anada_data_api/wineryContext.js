@@ -92,6 +92,15 @@ const TABLE_FIELDS = {
     ['CampaignID', 'campaignId', 'string'], ['Volume', 'volume', 'number'], ['Unit', 'unit', 'string'], ['StartedAt', 'startedAt', 'datetime'],
     ['EndedAt', 'endedAt', 'datetime'], ['Status', 'status', 'string'],
   ],
+  // Phase 9.5 stage 3 (Batch 1) - core cellar operations. WineLot/Tank/
+  // CellarTask/ProductionEvent/WineMovement carry no createdAt/updatedAt/
+  // createdBy/updatedBy fields, unlike the Phase 9.3 master-data types -
+  // no audit quartet columns here, deliberately.
+  Anada_Tanks: [
+    ['TankID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['CapacityLitres', 'capacity', 'number'], ['VolumeLitres', 'volume', 'number'],
+    ['LotID', 'lot', 'string'], ['WineType', 'type', 'string'], ['Stage', 'stage', 'string'], ['TemperatureC', 'temperature', 'number'],
+    ['Attention', 'attention', 'string'], ['UsableCapacity', 'usableCapacity', 'number'],
+  ],
 }
 
 // Winery-scoped tables read after membership is known, keyed by the
@@ -105,6 +114,7 @@ const WINERY_SCOPED_TABLES = {
   locations: 'Anada_WineryLocations',
   vessels: 'Anada_Vessels',
   vesselAllocations: 'Anada_VesselAllocations',
+  tanks: 'Anada_Tanks',
 }
 
 function escapeZcqlString(value) {
@@ -263,12 +273,15 @@ async function provisionFirstWinery(catalystApp, identity, payload) {
 // vineyards, parcels, campaign-parcel plans). Wineries/Users/Memberships
 // have no live edit path in the app - see CATALYST_SCHEMA.md's Phase 9.5
 // stage 2 section - so they stay read-only mirrors for now.
+// Phase 9.5 stage 3 (Batch 1) adds core cellar-operations tables one at a
+// time - tanks first, see CATALYST_SCHEMA.md's Phase 9.5 stage 3 section.
 const SYNCABLE_TABLES = {
   campaigns: 'Anada_Campaigns',
   growers: 'Anada_Growers',
   vineyards: 'Anada_Vineyards',
   parcels: 'Anada_VineyardParcels',
   campaignParcels: 'Anada_CampaignParcelPlans',
+  tanks: 'Anada_Tanks',
 }
 
 const ID_COLUMNS = {
@@ -277,6 +290,7 @@ const ID_COLUMNS = {
   Anada_Vineyards: 'VineyardID',
   Anada_VineyardParcels: 'ParcelID',
   Anada_CampaignParcelPlans: 'PlanID',
+  Anada_Tanks: 'TankID',
 }
 
 class SyncError extends Error {

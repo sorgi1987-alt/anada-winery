@@ -178,6 +178,8 @@ Stage 1 and stage 2 status: implemented in version 0.38.0, verified live with re
 
 Completion gate: two authorized devices can work on the same winery without lost updates, unauthorized access or ambiguous authorship. Mostly met, verified with one real device plus simulated concurrent writes rather than two genuinely separate logged-in devices — see the note above.
 
+**Stage 3 (in progress)**: extends sync to the app's core cellar-operations collections (lots, tanks, tasks, production events, movements) one table at a time, verifying each live. `tanks` done and verified 10 August 2026 — see `CATALYST_SCHEMA.md`'s "Phase 9.5 stage 3" section, which also documents two bugs found while verifying it live: an `undefined`-vs-`null` equality gap in the sync-diff logic that had likely been causing a silent, continuous self-retrigger loop since stage 2 shipped (not tanks-specific — fixed retroactively for all synced collections), and two Phase 9.3 ID columns (`Anada_Vineyards.VineyardID`, `Anada_CampaignParcelPlans.PlanID`) that were too short for real generated ids, silently truncated during the original stage 1 bootstrap, and only surfaced as a write failure once stage 3's real sync traffic tried to write one of those rows again. Both fixed live. `tasks`/`productionEvents`/`movements`/`lots` not yet started.
+
 ## Phase 10 — Sensor pilot
 
 - Sensor-neutral telemetry model

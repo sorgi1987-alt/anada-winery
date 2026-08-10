@@ -240,6 +240,7 @@ function App() {
         locations: allLocations.filter((location) => location.wineryId === currentWineryId),
         vessels: allVessels.filter((vessel) => vessel.wineryId === currentWineryId),
         vesselAllocations: allVesselAllocations.filter((allocation) => allocation.wineryId === currentWineryId),
+        tanks: demoTanks,
       })
       if (!cancelled) setRemoteWineryContext(provisioned)
     })
@@ -250,10 +251,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser])
 
-  // Phase 9.5 stage 2: general remote writes for the 5 collections the app
-  // actually has live edit UI for (campaigns, growers, vineyards, parcels,
-  // campaign-parcel plans) - Wineries/Users/Memberships/Locations/Vessels/
-  // VesselAllocations have no live edit path today, see wineryContext.js.
+  // Phase 9.5 stage 2 general remote writes: campaigns, growers, vineyards,
+  // parcels, campaign-parcel plans. Stage 3 (Batch 1) adds core
+  // cellar-operations tables one at a time, starting with tanks -
+  // Wineries/Users/Memberships/Locations/Vessels/VesselAllocations still
+  // have no live edit path, see wineryContext.js.
   //
   // `remoteWineryContext` doubles as the sync baseline: whatever it last
   // held is "the last state this device and the server agreed on". Refs
@@ -264,6 +266,7 @@ function App() {
   const vineyardsRef = useRef(vineyards); vineyardsRef.current = vineyards
   const parcelsRef = useRef(parcels); parcelsRef.current = parcels
   const campaignParcelsRef = useRef(campaignParcels); campaignParcelsRef.current = campaignParcels
+  const tanksRef = useRef(demoTanks); tanksRef.current = demoTanks
   const remoteContextRef = useRef(remoteWineryContext); remoteContextRef.current = remoteWineryContext
 
   const syncTick = useCallback(async () => {
@@ -276,6 +279,7 @@ function App() {
       vineyards: dirtyRows('vineyards', vineyardsRef.current, baseline.vineyards),
       parcels: dirtyRows('parcels', parcelsRef.current, baseline.parcels),
       campaignParcels: dirtyRows('campaignParcels', campaignParcelsRef.current, baseline.campaignParcels),
+      tanks: dirtyRows('tanks', tanksRef.current, baseline.tanks),
     }
     if (Object.values(dirty).some((rows) => rows.length > 0)) {
       const payload: SyncPushPayload = {}
@@ -284,6 +288,7 @@ function App() {
       if (dirty.vineyards.length) payload.vineyards = dirty.vineyards
       if (dirty.parcels.length) payload.parcels = dirty.parcels
       if (dirty.campaignParcels.length) payload.campaignParcels = dirty.campaignParcels
+      if (dirty.tanks.length) payload.tanks = dirty.tanks
       const pushed = await pushWinerySync(payload)
       const conflictNames = pushed ? [
         ...(pushed.campaigns?.conflicts ?? []).map((row) => row.name),
@@ -291,6 +296,7 @@ function App() {
         ...(pushed.vineyards?.conflicts ?? []).map((row) => row.name),
         ...(pushed.parcels?.conflicts ?? []).map((row) => row.name),
         ...(pushed.campaignParcels?.conflicts ?? []).map((row) => row.id),
+        ...(pushed.tanks?.conflicts ?? []).map((row) => row.id),
       ] : []
       if (conflictNames.length > 0) {
         setToast(locale.startsWith('es')
@@ -313,6 +319,8 @@ function App() {
     if (mergedParcels !== parcelsRef.current) setParcels(mergedParcels)
     const mergedCampaignParcels = mergePulledRows('campaignParcels', campaignParcelsRef.current, baseline.campaignParcels, fresh.campaignParcels)
     if (mergedCampaignParcels !== campaignParcelsRef.current) setCampaignParcels(mergedCampaignParcels)
+    const mergedTanks = mergePulledRows('tanks', tanksRef.current, baseline.tanks, fresh.tanks)
+    if (mergedTanks !== tanksRef.current) setDemoTanks(mergedTanks)
 
     setRemoteWineryContext(fresh)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -332,7 +340,7 @@ function App() {
     if (!authUser) return
     const timeout = window.setTimeout(() => { void syncTick() }, 3000)
     return () => window.clearTimeout(timeout)
-  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels])
+  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks])
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
     void fetchWineryWeather(settings.latitude, settings.longitude, settings.timezone)

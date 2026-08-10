@@ -270,3 +270,27 @@ test('syncWineryData writes across multiple tables in a single call and skips em
   assert.equal(result.growers.written.length, 1)
   assert.equal(result.vineyards, undefined)
 })
+
+// Phase 9.5 stage 3 (Batch 1): tanks - first core cellar-operations table,
+// no audit quartet (Tank has no createdAt/updatedAt/createdBy/updatedBy).
+function tankFixture(overrides = {}) {
+  return {
+    id: 'tank-1', wineryId: 'winery-default', capacity: 5000, volume: 3200, usableCapacity: 4800,
+    lot: 'T-26-017', type: 'tinto', stage: 'Fermentación alcohólica', temperature: 24.5, attention: 'normal', ...overrides,
+  }
+}
+
+test('syncWineryData creates and updates a tank with no audit-quartet fields', async () => {
+  const tableRows = { ...membershipFixture(), Anada_Tanks: [] }
+  const app = fakeCatalystApp(tableRows)
+  const created = await syncWineryData(app, { emailId: 'sergio@example.com' }, { tanks: [tankFixture()] })
+  assert.equal(created.tanks.written.length, 1)
+  assert.equal(created.tanks.written[0].capacity, 5000)
+  assert.equal(created.tanks.written[0].usableCapacity, 4800)
+  const currentRev = created.tanks.written[0]._rev
+  const updated = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    tanks: [tankFixture({ temperature: 18.2, _rev: currentRev })],
+  })
+  assert.equal(updated.tanks.conflicts.length, 0)
+  assert.equal(updated.tanks.written[0].temperature, 18.2)
+})

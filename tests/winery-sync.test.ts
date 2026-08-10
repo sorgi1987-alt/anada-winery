@@ -101,3 +101,34 @@ test('mergePulledRows returns a new array reference when a remote change is actu
   const merged = mergePulledRows('campaigns', local, [asBaseline(original)], [asBaseline(fresh, 'rev-2')])
   assert.notEqual(merged, local)
 })
+
+// Phase 9.5 stage 3 (Batch 1): tanks - confirms the generic mechanism works
+// for a collection with no datetime-typed fields at all (Tank has none).
+test('dirtyRows/mergePulledRows work for the tanks collection key (no datetime fields)', () => {
+  interface TankRow { id: string; wineryId?: string; capacity: number; temperature: number }
+  const original: TankRow = { id: 'tank-1', wineryId: 'winery-default', capacity: 5000, temperature: 24.5 }
+  const baseline = { ...original, _rev: 'rev-1' }
+  const unchanged = dirtyRows('tanks', [original], [baseline])
+  assert.equal(unchanged.length, 0)
+  const edited = { ...original, temperature: 18.2 }
+  const dirty = dirtyRows('tanks', [edited], [baseline])
+  assert.equal(dirty.length, 1)
+  assert.equal(dirty[0]._rev, 'rev-1')
+})
+
+// Regression test for a real bug caught live: an optional field the browser
+// never set is `undefined` locally, but the exact same field read back from
+// Catalyst comes back `null` (Catalyst has no concept of `undefined`, only
+// an empty column). Without treating null/undefined as equal, a row with
+// any unset optional field would compare "changed" forever - not once, but
+// every single 3s/20s sync tick, permanently - a continuous self-retrigger
+// loop observed directly against the live deployed backend.
+test('dirtyRows/mergePulledRows treat an unset local field (undefined) as equal to its Catalyst round trip (null)', () => {
+  interface TankRow { id: string; wineryId?: string; capacity: number; usableCapacity?: number }
+  const row: TankRow = { id: 'tank-1', wineryId: 'winery-default', capacity: 5000, usableCapacity: undefined }
+  const local = [row]
+  const roundTripped: WithRev<TankRow> = { id: 'tank-1', wineryId: 'winery-default', capacity: 5000, usableCapacity: null as unknown as undefined, _rev: 'rev-1' }
+  assert.equal(dirtyRows('tanks', local, [roundTripped]).length, 0)
+  const merged = mergePulledRows('tanks', local, [roundTripped], [roundTripped])
+  assert.equal(merged, local, 'mergePulledRows must return the exact same array reference, not just equal content')
+})

@@ -1,6 +1,6 @@
 import { catalystFoundation } from './catalyst'
 import type { WithRev } from './wineryDiff'
-import type { Campaign, CampaignParcelPlan, Grower, Membership, User, Vessel, VesselAllocation, VineyardEstate, VineyardParcel, Winery, WineryLocation } from './types'
+import type { Campaign, CampaignParcelPlan, Grower, Membership, Tank, User, Vessel, VesselAllocation, VineyardEstate, VineyardParcel, Winery, WineryLocation } from './types'
 
 export type { WithRev } from './wineryDiff'
 export { dirtyRows, mergePulledRows } from './wineryDiff'
@@ -17,6 +17,7 @@ export interface WineryContextData {
   locations: WithRev<WineryLocation>[]
   vessels: WithRev<Vessel>[]
   vesselAllocations: WithRev<VesselAllocation>[]
+  tanks: WithRev<Tank>[]
 }
 
 export type WineryContextResult =
@@ -35,6 +36,7 @@ export interface WineryBootstrapPayload {
   locations: WineryLocation[]
   vessels: Vessel[]
   vesselAllocations: VesselAllocation[]
+  tanks: Tank[]
 }
 
 async function callWineryApi<T>(path: string, init: RequestInit | undefined, onUnauthenticated: T, onUnavailable: T): Promise<T> {
@@ -78,6 +80,7 @@ export interface SyncPushPayload {
   vineyards?: WithRev<VineyardEstate>[]
   parcels?: WithRev<VineyardParcel>[]
   campaignParcels?: WithRev<CampaignParcelPlan>[]
+  tanks?: WithRev<Tank>[]
 }
 
 export interface SyncPushResponse {
@@ -87,6 +90,7 @@ export interface SyncPushResponse {
   vineyards?: SyncTableResult<VineyardEstate>
   parcels?: SyncTableResult<VineyardParcel>
   campaignParcels?: SyncTableResult<CampaignParcelPlan>
+  tanks?: SyncTableResult<Tank>
 }
 
 // POST /me/sync: Phase 9.5 stage 2 - pushes locally-dirty rows for the 5

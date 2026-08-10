@@ -28,6 +28,8 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
   vineyards: ['createdAt', 'updatedAt'],
   parcels: ['createdAt', 'updatedAt'],
   campaignParcels: ['expectedHarvestDate', 'createdAt', 'updatedAt'],
+  // Phase 9.5 stage 3 (Batch 1): Tank has no datetime-typed field at all.
+  tanks: [],
 }
 
 function truncateToSeconds(value: unknown): unknown {
@@ -37,8 +39,19 @@ function truncateToSeconds(value: unknown): unknown {
   return date.toISOString().slice(0, 19)
 }
 
+const isAbsent = (v: unknown) => v === null || v === undefined
+
+// `null` and `undefined` both mean "not set" but are not `===` each other.
+// A field the browser never set is `undefined` locally; the exact same
+// field read back from Catalyst (which has no concept of `undefined`, only
+// an empty column) comes back as `null`. Without treating them as equal,
+// every row with any unset optional field would compare "changed" forever
+// on every single sync cycle - not just once, but every 3s/20s tick,
+// permanently, since the field can never actually become equal by either
+// definition. Caught live: a real, continuous ~3s self-retrigger loop.
 function fieldEqual(collection: string, key: string, a: unknown, b: unknown): boolean {
   if (DATETIME_FIELDS[collection]?.includes(key)) return truncateToSeconds(a) === truncateToSeconds(b)
+  if (isAbsent(a) && isAbsent(b)) return true
   return a === b
 }
 
