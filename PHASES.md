@@ -157,7 +157,7 @@ Completion gate: schema v2 tables are provisioned in the Development environment
 
 Status: in progress, 10 August 2026.
 
-- Real login backed by Zoho Catalyst authentication — done. Embedded auth enabled; `src/Login.tsx`/`src/auth.ts` integrate Catalyst's Web SDK v4; the app gates its entry point on `isUserAuthenticated()`. Verified live on the deployed Slate domain (the real sign-in iframe renders); not completable end-to-end by the agent, since Zoho's email confirmation step needs a human with inbox access — a real App User was provisioned (`sorgi1987@gmail.com`) for that.
+- Real login backed by Zoho Catalyst authentication — done, via **hosted** auth (plain top-level redirect), not embedded. Embedded auth's iframe renders correctly but its OAuth handshake hangs indefinitely on this project regardless of SDK version, browser or config — a platform-side issue, not fixable from application code. Hosted auth (`redirectToHostedSignIn()` in `src/auth.ts`) was verified working end-to-end with real credentials; a redirect stub (`client/index.html`, deployed via Catalyst's Web Client Hosting) was needed to bounce Catalyst's default post-login destination back to the Slate app. A real App User was provisioned (`sorgi1987@gmail.com`) and used for the live test.
 - Replaces hardcoded operator attribution everywhere with the authenticated user's identity — done for every real mutation call site (`domain.ts` and all UI files); seed/historical/explicitly-decorative demo content deliberately left alone.
 - Role-based access aligned with `Membership` records — not yet done.
 

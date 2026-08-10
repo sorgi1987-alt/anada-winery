@@ -1,3 +1,5 @@
+import { catalystFoundation } from './catalyst'
+
 export interface CatalystAuthenticatedUser {
   zuid: string
   userId: string
@@ -18,7 +20,6 @@ interface CatalystUserContent {
 
 interface CatalystSdk {
   auth: {
-    signIn: (elementId: string) => void
     isUserAuthenticated: () => Promise<{ content: unknown }>
     signOut: (redirectUrl: string) => void
   }
@@ -35,7 +36,12 @@ declare global {
 
 const SDK_SCRIPT_ID = 'catalyst-web-sdk'
 const INIT_SCRIPT_ID = 'catalyst-web-sdk-init'
-const SDK_SCRIPT_SRC = 'https://static.zohocdn.com/catalyst/sdk/js/4.0.0/catalystWebSDK.js'
+// Must match the version shown in the Catalyst console's own generated embed
+// snippet (Authentication > Authentication Type > Embedded > Login Form) -
+// an older/mismatched version here caused the SDK's own internal script to
+// throw ("Cannot set properties of null (setting 'placeholder')") instead of
+// rendering the sign-in form.
+const SDK_SCRIPT_SRC = 'https://static.zohocdn.com/catalyst/sdk/js/4.6.2/catalystWebSDK.js'
 const INIT_SCRIPT_SRC = '/__catalyst/sdk/init.js'
 const SDK_READY_TIMEOUT_MS = 15000
 const SDK_POLL_INTERVAL_MS = 150
@@ -73,9 +79,16 @@ export function loadCatalystAuthSdk(): Promise<void> {
   return sdkReadyPromise
 }
 
-export function renderCatalystSignIn(elementId: string): void {
-  if (!window.catalyst?.auth) throw new Error('Catalyst SDK is not loaded.')
-  window.catalyst.auth.signIn(elementId)
+// Embedded (iframe) sign-in's OAuth handshake (/oauthorize -> .../signin-redirect)
+// hangs indefinitely on this project, reproduced consistently across SDK
+// versions, browsers and profiles - a platform-side issue, not something
+// fixable from application code. A plain top-level redirect to Catalyst's
+// hosted sign-in page, verified working end-to-end with real credentials,
+// is used instead. Catalyst's own default post-login destination is
+// /app/ (its unused "Web Client Hosting" path); a redirect stub is deployed
+// there (see client/index.html) that bounces back to the real Slate app.
+export function redirectToHostedSignIn(): void {
+  window.location.href = `${catalystFoundation.projectDomain}/__catalyst/auth/login`
 }
 
 export async function isCatalystUserAuthenticated(): Promise<boolean> {

@@ -924,4 +924,3 @@ button.winery-mini { width: 100%; appearance: none; font: inherit; color: inheri
 .app-loading{min-height:100vh;display:grid;place-items:center;background:var(--surface)}.app-loading .avatar{width:56px;height:56px;display:grid;place-items:center;border-radius:16px;background:var(--wine-100);font-size:26px;animation:app-loading-pulse 1.4s ease-in-out infinite}
 @keyframes app-loading-pulse{0%,100%{opacity:.55}50%{opacity:1}}
 .app-crash{min-height:100vh;max-width:480px;margin:0 auto;padding:40px 24px;display:grid;gap:12px;align-content:center;justify-items:start;text-align:left;color:var(--text)}.app-crash strong{font-size:18px}.app-crash p{margin:0;color:var(--text-muted);font-size:13px;line-height:1.5}.app-crash pre{width:100%;max-height:160px;padding:10px 12px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface-soft);color:var(--critical);font-size:11px;white-space:pre-wrap}
-.login-frame{min-height:280px}

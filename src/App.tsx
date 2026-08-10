@@ -710,7 +710,7 @@ function App() {
   const operationalRecordCount = demoLots.length + tasks.length + demoTanks.length + productionEvents.length + movements.length + parcels.length + deliveries.length + samples.length + barrels.length + barrelOperations.length + blendTrials.length + packagingMaterials.length + bottlingOrders.length + traceabilityEntities.length + traceabilityLinks.length + recallSimulations.length + suppliers.length + productMasters.length + productLots.length + productStockTransactions.length
 
   if (!authChecked) return <div className="app-loading"><span className="avatar">🍇</span></div>
-  if (!authUser) return <Login onAuthenticated={setAuthUser} />
+  if (!authUser) return <Login />
 
   if (pathname === '/welcome') return <div className={cellarMode ? 'app cellar-theme' : 'app'}><Welcome /></div>
 
