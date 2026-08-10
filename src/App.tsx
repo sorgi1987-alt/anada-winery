@@ -11,7 +11,7 @@ import { CreateLotSheet, NewTaskSheet } from './CreateLotFlow'
 import { AgeingPage } from './Ageing'
 import { Brand } from './Brand'
 import { BlendingPage } from './Blending'
-import { catalystUserDisplayName, getCurrentCatalystUser, isCatalystUserAuthenticated, loadCatalystAuthSdk, signOutCatalystUser, type CatalystAuthenticatedUser } from './auth'
+import { catalystUserDisplayName, fetchAuthenticatedUser, loadCatalystAuthSdk, signOutCatalystUser, type CatalystAuthenticatedUser } from './auth'
 import { Login } from './Login'
 import { getCurrentOperatorName, resetCurrentOperatorName, setCurrentOperatorName } from './operator'
 import { images, lots as seedLots } from './data'
@@ -112,20 +112,15 @@ function App() {
   const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
+    // Fire-and-forget: only needed for signOutCatalystUser later, never gates
+    // the auth check itself (see fetchAuthenticatedUser's own comment for why).
+    loadCatalystAuthSdk().catch(() => {})
     let cancelled = false
-    loadCatalystAuthSdk()
-      .catch(() => {})
-      .then(() => isCatalystUserAuthenticated())
-      .then(async (authenticated) => {
-        if (!authenticated) {
-          if (!cancelled) setAuthChecked(true)
-          return
-        }
-        const user = await getCurrentCatalystUser()
-        if (cancelled) return
-        if (user) setAuthUser(user)
-        setAuthChecked(true)
-      })
+    fetchAuthenticatedUser().then((user) => {
+      if (cancelled) return
+      if (user) setAuthUser(user)
+      setAuthChecked(true)
+    })
     return () => { cancelled = true }
   }, [])
 

@@ -1,10 +1,4 @@
 {
-  "slate": [
-    {
-      "name": "anada-winery-web",
-      "source": "/Users/sergiocastanaresgarcia/Documents/anada-winery"
-    }
-  ],
   "functions": {
     "targets": [
       "anada_data_api"
@@ -13,6 +7,6 @@
     "source": "functions"
   },
   "client": {
-    "source": "client"
+    "source": "dist"
   }
 }

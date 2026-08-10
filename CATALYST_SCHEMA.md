@@ -27,22 +27,22 @@ Version 0.23 keeps these records as separate collections in the browser reposito
 | `Anada_ProductLots` | One physical supplier lot, receipt, expiry, location, release status and current quantity |
 | `Anada_ProductStockTransactions` | Append-only receipt, release, rejection, recall, adjustment, transfer, consumption and disposal events |
 
-These tables must not be exposed to the Slate client until winery membership, role checks, audit attribution and conflict handling are in place.
+These tables must not be exposed to the browser client until winery membership, role checks, audit attribution and conflict handling are in place.
 
 ## Safety boundary
 
-- Browser persistence remains authoritative during Phase 3B.1.
+- Browser persistence remains authoritative; Catalyst is not yet an operational backend for any collection.
 - No browser bundle contains Catalyst credentials.
 - No operational Data Store rows are publicly readable.
 - No server or browser mutation endpoint exists.
-- Authentication, winery membership and roles remain deferred by product decision.
+- Authentication exists as of Phase 9.4 (login, identity attribution, unauthenticated-rejection), but winery membership/role checks and operational reads/writes remain deferred by product decision (Phase 9.5).
 - Later migrations must be idempotent, versioned and auditable; destructive schema changes require a backup and an explicit checkpoint.
 
 ## Next integration gate
 
-The authorized CORS hostname is `anada-winery-web-ucfcgorv.onslate.eu` (configuration ID `11922000000096932`); CORS is enabled. Iframe access was enabled 10 August 2026 as part of Phase 9.4 — the embedded Catalyst login form renders as an iframe and was blocked ("refused to connect") until this was turned on; it was left disabled from the Phase 3B.1 checkpoint that predates any login UI. API Gateway remains disabled.
+`anada-winery-web-ucfcgorv.onslate.eu` (configuration ID `11922000000096932`) is authorized for CORS and iframe access — a leftover from the Slate-hosted era and the abandoned embedded-auth attempt (see Phase 9.4 below). The app no longer runs there; harmless to leave, not cleaned up. API Gateway remains disabled.
 
-Deploy the `anada_data_api` health route using the CLI-generated function configuration and verify the Slate-origin connection check. Authenticated membership is still required before exposing operational reads. Remote writes only follow after audit attribution and conflict policy are implemented.
+The `anada_data_api` health route is deployed and live at `https://anada-winery-20117369913.development.catalystserverless.eu/server/anada_data_api/health`, alongside an authenticated `/whoami` route (Phase 9.4). Authenticated winery membership is still required before exposing operational reads. Remote writes only follow after audit attribution and conflict policy are implemented (Phase 9.5).
 
 
 ## Weather proxy
@@ -129,22 +129,30 @@ FK columns (`WineryID`, `GrowerID`, `LocationID`, etc.) are plain string columns
 
 Still not provisioned: `VineyardSampleRecord` (historical vineyard samples) and the four planned supply-register tables listed above. Neither was in Phase 9.3's scope.
 
-## Phase 9.4 — Catalyst authentication (in progress)
+## Phase 9.4 — Catalyst authentication
 
-Authentication was enabled on the project 10 August 2026 — both `embedded` and `hosted` types are on (`public_signup: false`; new accounts are provisioned via `Add_User`, not open signup). The `anada_data_api` health contract was reconciled to schema v2 (17 tables) the same day and redeployed.
+Status: implemented and verified with a real, complete login cycle, 10 August 2026.
 
-**Embedded auth (iframe-based) was tried first and abandoned.** `catalyst.auth.signIn()` renders a real sign-in iframe correctly, but its OAuth handshake (`/oauthorize` → `/__catalyst/.../signin-redirect`) hangs indefinitely — reproduced consistently across SDK versions (confirmed the working SDK version is `4.6.2`, matching the Catalyst console's own generated snippet, not the `4.0.0` first used), browsers, profiles and both `service_url` configurations. This looks like a platform-side defect on this project, not an application bug — see git history on `src/auth.ts`/`src/Login.tsx` for the abandoned implementation.
+Authentication was enabled on the project — both `embedded` and `hosted` types are on (`public_signup: false`; new accounts are provisioned via `Add_User`, not open signup). The `anada_data_api` health contract was reconciled to schema v2 (17 tables) and redeployed as part of this phase.
 
-**Hosted auth (plain top-level redirect) is what's live**, verified end-to-end with real credentials:
+### The app moved off Slate onto Catalyst's own Web Client Hosting
 
-- `src/auth.ts`'s `redirectToHostedSignIn()` does a plain `window.location.href` to `${projectDomain}/__catalyst/auth/login` — no iframe, no embedded SDK rendering. `src/Login.tsx` is now just a branded screen with a "Continue to sign in" button.
-- Catalyst's default post-login destination when no redirect is configured is `/app/` — its own "Web Client Hosting" path, unrelated to Slate. Nothing was ever deployed there, so a successful login silently stranded the user on Catalyst's empty "nothing deployed here" page. Fixed by deploying a one-file redirect stub (`client/index.html`, `catalyst deploy --only client`) that bounces `window.location.replace()` back to `https://anada-winery-web-ucfcgorv.onslate.eu/`.
-- The app's entry point gates on authentication: `App.tsx` checks `catalyst.auth.isUserAuthenticated()` once on load; unauthenticated sessions see `Login`, not the operational app. No polling loop — the redirect flow is a full page reload, so a fresh mount naturally re-runs the check on return.
+This is the load-bearing architectural change of the phase, and the reason two earlier approaches (below) failed. Zoho's Catalyst session cookies are scoped to the **project's own domain** (`anada-winery-20117369913.development.catalystserverless.eu`). The app was originally deployed to **Slate** (`anada-winery-web-ucfcgorv.onslate.eu`), a separate domain — so neither the browser SDK's session check nor a cross-domain redirect could reliably see a valid session there. Confirmed by direct comparison with a sibling project in the same Zoho org (org `20117369913`) that serves its frontend from Catalyst's own Web Client Hosting and has no such problem.
+
+Fixed by deploying the real app to **Web Client Hosting** instead, live at `https://anada-winery-20117369913.development.catalystserverless.eu/app/` — the same domain as the backend function and Zoho's session cookies. `catalyst.json`'s `client.source` points at `dist`; `vite.config.ts`'s existing `base: './'` and the manifest/service-worker's already-relative paths meant no path configuration was needed for the subpath. See `CATALYST_DEPLOYMENT.md` for the full procedure. **Slate is decommissioned** — the app there still exists in the console but is no longer deployed to.
+
+### Two approaches were tried and abandoned before this
+
+1. **Embedded auth (iframe-based)**, tried first. `catalyst.auth.signIn()` renders a real sign-in iframe correctly, but its OAuth handshake (`/oauthorize` → `/__catalyst/.../signin-redirect`) hung indefinitely — reproduced across SDK versions (the correct version is `4.6.2`, matching the Catalyst console's own generated snippet, not the `4.0.0` first used), browsers, profiles and `service_url` configurations.
+2. **Hosted auth with a client-side redirect stub**, tried second, after switching away from embedded. A plain top-level redirect to Catalyst's hosted sign-in page completed real logins, but landed on Catalyst's default `/app/` destination — which at the time hosted only a one-file JS redirect stub bouncing back to Slate. That client-side `window.location.replace()` cannot carry a cookie scoped to a different domain, so the app never saw the session and looped back to the login screen. This is what "moving the app itself to `/app/`" resolved: `/app/` now *is* the real app, on the domain the cookie is actually scoped to, so no bridging is needed at all.
+
+### What's live now
+
+- `src/auth.ts`'s `redirectToHostedSignIn()` does a plain `window.location.href` to `${projectDomain}/__catalyst/auth/login` — no iframe. `src/Login.tsx` is a branded screen with a "Continue to sign in" button.
+- **The backend is the authority on identity, not the browser SDK.** `catalyst.auth.isUserAuthenticated()`/`getCurrentProjectUser()` have been observed to report a session as invalid even when it is fully valid — documented in a sibling project's live Zoho support case for this same org. `src/auth.ts`'s `fetchAuthenticatedUser()` instead calls `anada_data_api`'s `GET /whoami`, which resolves identity server-side (`backend/anada_data_api/identity.js`) by trying the documented SDK call first, then falling back to forwarding the caller's session cookie directly to Catalyst's own `/project-user/current` endpoint — proven to work where the SDK call does not. `App.tsx` checks this once on load; no polling loop, since a full page reload naturally re-runs the check on return from the redirect.
 - A `src/operator.ts` module holds the current authenticated operator's display name; on successful login this replaces the single hardcoded `'Elena Martín'` literal at every real attribution call site across `domain.ts`, `App.tsx`, `Administration.tsx`, and the red/white/rosé process, movements, laboratory, supplies and product-use screens. Seed/historical demo data (`data.ts`) and explicitly-decorative demo content (the Administration "not user management" team roster, `App.tsx`'s fallback activity feed shown only when a lot has no real history) were deliberately left untouched.
-- A new authenticated `GET /whoami` route on `anada_data_api`, deployed and verified live: an unauthenticated request returns `401 {"status":"unauthenticated",...}`. This is the completion gate's "an unauthenticated request is rejected" proof, kept separate from the still-unauthenticated `/health` route.
-- A top-level `ErrorBoundary` (`src/main.tsx`) was added as a safety net so any future render-time crash shows a visible error instead of a silent blank screen — the failure mode that made the embedded-auth defect so hard to diagnose in the first place.
-- Provisioned the first real Catalyst App User (`sorgi1987@gmail.com`, App Administrator role) via `Add_User`, confirmed and active, and used for a real, live, end-to-end login test that worked completely (direct hosted-URL navigation with real credentials).
-
-**Known caveat, not a code issue:** `anada-winery-web-ucfcgorv.onslate.eu`'s `index.html` is served with `cache-control: public, max-age=31536000` (one year). Direct `curl` checks from the deploying machine always return the freshly deployed bundle, but some client network paths intermittently receive a stale CDN edge copy on fresh navigations — observed repeatedly during this phase's verification. If the app appears to be running old code after a deploy, hard-refresh or try a different network before assuming the deploy failed.
+- `GET /whoami` on `anada_data_api`: an unauthenticated request returns `401 {"status":"unauthenticated",...}` — the completion gate's "an unauthenticated request is rejected" proof, kept separate from the still-unauthenticated `/health` route.
+- A top-level `ErrorBoundary` (`src/main.tsx`) so any future render-time crash shows a visible error instead of a silent blank screen — the failure mode that made this phase's real bugs so hard to diagnose from a blank screen alone.
+- The first real Catalyst App User (`sorgi1987@gmail.com`, App Administrator role), provisioned via `Add_User`, confirmed and active, used for the real, live, end-to-end login test: sign in → real dashboard showing the authenticated user's name in the sidebar and topbar (not the demo placeholder) → sign out → back to the login screen, cleanly, with no loop.
 
 Not yet done: role gating against `Membership.role` (Catalyst's two built-in roles don't map to Añada's five `Membership` roles, so this needs app-side logic, not a Catalyst role check) and mapping the authenticated Catalyst identity to a real `User`/`Membership` record rather than just a display name. API Gateway remains disabled; no operational Data Store route exists.

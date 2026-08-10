@@ -3,6 +3,7 @@
 const express = require('express')
 const catalyst = require('zcatalyst-sdk-node')
 const { TABLES, healthPayload } = require('./contract')
+const { resolveUser } = require('./identity')
 
 const app = express()
 
@@ -37,20 +38,15 @@ app.get('/health', async (request, response) => {
 })
 
 app.get('/whoami', async (request, response) => {
-  try {
-    const catalystApp = catalyst.initialize(request, { scope: 'user' })
-    const currentUser = await catalystApp.userManagement().getCurrentUser()
-    if (!currentUser || !currentUser.email_id) {
-      response.status(401).json({ status: 'unauthenticated', message: 'No authenticated Catalyst session was found.' })
-      return
-    }
-    response.status(200).json({
-      status: 'authenticated',
-      user: { email_id: currentUser.email_id, first_name: currentUser.first_name, last_name: currentUser.last_name },
-    })
-  } catch {
+  const user = await resolveUser(request)
+  if (!user) {
     response.status(401).json({ status: 'unauthenticated', message: 'No authenticated Catalyst session was found.' })
+    return
   }
+  response.status(200).json({
+    status: 'authenticated',
+    user: { email_id: user.emailId, first_name: user.firstName, last_name: user.lastName },
+  })
 })
 
 

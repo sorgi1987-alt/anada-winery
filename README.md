@@ -48,7 +48,7 @@ npm install
 npm run dev
 ```
 
-The entry route is `/#/welcome`. Hash routing is intentional for Catalyst Slate hosting.
+The entry route is `/#/welcome`. Hash routing is intentional for static hosting on Catalyst Web Client Hosting, where the app is served (see `CATALYST_DEPLOYMENT.md`) — it avoids needing server-side rewrite rules for client-side routes.
 
 ## Validation
 

@@ -155,11 +155,15 @@ Completion gate: schema v2 tables are provisioned in the Development environment
 
 ### Phase 9.4 — Catalyst authentication
 
-Status: in progress, 10 August 2026.
+Status: implemented in version 0.38.0, verified with a real end-to-end login, 10 August 2026.
 
-- Real login backed by Zoho Catalyst authentication — done, via **hosted** auth (plain top-level redirect), not embedded. Embedded auth's iframe renders correctly but its OAuth handshake hangs indefinitely on this project regardless of SDK version, browser or config — a platform-side issue, not fixable from application code. Hosted auth (`redirectToHostedSignIn()` in `src/auth.ts`) was verified working end-to-end with real credentials; a redirect stub (`client/index.html`, deployed via Catalyst's Web Client Hosting) was needed to bounce Catalyst's default post-login destination back to the Slate app. A real App User was provisioned (`sorgi1987@gmail.com`) and used for the live test.
+- Real login backed by Zoho Catalyst authentication — done, via **hosted** auth (plain top-level redirect), not embedded. Embedded auth's iframe renders correctly but its OAuth handshake hangs indefinitely on this project regardless of SDK version, browser or config — a platform-side issue. Verified end-to-end with real credentials: sign in → real dashboard with the authenticated user's name shown → sign out → back to login, cleanly.
+- **The app moved from Slate to Catalyst's own Web Client Hosting** (`https://anada-winery-20117369913.development.catalystserverless.eu/app/`) — the actual fix that made login work reliably. Auth cookies are scoped to the Catalyst project's own domain; Slate is a separate domain and cannot see them. See `CATALYST_SCHEMA.md` for the full diagnosis, confirmed against a sibling project in the same org with the working architecture.
+- Identity resolution has a cookie-forwarding fallback (`backend/anada_data_api/identity.js`) for a credential-resolution bug in the Web SDK observed on this Zoho org — the browser now trusts the backend's `GET /whoami` as the authority, not the SDK's own session check.
 - Replaces hardcoded operator attribution everywhere with the authenticated user's identity — done for every real mutation call site (`domain.ts` and all UI files); seed/historical/explicitly-decorative demo content deliberately left alone.
 - Role-based access aligned with `Membership` records — not yet done.
+
+Completion gate: a user logs in, their identity is attributed on every mutation, and an unauthenticated request is rejected. Met — verified live end-to-end.
 
 Completion gate: a user logs in, their identity is attributed on every mutation, and an unauthenticated request is rejected. The unauthenticated-rejection half is proven live (`GET /whoami` on `anada_data_api` returns 401 with no session). The login-and-attribution half is implemented and code-verified but awaits a human completing the real sign-in to confirm end-to-end.
 

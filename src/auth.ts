@@ -6,25 +6,11 @@ export interface CatalystAuthenticatedUser {
   emailId: string
   firstName: string
   lastName: string
-  roleName?: string
-}
-
-interface CatalystUserContent {
-  zuid?: string
-  user_id?: string
-  email_id?: string
-  first_name?: string
-  last_name?: string
-  role_details?: { role_name?: string }
 }
 
 interface CatalystSdk {
   auth: {
-    isUserAuthenticated: () => Promise<{ content: unknown }>
     signOut: (redirectUrl: string) => void
-  }
-  userManagement: {
-    getCurrentProjectUser: () => Promise<{ content: CatalystUserContent }>
   }
 }
 
@@ -84,40 +70,41 @@ export function loadCatalystAuthSdk(): Promise<void> {
 // versions, browsers and profiles - a platform-side issue, not something
 // fixable from application code. A plain top-level redirect to Catalyst's
 // hosted sign-in page, verified working end-to-end with real credentials,
-// is used instead. Catalyst's own default post-login destination is
-// /app/ (its unused "Web Client Hosting" path); a redirect stub is deployed
-// there (see client/index.html) that bounces back to the real Slate app.
+// is used instead. The app itself is served from Catalyst's own Web Client
+// Hosting (/app/, the platform's default post-login destination) rather
+// than a separate domain, so no redirect stub is needed to bring the user
+// back - see CATALYST_SCHEMA.md for why the app moved off Slate for this.
 export function redirectToHostedSignIn(): void {
   window.location.href = `${catalystFoundation.projectDomain}/__catalyst/auth/login`
 }
 
-export async function isCatalystUserAuthenticated(): Promise<boolean> {
-  if (!window.catalyst?.auth) return false
-  try {
-    const response = await window.catalyst.auth.isUserAuthenticated()
-    return Boolean(response?.content)
-  } catch {
-    return false
-  }
+interface WhoAmIResponse {
+  status: 'authenticated' | 'unauthenticated'
+  user?: { user_id?: string; zuid?: string; email_id: string; first_name?: string; last_name?: string }
 }
 
-function toAuthenticatedUser(content: CatalystUserContent): CatalystAuthenticatedUser | null {
-  if (!content?.email_id) return null
-  return {
-    zuid: content.zuid ?? '',
-    userId: content.user_id ?? '',
-    emailId: content.email_id,
-    firstName: content.first_name ?? '',
-    lastName: content.last_name ?? '',
-    roleName: content.role_details?.role_name,
-  }
-}
-
-export async function getCurrentCatalystUser(): Promise<CatalystAuthenticatedUser | null> {
-  if (!window.catalyst?.userManagement) return null
+// The Web SDK's own isUserAuthenticated()/getCurrentProjectUser() are known
+// unreliable on this Zoho org - documented in a sibling project's live Zoho
+// support case, they can report a session as invalid even when it is fully
+// valid. The backend is the authority instead: it resolves identity with a
+// cookie-forwarding fallback (see backend/anada_data_api/identity.js) that is
+// proven to work where the SDK's own credential resolution does not.
+export async function fetchAuthenticatedUser(): Promise<CatalystAuthenticatedUser | null> {
   try {
-    const response = await window.catalyst.userManagement.getCurrentProjectUser()
-    return toAuthenticatedUser(response?.content)
+    const response = await fetch(`${catalystFoundation.readApiUrl}/whoami`, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return null
+    const payload = await response.json() as WhoAmIResponse
+    if (payload.status !== 'authenticated' || !payload.user?.email_id) return null
+    return {
+      zuid: payload.user.zuid ?? '',
+      userId: payload.user.user_id ?? '',
+      emailId: payload.user.email_id,
+      firstName: payload.user.first_name ?? '',
+      lastName: payload.user.last_name ?? '',
+    }
   } catch {
     return null
   }
