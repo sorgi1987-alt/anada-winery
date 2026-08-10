@@ -145,11 +145,13 @@ Completion gate: two wineries' demo data coexist in the browser state without ei
 
 ### Phase 9.3 — Catalyst Schema v2 provisioning
 
-- Design and provision `Wineries`, `Users` and `Memberships` tables
-- Provision the previously-planned growers/vineyards/parcels/vessels/campaigns tables already named in `CATALYST_SCHEMA.md`
-- No Slate client exposure until membership and role checks exist
+Status: implemented in the Development environment, 10 August 2026 (no app version bump — no code changed).
 
-Completion gate: schema v2 tables are provisioned in the Development environment and match the browser domain model field-for-field.
+- `Anada_Wineries`, `Anada_Users` and `Anada_Memberships` tables provisioned, matching `Winery`/`User`/`Membership` field-for-field. `Anada_Wineries` was rebuilt in place from its incompatible Phase 3A single-tenant column set rather than left orphaned under a new name.
+- `Anada_Campaigns`, `Anada_Growers`, `Anada_Vineyards`, `Anada_VineyardParcels`, `Anada_CampaignParcelPlans`, `Anada_WineryLocations`, `Anada_Vessels` and `Anada_VesselAllocations` provisioned, matching their browser domain types field-for-field (with legacy UI-projection fields on `VineyardParcel` intentionally excluded — see `CATALYST_SCHEMA.md`).
+- All 11 tables have 0 rows, no API Gateway route and no Slate client exposure, per the standing safety boundary.
+
+Completion gate: schema v2 tables are provisioned in the Development environment and match the browser domain model field-for-field. Met — see `CATALYST_SCHEMA.md` for the full table-by-table mapping.
 
 ### Phase 9.4 — Catalyst authentication
 

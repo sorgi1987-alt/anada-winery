@@ -64,3 +64,7 @@ This model exists but is not yet enforced: every browser session today still ope
 ## Winery scoping enforcement (Phase 9.2)
 
 Every operational collection is scoped by `wineryId` in both directions: reads are filtered to the selected winery, writes are stamped with it. The browser keeps the full unscoped dataset as the source of truth at all times — the scoped view is a derived projection, never a replacement — so switching wineries can never silently discard another winery's records. `Winery`, `User` and `Membership` themselves remain unscoped (they define the tenancy, not participate in it). `WinerySettings` is a deliberate exception: still one shared object across every winery, not yet split per tenant.
+
+## Catalyst Schema v2 provisioning (Phase 9.3)
+
+Every canonical master and relationship described above — `Winery`, `User`, `Membership`, `Campaign`, `Grower`, `WineryLocation`, `Vessel`, `VesselAllocation`, plus `VineyardEstate`, `VineyardParcel` and `CampaignParcelPlan` from the vineyard/parcel model — now has a matching, field-for-field Catalyst Datastore table in the Development environment. See `CATALYST_SCHEMA.md` for the table list. This is structure only: the browser remains the authoritative store, no table has rows, and nothing reads or writes through Catalyst yet. `VineyardSampleRecord` still has no Catalyst table.

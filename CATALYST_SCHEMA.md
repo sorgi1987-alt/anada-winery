@@ -95,10 +95,36 @@ The browser model now contains `vineyards` (permanent Grower → VineyardEstate 
 
 ## Browser schema v27 — Winery and User foundational entities (Phase 9.1)
 
-The browser model now contains `wineries`, `users` and `memberships` (a Winery ↔ User role junction), and every other top-level collection carries a `wineryId` foreign key. As of Phase 9.2, this scoping is enforced in the browser app itself: every page reads a winery-filtered projection and every mutation stamps the active winery, with a functional switcher and a second demo winery proving isolation. None of this touches Catalyst: the seven already-provisioned Phase 3A tables plus the "planned" tables listed above remain stale relative to this model — none of them have a `Wineries`, `Users` or `Memberships` equivalent, and none of the campaign/grower/vineyard/parcel/vessel tables from schema v22–v26 have been provisioned either. Provisioning a real Catalyst Schema v2 covering `wineries`/`users`/`memberships` plus every collection since v22 is Phase 9.3 — do not expose any of this to the Slate client, with or without a table, until winery membership and role checks exist (Phase 9.4).
+The browser model now contains `wineries`, `users` and `memberships` (a Winery ↔ User role junction), and every other top-level collection carries a `wineryId` foreign key. As of Phase 9.2, this scoping is enforced in the browser app itself: every page reads a winery-filtered projection and every mutation stamps the active winery, with a functional switcher and a second demo winery proving isolation.
 
 Authoritative relationships:
 
 - `Membership.wineryId -> Winery.id`
 - `Membership.userId -> User.id`
 - every operational collection's `wineryId -> Winery.id`
+
+## Catalyst Schema v2 — Phase 9.3 provisioning
+
+Provisioned 7–10 August 2026 in the Development environment. Structure only: every table below has 0 rows, no API Gateway route, and no Slate client exposure. This does not change what the deployed frontend reads or writes — browser persistence remains authoritative until Phase 9.5.
+
+`Anada_Wineries` was **rebuilt in place** rather than left alongside a new table, since it already existed from Phase 3A as a single-tenant config row (`RegistryCode`, `CampaignYear`, `SchemaVersion` — none present in the multi-tenant `Winery` domain type) and held 0 rows. `RegistryCode`/`CampaignYear`/`SchemaVersion` were dropped and `DisplayName` was renamed to `Name`; everything else was added.
+
+| Table | ID | Application columns |
+| --- | --- | --- |
+| `Anada_Wineries` | `11922000000093921` | `WineryID`, `Code`, `Name`, `LegalName`, `Municipality`, `Province`, `Designation`, `Timezone`, `Status`, `Notes`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` |
+| `Anada_Users` | `11922000000124065` | `UserID`, `Name`, `Email`, `Status`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` |
+| `Anada_Memberships` | `11922000000127104` | `MembershipID`, `WineryID`, `UserID`, `Role`, `Status`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` |
+| `Anada_Campaigns` | `11922000000126495` | `CampaignID`, `WineryID`, `Code`, `Name`, `Vintage`, `Status`, `StartsAt`, `ExpectedHarvestStart`, `ExpectedEndAt`, `ClosedAt`, `IsDefault`, `Notes`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`, `ReopenedAt`, `ReopenedBy` |
+| `Anada_Growers` | `11922000000124478` | `GrowerID`, `WineryID`, `Code`, `Name`, `LegalName`, `TradeName`, `GrowerType`, `TaxID`, `ContactName`, `Email`, `Phone`, `Address`, `Municipality`, `Province`, `Country`, `Status`, `Notes`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` |
+| `Anada_Vineyards` | `11922000000124837` | `VineyardID`, `WineryID`, `Code`, `Name`, `GrowerID`, `Municipality`, `Province`, `Country`, `LocationID`, `Status`, `Notes`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` |
+| `Anada_VineyardParcels` | `11922000000127505` | `ParcelID`, `WineryID`, `Code`, `Name`, `GrowerID`, `LocationID`, `CampaignID`, `EstateID`, `Varieties`, `Hectares`, `Status`, `Clone`, `Rootstock`, `PlantingYear`, `TrainingSystem`, `Irrigation`, `AltitudeM`, `Orientation`, `Organic`, `Latitude`, `Longitude`, `Notes`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` |
+| `Anada_CampaignParcelPlans` | `11922000000126860` | `PlanID`, `WineryID`, `CampaignID`, `ParcelID`, `ExpectedKg`, `ExpectedHarvestDate`, `HarvestWindow`, `Status`, `Notes`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` |
+| `Anada_WineryLocations` | `11922000000129220` | `LocationID`, `WineryID`, `Code`, `Name`, `Type`, `ParentLocationID`, `Active` |
+| `Anada_Vessels` | `11922000000128244` | `VesselID`, `WineryID`, `Code`, `Name`, `Type`, `Material`, `NominalCapacity`, `UsableCapacity`, `Unit`, `LocationID`, `Status`, `CoolingJacket`, `Heating`, `VariableLid`, `PressureRated`, `Active` |
+| `Anada_VesselAllocations` | `11922000000129581` | `AllocationID`, `WineryID`, `VesselID`, `WineLotID`, `CampaignID`, `Volume`, `Unit`, `StartedAt`, `EndedAt`, `Status` |
+
+`Anada_VineyardParcels` intentionally omits the browser model's legacy denormalized fields (`grower` name string, `municipality`, `zone`, `image`, `estimatedKg`, `harvestWindow`, `readiness`, `sample`) — these are temporary UI projections per the v22 note above, not source-of-truth. `estimatedKg`/`harvestWindow`/`readiness` map to `Anada_CampaignParcelPlans` instead; `sample` maps to `VineyardSampleRecord`, which has no table yet (out of scope for this phase).
+
+FK columns (`WineryID`, `GrowerID`, `LocationID`, etc.) are plain string columns holding the referenced entity's stable app `id`, matching the pattern the Phase 3A tables already use (`Anada_Tanks.LotID`, `Anada_WineLots.VesselID`). Catalyst Datastore does not enforce referential integrity; validation is deferred to the Catalyst function layer whenever Phase 9.5 introduces real writes. `Latitude`/`Longitude` on `Anada_VineyardParcels` were requested at 6 decimal digits but Catalyst silently capped both at 4 — sufficient precision for Rioja-scale coordinates, noted here in case it matters later.
+
+Still not provisioned: `VineyardSampleRecord` (historical vineyard samples) and the four planned supply-register tables listed above. Neither was in Phase 9.3's scope.
