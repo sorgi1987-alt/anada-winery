@@ -16,7 +16,7 @@ export interface CatalystConnectionResult {
   httpStatus?: number
 }
 
-export const CATALYST_SCHEMA_VERSION = 1
+export const CATALYST_SCHEMA_VERSION = 2
 
 export const CATALYST_TABLES: readonly CatalystTableContract[] = [
   { name: 'Anada_Wineries', id: '11922000000093921', record: 'winery' },
@@ -26,6 +26,16 @@ export const CATALYST_TABLES: readonly CatalystTableContract[] = [
   { name: 'Anada_Readings', id: '11922000000097280', record: 'reading' },
   { name: 'Anada_Activities', id: '11922000000096537', record: 'activity' },
   { name: 'Anada_SyncState', id: '11922000000098219', record: 'sync state' },
+  { name: 'Anada_Users', id: '11922000000124065', record: 'user' },
+  { name: 'Anada_Memberships', id: '11922000000127104', record: 'membership' },
+  { name: 'Anada_Campaigns', id: '11922000000126495', record: 'campaign' },
+  { name: 'Anada_Growers', id: '11922000000124478', record: 'grower' },
+  { name: 'Anada_Vineyards', id: '11922000000124837', record: 'vineyard estate' },
+  { name: 'Anada_VineyardParcels', id: '11922000000127505', record: 'vineyard parcel' },
+  { name: 'Anada_CampaignParcelPlans', id: '11922000000126860', record: 'campaign parcel plan' },
+  { name: 'Anada_WineryLocations', id: '11922000000129220', record: 'winery location' },
+  { name: 'Anada_Vessels', id: '11922000000128244', record: 'vessel' },
+  { name: 'Anada_VesselAllocations', id: '11922000000129581', record: 'vessel allocation' },
 ] as const
 
 const projectDomain = (import.meta.env.VITE_CATALYST_PROJECT_DOMAIN ?? 'https://anada-winery-20117369913.development.catalystserverless.eu').trim().replace(/\/$/, '')

@@ -4,9 +4,9 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const { SCHEMA_VERSION, TABLES, healthPayload } = require('./contract')
 
-test('publishes the complete Phase 3A schema contract', () => {
+test('publishes the complete schema v2 contract', () => {
   assert.equal(SCHEMA_VERSION, 2)
-  assert.equal(TABLES.length, 7)
+  assert.equal(TABLES.length, 17)
   assert.equal(new Set(TABLES.map((table) => table.name)).size, TABLES.length)
 })
 
@@ -22,6 +22,6 @@ test('health reports ready only when all tables are available', () => {
   assert.equal(payload.status, 'ready')
   assert.equal(payload.mode, 'schema-health-only')
   assert.equal(payload.schemaVersion, 2)
-  assert.equal(payload.tableCount, 7)
+  assert.equal(payload.tableCount, 17)
   assert.equal(payload.remoteWritesEnabled, false)
 })
