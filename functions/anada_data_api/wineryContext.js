@@ -111,16 +111,22 @@ function escapeZcqlString(value) {
   return String(value).replace(/'/g, "''")
 }
 
+// Every row carries `_rev` (Catalyst's own MODIFIEDTIME, as a string) so a
+// client can detect, at push time, whether the row changed remotely since
+// it last read it - the optimistic-concurrency token for Phase 9.5 stage 2
+// sync. No new column needed; Catalyst already maintains this on every
+// table automatically.
 function mapRow(tableName, raw) {
   const fields = TABLE_FIELDS[tableName]
   const out = {}
   for (const [column, key, wireType] of fields) out[key] = coerce[wireType](raw[column])
+  out._rev = raw.MODIFIEDTIME !== undefined && raw.MODIFIEDTIME !== null ? String(raw.MODIFIEDTIME) : null
   return out
 }
 
 async function queryRows(catalystApp, tableName, whereSql) {
   const fields = TABLE_FIELDS[tableName]
-  const columns = fields.map(([column]) => column).join(', ')
+  const columns = [...fields.map(([column]) => column), 'MODIFIEDTIME'].join(', ')
   const sql = `SELECT ${columns} FROM ${tableName}${whereSql ? ` WHERE ${whereSql}` : ''}`
   const result = await catalystApp.zcql().executeZCQLQuery(sql)
   return result.map((entry) => mapRow(tableName, entry[tableName]))
@@ -252,4 +258,94 @@ async function provisionFirstWinery(catalystApp, identity, payload) {
   return getContextForUser(catalystApp, identity)
 }
 
-module.exports = { getContextForUser, provisionFirstWinery, ProvisionError, queryRows, countRows, escapeZcqlString, toCatalystDatetime, fromCatalystDatetime, TABLE_FIELDS, WINERY_SCOPED_TABLES }
+// Phase 9.5 stage 2: general remote writes, scoped to the 5 tables the
+// browser app actually has live mutation UI for today (campaigns, growers,
+// vineyards, parcels, campaign-parcel plans). Wineries/Users/Memberships
+// have no live edit path in the app - see CATALYST_SCHEMA.md's Phase 9.5
+// stage 2 section - so they stay read-only mirrors for now.
+const SYNCABLE_TABLES = {
+  campaigns: 'Anada_Campaigns',
+  growers: 'Anada_Growers',
+  vineyards: 'Anada_Vineyards',
+  parcels: 'Anada_VineyardParcels',
+  campaignParcels: 'Anada_CampaignParcelPlans',
+}
+
+const ID_COLUMNS = {
+  Anada_Campaigns: 'CampaignID',
+  Anada_Growers: 'GrowerID',
+  Anada_Vineyards: 'VineyardID',
+  Anada_VineyardParcels: 'ParcelID',
+  Anada_CampaignParcelPlans: 'PlanID',
+}
+
+class SyncError extends Error {
+  constructor(code, message) {
+    super(message)
+    this.code = code
+  }
+}
+
+async function resolveMembershipWineryIds(catalystApp, identity) {
+  if (!identity.emailId) return []
+  const users = await queryRows(catalystApp, 'Anada_Users', `Email = '${escapeZcqlString(identity.emailId)}'`)
+  const user = users[0]
+  if (!user) return []
+  const memberships = await queryRows(catalystApp, 'Anada_Memberships', `UserID = '${escapeZcqlString(user.id)}' AND Status = 'active'`)
+  return [...new Set(memberships.map((membership) => membership.wineryId))]
+}
+
+async function findRowByAppId(catalystApp, tableName, id) {
+  const idColumn = ID_COLUMNS[tableName]
+  const result = await catalystApp.zcql().executeZCQLQuery(`SELECT ROWID, MODIFIEDTIME FROM ${tableName} WHERE ${idColumn} = '${escapeZcqlString(id)}'`)
+  const row = result[0] && result[0][tableName]
+  return row ? { rowId: row.ROWID, rev: String(row.MODIFIEDTIME) } : null
+}
+
+/**
+ * Writes one table's worth of rows for a sync push. Each row must belong to
+ * one of the caller's own winery IDs (checked here, not trusted from the
+ * client) and, if it already exists remotely, must carry the `_rev` the
+ * caller last read - otherwise it's a conflict, not a write: the row
+ * changed remotely since the caller's local copy was taken, so silently
+ * overwriting it would lose whoever made that other change. A missing
+ * `_rev` on a row that turns out to already exist remotely (two callers
+ * creating the "same" row independently) is treated the same way, not as
+ * an automatic win for either side.
+ */
+async function syncTable(catalystApp, tableName, wineryIds, rows) {
+  const datastore = catalystApp.datastore()
+  const written = []
+  const conflicts = []
+  for (const row of rows) {
+    if (!row || !row.id || !wineryIds.includes(row.wineryId)) continue
+    const existing = await findRowByAppId(catalystApp, tableName, row.id)
+    if (!existing) {
+      const inserted = await datastore.table(tableName).insertRow(toRow(tableName, row))
+      written.push(mapRow(tableName, inserted))
+      continue
+    }
+    if (!row._rev || row._rev !== existing.rev) {
+      const current = await queryRows(catalystApp, tableName, `${ID_COLUMNS[tableName]} = '${escapeZcqlString(row.id)}'`)
+      conflicts.push(current[0])
+      continue
+    }
+    const updated = await datastore.table(tableName).updateRow({ ROWID: existing.rowId, ...toRow(tableName, row) })
+    written.push(mapRow(tableName, updated))
+  }
+  return { written, conflicts }
+}
+
+async function syncWineryData(catalystApp, identity, payload) {
+  const wineryIds = await resolveMembershipWineryIds(catalystApp, identity)
+  if (wineryIds.length === 0) throw new SyncError('no_access', 'No active winery membership for this identity.')
+  const result = {}
+  for (const [field, tableName] of Object.entries(SYNCABLE_TABLES)) {
+    const rows = asArray(payload && payload[field])
+    if (rows.length === 0) continue
+    result[field] = await syncTable(catalystApp, tableName, wineryIds, rows)
+  }
+  return result
+}
+
+module.exports = { getContextForUser, provisionFirstWinery, syncWineryData, ProvisionError, SyncError, queryRows, countRows, escapeZcqlString, toCatalystDatetime, fromCatalystDatetime, TABLE_FIELDS, WINERY_SCOPED_TABLES, SYNCABLE_TABLES }

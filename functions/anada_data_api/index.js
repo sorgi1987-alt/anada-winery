@@ -4,7 +4,7 @@ const express = require('express')
 const catalyst = require('zcatalyst-sdk-node')
 const { TABLES, healthPayload } = require('./contract')
 const { resolveUser } = require('./identity')
-const { getContextForUser, provisionFirstWinery, ProvisionError } = require('./wineryContext')
+const { getContextForUser, provisionFirstWinery, syncWineryData, ProvisionError, SyncError } = require('./wineryContext')
 
 const app = express()
 
@@ -84,6 +84,25 @@ app.post('/me/provision', async (request, response) => {
   }
 })
 
+app.post('/me/sync', async (request, response) => {
+  const identity = await resolveUser(request)
+  if (!identity) {
+    response.status(401).json({ status: 'unauthenticated', message: 'No authenticated Catalyst session was found.' })
+    return
+  }
+  try {
+    const catalystApp = catalyst.initialize(request, { scope: 'admin' })
+    const result = await syncWineryData(catalystApp, identity, request.body)
+    response.status(200).json({ status: 'synced', ...result })
+  } catch (error) {
+    if (error instanceof SyncError) {
+      response.status(403).json({ status: error.code, message: error.message })
+      return
+    }
+    response.status(503).json({ status: 'sync_failed', message: 'Sync could not be completed.' })
+  }
+})
+
 const weatherCache = new Map()
 app.get('/weather', async (request, response) => {
   const latitude = Number(request.query.latitude)
@@ -120,7 +139,7 @@ app.get('/weather', async (request, response) => {
 app.all('*', (_request, response) => {
   response.status(404).json({
     status: 'not_found',
-    message: 'Unknown route. Operational reads are limited to GET /me/context; the only mutation is POST /me/provision, a one-time bootstrap for a caller with no existing winery membership.',
+    message: 'Unknown route. Operational reads are GET /me/context; writes are POST /me/provision (one-time bootstrap) and POST /me/sync (campaigns/growers/vineyards/parcels/campaign-parcel plans only, scoped to the caller\'s own winery membership).',
   })
 })
 

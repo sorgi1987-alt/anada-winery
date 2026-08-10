@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   Activity, ArrowLeft, ArrowRightLeft, ArrowUpRight, BarChart3, Beaker, Bell, Check,
   CheckCircle2, ChevronDown, ChevronRight, Circle, ClipboardCheck, Clock3, Droplets,
@@ -24,7 +24,8 @@ import { RedProcessControl } from './RedProcess'
 import { usePwaStatus, type PwaStatus } from './pwa'
 import { ProductUsePanel } from './ProductUse'
 import { browserWineryRepository } from './store'
-import { fetchWineryContext, provisionWinery, type WineryContextResult } from './wineryRemote'
+import { fetchWineryContext, provisionWinery, pushWinerySync, type SyncPushPayload, type WineryContextResult } from './wineryRemote'
+import { dirtyRows, mergePulledRows } from './wineryDiff'
 import { fetchWineryWeather, unavailableWeatherSnapshot, weatherSnapshotFromWeather } from './weather'
 import { activateCampaign, archiveCampaign, closeCampaign, createCampaign, reopenCampaign, setDefaultCampaign, updateCampaign, CampaignValidationError, type CampaignUpdateInput } from './campaigns'
 import { createGrower, setGrowerStatus, updateGrower, GrowerValidationError, type GrowerUpdateInput } from './growers'
@@ -212,9 +213,8 @@ function App() {
   // Phase 9.5 stage 1: on login, read the caller's own remote winery context
   // and, the very first time ever (no Anada_Users row, zero Anada_Wineries
   // rows anywhere), back-fill it once from whatever's currently in local
-  // storage. This only proves the read+bootstrap-write path works live -
-  // local storage stays the app's actual live source of truth; nothing here
-  // replaces it or keeps syncing afterwards. See wineryContext.js.
+  // storage. Local storage stays the app's actual live source of truth;
+  // stage 2 below is what keeps it and the remote copy in sync afterwards.
   const [remoteWineryContext, setRemoteWineryContext] = useState<WineryContextResult | null>(null)
   useEffect(() => {
     if (!authUser) return
@@ -249,6 +249,90 @@ function App() {
     // as the user edits data afterwards.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser])
+
+  // Phase 9.5 stage 2: general remote writes for the 5 collections the app
+  // actually has live edit UI for (campaigns, growers, vineyards, parcels,
+  // campaign-parcel plans) - Wineries/Users/Memberships/Locations/Vessels/
+  // VesselAllocations have no live edit path today, see wineryContext.js.
+  //
+  // `remoteWineryContext` doubles as the sync baseline: whatever it last
+  // held is "the last state this device and the server agreed on". Refs
+  // mirror the live values so `syncTick` always reads current data without
+  // needing to be a new function (and thus a new effect) on every edit.
+  const campaignsRef = useRef(campaigns); campaignsRef.current = campaigns
+  const growersRef = useRef(growers); growersRef.current = growers
+  const vineyardsRef = useRef(vineyards); vineyardsRef.current = vineyards
+  const parcelsRef = useRef(parcels); parcelsRef.current = parcels
+  const campaignParcelsRef = useRef(campaignParcels); campaignParcelsRef.current = campaignParcels
+  const remoteContextRef = useRef(remoteWineryContext); remoteContextRef.current = remoteWineryContext
+
+  const syncTick = useCallback(async () => {
+    const baseline = remoteContextRef.current
+    if (!baseline || baseline.status !== 'authenticated_with_membership') return
+
+    const dirty = {
+      campaigns: dirtyRows('campaigns', campaignsRef.current, baseline.campaigns),
+      growers: dirtyRows('growers', growersRef.current, baseline.growers),
+      vineyards: dirtyRows('vineyards', vineyardsRef.current, baseline.vineyards),
+      parcels: dirtyRows('parcels', parcelsRef.current, baseline.parcels),
+      campaignParcels: dirtyRows('campaignParcels', campaignParcelsRef.current, baseline.campaignParcels),
+    }
+    if (Object.values(dirty).some((rows) => rows.length > 0)) {
+      const payload: SyncPushPayload = {}
+      if (dirty.campaigns.length) payload.campaigns = dirty.campaigns
+      if (dirty.growers.length) payload.growers = dirty.growers
+      if (dirty.vineyards.length) payload.vineyards = dirty.vineyards
+      if (dirty.parcels.length) payload.parcels = dirty.parcels
+      if (dirty.campaignParcels.length) payload.campaignParcels = dirty.campaignParcels
+      const pushed = await pushWinerySync(payload)
+      const conflictNames = pushed ? [
+        ...(pushed.campaigns?.conflicts ?? []).map((row) => row.name),
+        ...(pushed.growers?.conflicts ?? []).map((row) => row.name),
+        ...(pushed.vineyards?.conflicts ?? []).map((row) => row.name),
+        ...(pushed.parcels?.conflicts ?? []).map((row) => row.name),
+        ...(pushed.campaignParcels?.conflicts ?? []).map((row) => row.id),
+      ] : []
+      if (conflictNames.length > 0) {
+        setToast(locale.startsWith('es')
+          ? `Actualizado en otro dispositivo; tu cambio local se sustituyó: ${conflictNames.join(', ')}`
+          : `Updated elsewhere; your local change was replaced: ${conflictNames.join(', ')}`)
+        window.setTimeout(() => setToast(null), 5200)
+      }
+    }
+
+    const fresh = await fetchWineryContext()
+    if (fresh.status !== 'authenticated_with_membership') return
+
+    const mergedCampaigns = mergePulledRows('campaigns', campaignsRef.current, baseline.campaigns, fresh.campaigns)
+    if (mergedCampaigns !== campaignsRef.current) setCampaigns(mergedCampaigns)
+    const mergedGrowers = mergePulledRows('growers', growersRef.current, baseline.growers, fresh.growers)
+    if (mergedGrowers !== growersRef.current) setGrowers(mergedGrowers)
+    const mergedVineyards = mergePulledRows('vineyards', vineyardsRef.current, baseline.vineyards, fresh.vineyards)
+    if (mergedVineyards !== vineyardsRef.current) setVineyards(mergedVineyards)
+    const mergedParcels = mergePulledRows('parcels', parcelsRef.current, baseline.parcels, fresh.parcels)
+    if (mergedParcels !== parcelsRef.current) setParcels(mergedParcels)
+    const mergedCampaignParcels = mergePulledRows('campaignParcels', campaignParcelsRef.current, baseline.campaignParcels, fresh.campaignParcels)
+    if (mergedCampaignParcels !== campaignParcelsRef.current) setCampaignParcels(mergedCampaignParcels)
+
+    setRemoteWineryContext(fresh)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale])
+
+  // A steady heartbeat pull, independent of local edits, so changes made on
+  // another device still arrive here even during an idle session.
+  useEffect(() => {
+    if (!authUser) return
+    const interval = window.setInterval(() => { void syncTick() }, 20000)
+    return () => window.clearInterval(interval)
+  }, [authUser, syncTick])
+
+  // A short debounce after a local edit, so a device's own changes reach
+  // Catalyst quickly rather than waiting for the next heartbeat.
+  useEffect(() => {
+    if (!authUser) return
+    const timeout = window.setTimeout(() => { void syncTick() }, 3000)
+    return () => window.clearTimeout(timeout)
+  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels])
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
     void fetchWineryWeather(settings.latitude, settings.longitude, settings.timezone)

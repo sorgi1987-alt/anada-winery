@@ -168,14 +168,15 @@ Completion gate: a user logs in, their identity is attributed on every mutation,
 
 ### Phase 9.5 — Remote reads, then remote writes
 
-Stage 1 status: implemented in version 0.38.0, verified live with real data, 10 August 2026.
+Stage 1 and stage 2 status: implemented in version 0.38.0, verified live with real data, 10 August 2026.
 
 - Protected API reads before any remote writes — done. `GET /me/context` resolves the caller's own winery membership and all 11 Phase 9.3 tables scoped to it; `POST /me/provision` is a one-time bootstrap write (not general write capability) that backfills the caller's existing local demo data into Catalyst on their first login, keyed off zero existing `Anada_Wineries` rows so it can only ever fire once. See `CATALYST_SCHEMA.md`'s "Phase 9.5 stage 1" section for the full design and the two real bugs (Catalyst's undocumented datetime format, a missing `ParcelID` column) only real data could surface.
-- Server-side audit trail — not yet done.
-- Multi-device synchronization and conflict handling — not yet done. Local storage remains the app's live source of truth after the one-time bootstrap; nothing keeps syncing afterward.
-- Backup, restore and winery-level data separation enforced server-side — not yet done.
+- General remote writes — done, for the 5 collections the app actually has live edit UI for (campaigns, growers, vineyards, parcels, campaign-parcel plans). `POST /me/sync` writes with optimistic-concurrency conflict detection (Catalyst's own row revision, not a new column); a stale write is rejected, not silently overwritten. `Wineries`/`Users`/`Memberships`/`Locations`/`Vessels`/`VesselAllocations` stay read-only mirrors since nothing edits them live. See `CATALYST_SCHEMA.md`'s "Phase 9.5 stage 2" section.
+- Server-side audit trail — partially done. Every synced write records the real authenticated user in `UpdatedBy`/`UpdatedAt` (verified live), but there's no append-only change log — only the current state, not a history of who changed what when.
+- Multi-device synchronization and conflict handling — mostly done. A background sync loop (20s heartbeat + 3s post-edit debounce) pushes local edits and pulls remote changes into the running app without a reload, verified live by simulating a second device via direct authenticated API calls; the server-side conflict rejection this depends on is directly verified live. Not yet independently verified: the exact moment the running app's *own* push gets rejected and shows its conflict toast — every attempt to force that exact race during this session instead had the pull path win the race first (arguably the better outcome, but not the same observation). Worth a deliberate two-real-device test in a future session.
+- Backup, restore and winery-level data separation enforced server-side — not yet done. (Every read and write is scoped to the caller's own winery membership, which is data separation in the access sense; backup/restore specifically is not built.)
 
-Completion gate: two authorized devices can work on the same winery without lost updates, unauthorized access or ambiguous authorship. Not yet met — this stage proves the read+bootstrap-write mechanics work end to end, not ongoing multi-device sync.
+Completion gate: two authorized devices can work on the same winery without lost updates, unauthorized access or ambiguous authorship. Mostly met, verified with one real device plus simulated concurrent writes rather than two genuinely separate logged-in devices — see the note above.
 
 ## Phase 10 — Sensor pilot
 

@@ -1,18 +1,22 @@
 import { catalystFoundation } from './catalyst'
+import type { WithRev } from './wineryDiff'
 import type { Campaign, CampaignParcelPlan, Grower, Membership, User, Vessel, VesselAllocation, VineyardEstate, VineyardParcel, Winery, WineryLocation } from './types'
 
+export type { WithRev } from './wineryDiff'
+export { dirtyRows, mergePulledRows } from './wineryDiff'
+
 export interface WineryContextData {
-  user: User
-  memberships: Membership[]
-  wineries: Winery[]
-  campaigns: Campaign[]
-  growers: Grower[]
-  vineyards: VineyardEstate[]
-  parcels: VineyardParcel[]
-  campaignParcels: CampaignParcelPlan[]
-  locations: WineryLocation[]
-  vessels: Vessel[]
-  vesselAllocations: VesselAllocation[]
+  user: WithRev<User>
+  memberships: WithRev<Membership>[]
+  wineries: WithRev<Winery>[]
+  campaigns: WithRev<Campaign>[]
+  growers: WithRev<Grower>[]
+  vineyards: WithRev<VineyardEstate>[]
+  parcels: WithRev<VineyardParcel>[]
+  campaignParcels: WithRev<CampaignParcelPlan>[]
+  locations: WithRev<WineryLocation>[]
+  vessels: WithRev<Vessel>[]
+  vesselAllocations: WithRev<VesselAllocation>[]
 }
 
 export type WineryContextResult =
@@ -33,24 +37,24 @@ export interface WineryBootstrapPayload {
   vesselAllocations: VesselAllocation[]
 }
 
-async function callWineryApi(path: string, init?: RequestInit): Promise<WineryContextResult> {
+async function callWineryApi<T>(path: string, init: RequestInit | undefined, onUnauthenticated: T, onUnavailable: T): Promise<T> {
   try {
     const response = await fetch(`${catalystFoundation.readApiUrl}${path}`, {
       credentials: 'include',
       headers: { Accept: 'application/json', ...(init?.body ? { 'Content-Type': 'application/json' } : {}) },
       ...init,
     })
-    if (response.status === 401) return { status: 'unauthenticated' }
-    if (!response.ok) return { status: 'unavailable' }
-    return await response.json() as WineryContextResult
+    if (response.status === 401) return onUnauthenticated
+    if (!response.ok) return onUnavailable
+    return await response.json() as T
   } catch {
-    return { status: 'unavailable' }
+    return onUnavailable
   }
 }
 
 // GET /me/context: read-only, scoped to the caller's own winery membership.
 export function fetchWineryContext(): Promise<WineryContextResult> {
-  return callWineryApi('/me/context')
+  return callWineryApi('/me/context', undefined, { status: 'unauthenticated' }, { status: 'unavailable' })
 }
 
 // POST /me/provision: the one narrow bootstrap write for Phase 9.5 stage 1.
@@ -60,5 +64,35 @@ export function fetchWineryContext(): Promise<WineryContextResult> {
 // id exactly as-is so existing cross-references stay valid. See
 // backend/anada_data_api/wineryContext.js for the server-side conditions.
 export function provisionWinery(payload: WineryBootstrapPayload): Promise<WineryContextResult> {
-  return callWineryApi('/me/provision', { method: 'POST', body: JSON.stringify(payload) })
+  return callWineryApi('/me/provision', { method: 'POST', body: JSON.stringify(payload) }, { status: 'unauthenticated' }, { status: 'unavailable' })
+}
+
+export interface SyncTableResult<T> {
+  written: WithRev<T>[]
+  conflicts: WithRev<T>[]
+}
+
+export interface SyncPushPayload {
+  campaigns?: WithRev<Campaign>[]
+  growers?: WithRev<Grower>[]
+  vineyards?: WithRev<VineyardEstate>[]
+  parcels?: WithRev<VineyardParcel>[]
+  campaignParcels?: WithRev<CampaignParcelPlan>[]
+}
+
+export interface SyncPushResponse {
+  status: 'synced'
+  campaigns?: SyncTableResult<Campaign>
+  growers?: SyncTableResult<Grower>
+  vineyards?: SyncTableResult<VineyardEstate>
+  parcels?: SyncTableResult<VineyardParcel>
+  campaignParcels?: SyncTableResult<CampaignParcelPlan>
+}
+
+// POST /me/sync: Phase 9.5 stage 2 - pushes locally-dirty rows for the 5
+// tables the app actually has live edit UI for. Returns null on any
+// network/auth failure so the caller can just skip this cycle and retry
+// later, rather than needing its own separate error branch.
+export function pushWinerySync(payload: SyncPushPayload): Promise<SyncPushResponse | null> {
+  return callWineryApi('/me/sync', { method: 'POST', body: JSON.stringify(payload) }, null, null)
 }
