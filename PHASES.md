@@ -168,12 +168,14 @@ Completion gate: a user logs in, their identity is attributed on every mutation,
 
 ### Phase 9.5 — Remote reads, then remote writes
 
-- Protected API reads before any remote writes
-- Server-side audit trail
-- Multi-device synchronization and conflict handling
-- Backup, restore and winery-level data separation enforced server-side
+Stage 1 status: implemented in version 0.38.0, verified live with real data, 10 August 2026.
 
-Completion gate: two authorized devices can work on the same winery without lost updates, unauthorized access or ambiguous authorship.
+- Protected API reads before any remote writes — done. `GET /me/context` resolves the caller's own winery membership and all 11 Phase 9.3 tables scoped to it; `POST /me/provision` is a one-time bootstrap write (not general write capability) that backfills the caller's existing local demo data into Catalyst on their first login, keyed off zero existing `Anada_Wineries` rows so it can only ever fire once. See `CATALYST_SCHEMA.md`'s "Phase 9.5 stage 1" section for the full design and the two real bugs (Catalyst's undocumented datetime format, a missing `ParcelID` column) only real data could surface.
+- Server-side audit trail — not yet done.
+- Multi-device synchronization and conflict handling — not yet done. Local storage remains the app's live source of truth after the one-time bootstrap; nothing keeps syncing afterward.
+- Backup, restore and winery-level data separation enforced server-side — not yet done.
+
+Completion gate: two authorized devices can work on the same winery without lost updates, unauthorized access or ambiguous authorship. Not yet met — this stage proves the read+bootstrap-write mechanics work end to end, not ongoing multi-device sync.
 
 ## Phase 10 — Sensor pilot
 

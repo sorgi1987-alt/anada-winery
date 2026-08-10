@@ -4,12 +4,12 @@ const express = require('express')
 const catalyst = require('zcatalyst-sdk-node')
 const { TABLES, healthPayload } = require('./contract')
 const { resolveUser } = require('./identity')
-const { getContextForUser } = require('./wineryContext')
+const { getContextForUser, provisionFirstWinery, ProvisionError } = require('./wineryContext')
 
 const app = express()
 
 app.disable('x-powered-by')
-app.use(express.json({ limit: '32kb' }))
+app.use(express.json({ limit: '256kb' }))
 app.use((_request, response, next) => {
   response.set('Cache-Control', 'no-store')
   response.set('Content-Type', 'application/json; charset=utf-8')
@@ -65,6 +65,25 @@ app.get('/me/context', async (request, response) => {
   }
 })
 
+app.post('/me/provision', async (request, response) => {
+  const identity = await resolveUser(request)
+  if (!identity) {
+    response.status(401).json({ status: 'unauthenticated', message: 'No authenticated Catalyst session was found.' })
+    return
+  }
+  try {
+    const catalystApp = catalyst.initialize(request, { scope: 'admin' })
+    const context = await provisionFirstWinery(catalystApp, identity, request.body)
+    response.status(201).json(context)
+  } catch (error) {
+    if (error instanceof ProvisionError) {
+      response.status(error.code === 'invalid_payload' ? 400 : 409).json({ status: error.code, message: error.message })
+      return
+    }
+    response.status(503).json({ status: 'provision_failed', message: 'Provisioning could not be completed.' })
+  }
+})
+
 const weatherCache = new Map()
 app.get('/weather', async (request, response) => {
   const latitude = Number(request.query.latitude)
@@ -101,7 +120,7 @@ app.get('/weather', async (request, response) => {
 app.all('*', (_request, response) => {
   response.status(404).json({
     status: 'not_found',
-    message: 'Unknown route. Operational reads are limited to /me/context, scoped to the caller\'s own winery membership; every mutation remains disabled.',
+    message: 'Unknown route. Operational reads are limited to GET /me/context; the only mutation is POST /me/provision, a one-time bootstrap for a caller with no existing winery membership.',
   })
 })
 

@@ -13,42 +13,54 @@ const str = (v) => (v === null || v === undefined ? null : String(v))
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v))
 const bool = (v) => v === true || v === 'true' || v === 1 || v === '1'
 
-const coerce = { string: str, number: num, boolean: bool }
+// Catalyst datetime columns store and return "yyyy-MM-dd HH:mm:ss" (UTC wall
+// clock, no milliseconds, no offset) - verified empirically against a live
+// insert+read round trip. ISO 8601 (what the browser and JS Date use
+// everywhere else) is rejected outright ("datetime value expected").
+const fromCatalystDatetime = (v) => (v ? `${String(v).replace(' ', 'T')}.000Z` : null)
+const toCatalystDatetime = (v) => {
+  if (!v) return undefined
+  const date = new Date(v)
+  if (Number.isNaN(date.getTime())) return undefined
+  return date.toISOString().replace('T', ' ').slice(0, 19)
+}
+
+const coerce = { string: str, number: num, boolean: bool, datetime: fromCatalystDatetime }
 
 const TABLE_FIELDS = {
   Anada_Users: [
     ['UserID', 'id', 'string'], ['Name', 'name', 'string'], ['Email', 'email', 'string'], ['Status', 'status', 'string'],
-    ['CreatedAt', 'createdAt', 'string'], ['UpdatedAt', 'updatedAt', 'string'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
+    ['CreatedAt', 'createdAt', 'datetime'], ['UpdatedAt', 'updatedAt', 'datetime'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
   ],
   Anada_Memberships: [
     ['MembershipID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['UserID', 'userId', 'string'], ['Role', 'role', 'string'], ['Status', 'status', 'string'],
-    ['CreatedAt', 'createdAt', 'string'], ['UpdatedAt', 'updatedAt', 'string'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
+    ['CreatedAt', 'createdAt', 'datetime'], ['UpdatedAt', 'updatedAt', 'datetime'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
   ],
   Anada_Wineries: [
     ['WineryID', 'id', 'string'], ['Code', 'code', 'string'], ['Name', 'name', 'string'], ['LegalName', 'legalName', 'string'],
     ['Municipality', 'municipality', 'string'], ['Province', 'province', 'string'], ['Designation', 'designation', 'string'],
     ['Timezone', 'timezone', 'string'], ['Status', 'status', 'string'], ['Notes', 'notes', 'string'],
-    ['CreatedAt', 'createdAt', 'string'], ['UpdatedAt', 'updatedAt', 'string'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
+    ['CreatedAt', 'createdAt', 'datetime'], ['UpdatedAt', 'updatedAt', 'datetime'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
   ],
   Anada_Campaigns: [
     ['CampaignID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Code', 'code', 'string'], ['Name', 'name', 'string'],
-    ['Vintage', 'vintage', 'number'], ['Status', 'status', 'string'], ['StartsAt', 'startsAt', 'string'],
-    ['ExpectedHarvestStart', 'expectedHarvestStart', 'string'], ['ExpectedEndAt', 'expectedEndAt', 'string'], ['ClosedAt', 'closedAt', 'string'],
-    ['IsDefault', 'isDefault', 'boolean'], ['Notes', 'notes', 'string'], ['CreatedAt', 'createdAt', 'string'], ['UpdatedAt', 'updatedAt', 'string'],
-    ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'], ['ReopenedAt', 'reopenedAt', 'string'], ['ReopenedBy', 'reopenedBy', 'string'],
+    ['Vintage', 'vintage', 'number'], ['Status', 'status', 'string'], ['StartsAt', 'startsAt', 'datetime'],
+    ['ExpectedHarvestStart', 'expectedHarvestStart', 'datetime'], ['ExpectedEndAt', 'expectedEndAt', 'datetime'], ['ClosedAt', 'closedAt', 'datetime'],
+    ['IsDefault', 'isDefault', 'boolean'], ['Notes', 'notes', 'string'], ['CreatedAt', 'createdAt', 'datetime'], ['UpdatedAt', 'updatedAt', 'datetime'],
+    ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'], ['ReopenedAt', 'reopenedAt', 'datetime'], ['ReopenedBy', 'reopenedBy', 'string'],
   ],
   Anada_Growers: [
     ['GrowerID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Code', 'code', 'string'], ['Name', 'name', 'string'],
     ['LegalName', 'legalName', 'string'], ['TradeName', 'tradeName', 'string'], ['GrowerType', 'growerType', 'string'], ['TaxID', 'taxId', 'string'],
     ['ContactName', 'contactName', 'string'], ['Email', 'email', 'string'], ['Phone', 'phone', 'string'], ['Address', 'address', 'string'],
     ['Municipality', 'municipality', 'string'], ['Province', 'province', 'string'], ['Country', 'country', 'string'], ['Status', 'status', 'string'],
-    ['Notes', 'notes', 'string'], ['CreatedAt', 'createdAt', 'string'], ['UpdatedAt', 'updatedAt', 'string'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
+    ['Notes', 'notes', 'string'], ['CreatedAt', 'createdAt', 'datetime'], ['UpdatedAt', 'updatedAt', 'datetime'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
   ],
   Anada_Vineyards: [
     ['VineyardID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Code', 'code', 'string'], ['Name', 'name', 'string'],
     ['GrowerID', 'growerId', 'string'], ['Municipality', 'municipality', 'string'], ['Province', 'province', 'string'], ['Country', 'country', 'string'],
     ['LocationID', 'locationId', 'string'], ['Status', 'status', 'string'], ['Notes', 'notes', 'string'],
-    ['CreatedAt', 'createdAt', 'string'], ['UpdatedAt', 'updatedAt', 'string'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
+    ['CreatedAt', 'createdAt', 'datetime'], ['UpdatedAt', 'updatedAt', 'datetime'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
   ],
   Anada_VineyardParcels: [
     ['ParcelID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Code', 'code', 'string'], ['Name', 'name', 'string'],
@@ -57,12 +69,12 @@ const TABLE_FIELDS = {
     ['Rootstock', 'rootstock', 'string'], ['PlantingYear', 'plantingYear', 'number'], ['TrainingSystem', 'trainingSystem', 'string'],
     ['Irrigation', 'irrigation', 'boolean'], ['AltitudeM', 'altitudeM', 'number'], ['Orientation', 'orientation', 'string'], ['Organic', 'organic', 'boolean'],
     ['Latitude', 'latitude', 'number'], ['Longitude', 'longitude', 'number'], ['Notes', 'notes', 'string'],
-    ['CreatedAt', 'createdAt', 'string'], ['UpdatedAt', 'updatedAt', 'string'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
+    ['CreatedAt', 'createdAt', 'datetime'], ['UpdatedAt', 'updatedAt', 'datetime'], ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
   ],
   Anada_CampaignParcelPlans: [
     ['PlanID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['CampaignID', 'campaignId', 'string'], ['ParcelID', 'parcelId', 'string'],
-    ['ExpectedKg', 'expectedKg', 'number'], ['ExpectedHarvestDate', 'expectedHarvestDate', 'string'], ['HarvestWindow', 'harvestWindow', 'string'],
-    ['Status', 'status', 'string'], ['Notes', 'notes', 'string'], ['CreatedAt', 'createdAt', 'string'], ['UpdatedAt', 'updatedAt', 'string'],
+    ['ExpectedKg', 'expectedKg', 'number'], ['ExpectedHarvestDate', 'expectedHarvestDate', 'datetime'], ['HarvestWindow', 'harvestWindow', 'string'],
+    ['Status', 'status', 'string'], ['Notes', 'notes', 'string'], ['CreatedAt', 'createdAt', 'datetime'], ['UpdatedAt', 'updatedAt', 'datetime'],
     ['CreatedBy', 'createdBy', 'string'], ['UpdatedBy', 'updatedBy', 'string'],
   ],
   Anada_WineryLocations: [
@@ -77,8 +89,8 @@ const TABLE_FIELDS = {
   ],
   Anada_VesselAllocations: [
     ['AllocationID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['VesselID', 'vesselId', 'string'], ['WineLotID', 'wineLotId', 'string'],
-    ['CampaignID', 'campaignId', 'string'], ['Volume', 'volume', 'number'], ['Unit', 'unit', 'string'], ['StartedAt', 'startedAt', 'string'],
-    ['EndedAt', 'endedAt', 'string'], ['Status', 'status', 'string'],
+    ['CampaignID', 'campaignId', 'string'], ['Volume', 'volume', 'number'], ['Unit', 'unit', 'string'], ['StartedAt', 'startedAt', 'datetime'],
+    ['EndedAt', 'endedAt', 'datetime'], ['Status', 'status', 'string'],
   ],
 }
 
@@ -158,4 +170,86 @@ async function getContextForUser(catalystApp, identity) {
   return { status: 'authenticated_with_membership', user, memberships, wineries, ...scoped }
 }
 
-module.exports = { getContextForUser, queryRows, countRows, escapeZcqlString, TABLE_FIELDS, WINERY_SCOPED_TABLES }
+class ProvisionError extends Error {
+  constructor(code, message) {
+    super(message)
+    this.code = code
+  }
+}
+
+const slug = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '') || 'user'
+const asArray = (value) => (Array.isArray(value) ? value : [])
+
+function toRow(tableName, obj) {
+  const fields = TABLE_FIELDS[tableName]
+  const row = {}
+  for (const [column, key, wireType] of fields) {
+    if (obj[key] === undefined) continue
+    if (wireType === 'datetime') {
+      const value = toCatalystDatetime(obj[key])
+      if (value !== undefined) row[column] = value
+      continue
+    }
+    row[column] = obj[key]
+  }
+  return row
+}
+
+/**
+ * Bootstraps the very first real Winery/User/Membership from the caller's
+ * own local browser data, on their first authenticated request with no
+ * existing `Anada_Users` row. Re-verifies both bootstrap conditions itself
+ * (no existing user for this identity, zero `Anada_Wineries` rows anywhere)
+ * rather than trusting the client's prior `/me/context` read, since that
+ * read could be stale by the time this call lands.
+ *
+ * Every entity keeps the exact `id` the browser already uses locally (the
+ * winery and its 8 scoped collections), so existing cross-references
+ * (`growerId`, `locationId`, `campaignId`, etc.) stay valid without
+ * remapping. Only the new `User`/`Membership` rows get server-generated
+ * IDs, since the caller's real identity has no local counterpart to reuse.
+ *
+ * Not transactional - Catalyst Data Store has no cross-table transactions.
+ * A failure partway through leaves a partial bootstrap (rare, single-tenant
+ * today; would need a manual fix via the Catalyst console if it happened).
+ */
+async function provisionFirstWinery(catalystApp, identity, payload) {
+  if (!identity.emailId) throw new ProvisionError('no_email', 'The authenticated identity has no email address.')
+
+  const existingUsers = await queryRows(catalystApp, 'Anada_Users', `Email = '${escapeZcqlString(identity.emailId)}'`)
+  if (existingUsers.length > 0) throw new ProvisionError('already_provisioned', 'A user already exists for this identity.')
+
+  const wineryCount = await countRows(catalystApp, 'Anada_Wineries')
+  if (wineryCount > 0) throw new ProvisionError('not_first', 'A winery already exists; this identity has no membership to it.')
+
+  const winery = payload && payload.winery
+  if (!winery || !winery.id || !winery.code || !winery.name) {
+    throw new ProvisionError('invalid_payload', 'A winery with id, code and name is required.')
+  }
+
+  const now = new Date().toISOString()
+  const userId = `user-${slug(identity.emailId)}`
+  const userName = [identity.firstName, identity.lastName].filter(Boolean).join(' ') || identity.emailId
+
+  const datastore = catalystApp.datastore()
+  await datastore.table('Anada_Users').insertRow(toRow('Anada_Users', {
+    id: userId, name: userName, email: identity.emailId, status: 'active',
+    createdAt: now, updatedAt: now, createdBy: userId, updatedBy: userId,
+  }))
+  await datastore.table('Anada_Wineries').insertRow(toRow('Anada_Wineries', {
+    ...winery, status: winery.status || 'active', createdBy: userId, updatedBy: userId,
+  }))
+  await datastore.table('Anada_Memberships').insertRow(toRow('Anada_Memberships', {
+    id: `membership-${winery.id}-${userId}`, wineryId: winery.id, userId, role: 'owner', status: 'active',
+    createdAt: now, updatedAt: now, createdBy: userId, updatedBy: userId,
+  }))
+
+  for (const [field, tableName] of Object.entries(WINERY_SCOPED_TABLES)) {
+    const rows = asArray(payload[field]).map((item) => toRow(tableName, item))
+    if (rows.length > 0) await datastore.table(tableName).insertRows(rows)
+  }
+
+  return getContextForUser(catalystApp, identity)
+}
+
+module.exports = { getContextForUser, provisionFirstWinery, ProvisionError, queryRows, countRows, escapeZcqlString, toCatalystDatetime, fromCatalystDatetime, TABLE_FIELDS, WINERY_SCOPED_TABLES }

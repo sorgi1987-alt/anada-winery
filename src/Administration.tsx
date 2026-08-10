@@ -10,6 +10,7 @@ import { images } from './data'
 import { useLanguage } from './i18n'
 import { useNavigate } from './router'
 import type { PwaStatus } from './pwa'
+import type { WineryContextResult } from './wineryRemote'
 import type { BottlingOrder, Campaign, CampaignParcelPlan, GrapeDelivery, Grower, NewCampaignInput, NewGrowerInput, NewParcelInput, NewVineyardInput, VineyardEstate, VineyardParcel, WineLot, WinerySettings } from './types'
 import type { CampaignUpdateInput } from './campaigns'
 import type { GrowerUpdateInput } from './growers'
@@ -46,9 +47,10 @@ interface AdministrationPageProps {
   onParcelAction: (action: 'deactivate' | 'reactivate', id: string) => void
   onToggleParcelCampaign: (campaignId: string, parcelId: string, included: boolean) => void
   onResetData: () => void
+  remoteWineryContext: WineryContextResult | null
 }
 
-export function AdministrationPage({ initialView = 'winery', settings, campaigns, growers, vineyards, parcels, campaignParcels, lots, deliveries, bottlingOrders, recordCount, pwa, onSave, onCreateCampaign, onUpdateCampaign, onCampaignAction, onCreateGrower, onUpdateGrower, onGrowerAction, onCreateVineyard, onUpdateVineyard, onVineyardAction, onCreateParcel, onUpdateParcel, onParcelAction, onToggleParcelCampaign, onResetData }: AdministrationPageProps) {
+export function AdministrationPage({ initialView = 'winery', settings, campaigns, growers, vineyards, parcels, campaignParcels, lots, deliveries, bottlingOrders, recordCount, pwa, onSave, onCreateCampaign, onUpdateCampaign, onCampaignAction, onCreateGrower, onUpdateGrower, onGrowerAction, onCreateVineyard, onUpdateVineyard, onVineyardAction, onCreateParcel, onUpdateParcel, onParcelAction, onToggleParcelCampaign, onResetData, remoteWineryContext }: AdministrationPageProps) {
   const { t, locale } = useLanguage()
   const navigate = useNavigate()
   const [view, setView] = useState<AdministrationView>(initialView)
@@ -93,6 +95,14 @@ export function AdministrationPage({ initialView = 'winery', settings, campaigns
   const connectionDetail = failureCopy || (catalystConnection.checkedAt
     ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(catalystConnection.checkedAt))
     : t('admin.endpointReady'))
+
+  // Phase 9.5 stage 1: GET /me/context resolved once at login, in App.tsx.
+  // This only reflects that read - it never triggers a check itself.
+  const remoteOperationsStatus: { status: 'ready' | 'pending' | 'locked'; detail: string } =
+    !remoteWineryContext ? { status: 'pending', detail: t('admin.remoteOperationsChecking') }
+    : remoteWineryContext.status === 'authenticated_with_membership' ? { status: 'ready', detail: t('admin.remoteOperationsReady', { name: remoteWineryContext.wineries[0]?.name ?? '' }) }
+    : remoteWineryContext.status === 'unprovisioned' ? { status: 'pending', detail: remoteWineryContext.bootstrapAvailable ? t('admin.remoteOperationsUnprovisioned') : t('admin.remoteOperationsNoAccess') }
+    : { status: 'locked', detail: t('admin.remoteOperationsLocked') }
 
   useEffect(() => {
     if (view !== 'system' || catalystConnection.state !== 'not-checked' || autoCheckStarted.current) return
@@ -144,7 +154,7 @@ export function AdministrationPage({ initialView = 'winery', settings, campaigns
         </AdminSection>}
 
         {view === 'system' && <AdminSection icon={<Database />} title={t('admin.systemData')} text={t('admin.systemIntro')}>
-          <div className="integration-cards"><IntegrationCard icon={<HardDrive />} title={t('admin.browserRepository')} status={t('admin.active')} detail={t('admin.browserRepositoryText')} tone="success" /><IntegrationCard icon={<Smartphone />} title={t('pwa.app')} status={pwa.installed ? t('pwa.installed') : pwa.serviceWorkerReady ? t('pwa.ready') : t('common.pending')} detail={t('pwa.integrationText')} tone={pwa.installed || pwa.serviceWorkerReady ? 'success' : 'pending'} /><IntegrationCard icon={<Database />} title={t('admin.catalystDataStore')} status={t('admin.schemaReady')} detail={t('admin.catalystDataStoreText')} tone="success" /><IntegrationCard icon={<LockKeyhole />} title={t('admin.authentication')} status={t('admin.deferred')} detail={t('admin.authenticationText')} tone="pending" /><IntegrationCard icon={<RefreshCw />} title={t('admin.externalSystems')} status={t('admin.notConfigured')} detail={t('admin.externalSystemsText')} tone="neutral" /></div>
+          <div className="integration-cards"><IntegrationCard icon={<HardDrive />} title={t('admin.browserRepository')} status={t('admin.active')} detail={t('admin.browserRepositoryText')} tone="success" /><IntegrationCard icon={<Smartphone />} title={t('pwa.app')} status={pwa.installed ? t('pwa.installed') : pwa.serviceWorkerReady ? t('pwa.ready') : t('common.pending')} detail={t('pwa.integrationText')} tone={pwa.installed || pwa.serviceWorkerReady ? 'success' : 'pending'} /><IntegrationCard icon={<Database />} title={t('admin.catalystDataStore')} status={t('admin.schemaReady')} detail={t('admin.catalystDataStoreText', { count: catalystFoundation.tables.length })} tone="success" /><IntegrationCard icon={<LockKeyhole />} title={t('admin.authentication')} status={t('admin.rolesDeferred')} detail={t('admin.authenticationText')} tone="pending" /><IntegrationCard icon={<RefreshCw />} title={t('admin.externalSystems')} status={t('admin.notConfigured')} detail={t('admin.externalSystemsText')} tone="neutral" /></div>
           <section className={`pwa-foundation-card ${pwa.online ? 'online' : 'offline'}`}>
             <header><span><Smartphone /><span><small>{t('pwa.kicker')}</small><strong>{t('pwa.title')}</strong></span></span><em>{pwa.installed ? t('pwa.installed') : t('pwa.ready')}</em></header>
             <div className="pwa-capability-grid">
@@ -160,7 +170,7 @@ export function AdministrationPage({ initialView = 'winery', settings, campaigns
             <div className="catalyst-foundation-steps">
               <FoundationStep icon={<Database />} status="ready" title={t('admin.dataStoreSchema')} detail={t('admin.tablesProvisioned', { count: catalystFoundation.tables.length })} />
               <FoundationStep icon={<Server />} status={catalystConnection.state === 'ready' ? 'ready' : 'pending'} title={t('admin.readBridge')} detail={t(activeConnectionCopy[0])} />
-              <FoundationStep icon={<LockKeyhole />} status="locked" title={t('admin.remoteOperations')} detail={t('admin.remoteOperationsLocked')} />
+              <FoundationStep icon={<LockKeyhole />} status={remoteOperationsStatus.status} title={t('admin.remoteOperations')} detail={remoteOperationsStatus.detail} />
             </div>
             <div className="catalyst-table-cloud">{catalystFoundation.tables.map((table) => <span key={table.id}><CheckCircle2 /> {table.name.replace('Anada_', '')}</span>)}</div>
             <footer><span><ShieldCheck /><span><strong>{t('admin.browserAuthority')}</strong><small>{t('admin.browserAuthorityText')}</small></span></span><button type="button" className="secondary-button" disabled={!catalystFoundation.readApiUrl || checkingCatalyst} onClick={checkCatalyst}><RefreshCw className={checkingCatalyst ? 'spin' : ''} /> {checkingCatalyst ? t('admin.checking') : t('admin.checkConnection')}</button></footer>
