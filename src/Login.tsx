@@ -53,17 +53,20 @@ export function Login({ onAuthenticated }: { onAuthenticated: (user: CatalystAut
         </div>
       </div>
       <section className="welcome-panel">
-        <div id={LOGIN_ELEMENT_ID} className="login-frame">
-          {sdkState === 'loading' && <p className="muted">{t('login.loadingSdk')}</p>}
-          {sdkState === 'error' && (
-            <div className="login-error">
-              <p className="muted">{t('login.sdkError')}</p>
-              <button type="button" className="secondary-button" onClick={() => setAttempt((current) => current + 1)}>
-                <RefreshCw size={16} /> {t('login.retry')}
-              </button>
-            </div>
-          )}
-        </div>
+        {sdkState === 'loading' && <p className="muted">{t('login.loadingSdk')}</p>}
+        {sdkState === 'error' && (
+          <div className="login-error">
+            <p className="muted">{t('login.sdkError')}</p>
+            <button type="button" className="secondary-button" onClick={() => setAttempt((current) => current + 1)}>
+              <RefreshCw size={16} /> {t('login.retry')}
+            </button>
+          </div>
+        )}
+        {/* Catalyst's SDK injects a real iframe into this node directly via the DOM API. It must
+            never receive JSX children React itself manages, or React's reconciler can crash when
+            Login unmounts (e.g. right after a successful sign-in) trying to clean up DOM it
+            doesn't recognize. */}
+        <div id={LOGIN_ELEMENT_ID} className="login-frame" style={{ display: sdkState === 'ready' ? 'block' : 'none' }} />
       </section>
     </main>
   )
