@@ -40,7 +40,7 @@ These tables must not be exposed to the Slate client until winery membership, ro
 
 ## Next integration gate
 
-The authorized CORS hostname is `anada-winery-web-ucfcgorv.onslate.eu` (configuration ID `11922000000096932`); CORS is enabled and iframe access is disabled. API Gateway remains disabled.
+The authorized CORS hostname is `anada-winery-web-ucfcgorv.onslate.eu` (configuration ID `11922000000096932`); CORS is enabled. Iframe access was enabled 10 August 2026 as part of Phase 9.4 — the embedded Catalyst login form renders as an iframe and was blocked ("refused to connect") until this was turned on; it was left disabled from the Phase 3B.1 checkpoint that predates any login UI. API Gateway remains disabled.
 
 Deploy the `anada_data_api` health route using the CLI-generated function configuration and verify the Slate-origin connection check. Authenticated membership is still required before exposing operational reads. Remote writes only follow after audit attribution and conflict policy are implemented.
 
