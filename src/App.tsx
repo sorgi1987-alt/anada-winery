@@ -13,7 +13,7 @@ import { Brand } from './Brand'
 import { BlendingPage } from './Blending'
 import { catalystUserDisplayName, fetchAuthenticatedUser, loadCatalystAuthSdk, signOutCatalystUser, type CatalystAuthenticatedUser } from './auth'
 import { Login } from './Login'
-import { getCurrentOperatorName, resetCurrentOperatorName, setCurrentOperatorName } from './operator'
+import { getCurrentOperatorName, operatorInitials, resetCurrentOperatorName, setCurrentOperatorName } from './operator'
 import { images, lots as seedLots } from './data'
 import { advanceRedStage, advanceRoseStage, advanceWhiteStage, approveBlendTrial, assignLotToTank, adjustProductStock, changeProductLotStatus, completeBottlingOrder, consumeProductLot, correctProductConsumption, disposeProductStock, createBarrel, createBlendTrial, createBottlingOrder, createLabSample, createLot as buildLot, createOpeningTask, createProductMaster, createRecallSimulation, createSupplier, createTask, mergeWine, receiveGrapeDelivery, receiveProductLot, recordBarrelOperation, recordBlendTasting, recordLabResults, recordRedOperation, recordRoseOperation, recordWhiteOperation, setBottlingGate, splitWine, startBottlingOrder, transferProductStock, transferWine } from './domain'
 import { HarvestPage, IntakeSheet } from './Harvest'
@@ -707,10 +707,12 @@ function App() {
   if (!authChecked) return <div className="app-loading"><span className="avatar">🍇</span></div>
   if (!authUser) return <Login />
 
-  if (pathname === '/welcome') return <div className={cellarMode ? 'app cellar-theme' : 'app'}><Welcome /></div>
+  const operatorName = catalystUserDisplayName(authUser)
+
+  if (pathname === '/welcome') return <div className={cellarMode ? 'app cellar-theme' : 'app'}><Welcome operatorName={operatorName} /></div>
 
   let currentPage: ReactNode
-  if (pathname === '/dashboard') currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} />
+  if (pathname === '/dashboard') currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} operatorName={operatorName} />
   else if (pathname === '/harvest') { const activeCampaign = campaigns.find((c) => c.status === 'active') ?? campaigns.find((c) => c.isDefault); const activePlans = activeCampaign ? campaignParcels.filter((plan) => plan.campaignId === activeCampaign.id && plan.status !== 'cancelled') : []; const planByParcel = new Map(activePlans.map((plan) => [plan.parcelId, plan])); const scopedParcels = parcels.filter((parcel) => parcel.status !== 'inactive' && planByParcel.has(parcel.id)).map((parcel) => { const plan = planByParcel.get(parcel.id)!; return { ...parcel, campaignId: activeCampaign?.id, estimatedKg: plan.expectedKg ?? parcel.estimatedKg, harvestWindow: plan.harvestWindow ?? parcel.harvestWindow, readiness: plan.status === 'planned' ? 'sampling' : plan.status === 'cancelled' ? parcel.readiness : plan.status } }); const scopedDeliveries = activeCampaign ? deliveries.filter((delivery) => delivery.campaignId === activeCampaign.id) : []; currentPage = <HarvestPage parcels={scopedParcels} deliveries={scopedDeliveries} campaignName={activeCampaign?.name} campaignStatus={activeCampaign?.status} onOpenIntake={(deliveryId) => activeCampaign?.status === 'active' ? setIntakeFlow({ open: true, deliveryId }) : showCampaignResult(locale.startsWith('es') ? 'Activa una campaña para registrar recepciones' : 'Activate a campaign before recording receptions')} timeZone={settings.timezone} latitude={settings.latitude} longitude={settings.longitude} /> }
   else if (pathname === '/production') currentPage = <Production onStartCreate={setNewLotType} />
   else if (pathname === '/lots') currentPage = <LotsOverview lots={activeLots} />
@@ -734,7 +736,7 @@ function App() {
   else if (pathname === '/admin/operations') currentPage = <AdministrationPage initialView="operations" settings={settings} campaigns={campaigns} growers={growers} vineyards={vineyards} parcels={parcels} campaignParcels={campaignParcels} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onCreateGrower={addGrower} onUpdateGrower={editGrower} onGrowerAction={runGrowerAction} onCreateVineyard={addVineyard} onUpdateVineyard={editVineyard} onVineyardAction={runVineyardAction} onCreateParcel={addParcel} onUpdateParcel={editParcel} onParcelAction={runParcelAction} onToggleParcelCampaign={toggleParcelCampaign} onResetData={resetDemoData} />
   else if (pathname === '/admin/system') currentPage = <AdministrationPage initialView="system" settings={settings} campaigns={campaigns} growers={growers} vineyards={vineyards} parcels={parcels} campaignParcels={campaignParcels} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onCreateGrower={addGrower} onUpdateGrower={editGrower} onGrowerAction={runGrowerAction} onCreateVineyard={addVineyard} onUpdateVineyard={editVineyard} onVineyardAction={runVineyardAction} onCreateParcel={addParcel} onUpdateParcel={editParcel} onParcelAction={runParcelAction} onToggleParcelCampaign={toggleParcelCampaign} onResetData={resetDemoData} />
   else if (pathname === '/admin/winery' || pathname === '/settings') currentPage = <AdministrationPage initialView="winery" settings={settings} campaigns={campaigns} growers={growers} vineyards={vineyards} parcels={parcels} campaignParcels={campaignParcels} lots={demoLots} deliveries={deliveries} bottlingOrders={bottlingOrders} recordCount={operationalRecordCount} pwa={pwa} onSave={saveWinerySettings} onCreateCampaign={addCampaign} onUpdateCampaign={editCampaign} onCampaignAction={runCampaignAction} onCreateGrower={addGrower} onUpdateGrower={editGrower} onGrowerAction={runGrowerAction} onCreateVineyard={addVineyard} onUpdateVineyard={editVineyard} onVineyardAction={runVineyardAction} onCreateParcel={addParcel} onUpdateParcel={editParcel} onParcelAction={runParcelAction} onToggleParcelCampaign={toggleParcelCampaign} onResetData={resetDemoData} />
-  else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} />
+  else currentPage = <Dashboard lots={activeLots} tanks={demoTanks} tasks={tasks} setTasks={setTasks} onReading={setReadingLotId} timeZone={settings.timezone} operatorName={operatorName} />
 
   return (
     <div className={cellarMode ? 'app cellar-theme' : 'app'}>
@@ -753,7 +755,7 @@ function App() {
         onSwitchWinery={switchWinery}
         pwa={pwa}
         mobileViewport={mobileViewport}
-        operatorName={catalystUserDisplayName(authUser)}
+        operatorName={operatorName}
         onSignOut={signOut}
       >
         <Suspense fallback={<div className="module-loading"><Package size={24} /><span>{t('common.loading')}</span></div>}>{currentPage}</Suspense>
@@ -773,7 +775,7 @@ function App() {
   )
 }
 
-function Welcome() {
+function Welcome({ operatorName }: { operatorName: string }) {
   const navigate = useNavigate()
   const { t } = useLanguage()
   return (
@@ -790,7 +792,7 @@ function Welcome() {
         <div className="welcome-tools"><div className="demo-pill"><Circle size={8} fill="currentColor" /> {t('welcome.demo')}</div><LanguageSelector compact /></div>
         <div>
           <span className="eyebrow">{t('welcome.workspace')}</span>
-          <h2>{t('welcome.hello')}</h2>
+          <h2>{t('welcome.hello', { name: operatorName })}</h2>
           <p className="muted">{t('welcome.resume')}</p>
         </div>
         <div className="winery-selector">
@@ -853,7 +855,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
   const currentWinery = wineries.find((winery) => winery.id === currentWineryId) ?? wineries[0]
   const wineryDisplayName = currentWinery?.name || settings.wineryName
   const wineryInitials = wineryDisplayName.split(/\s+/).filter(Boolean).slice(-2).map((word) => word[0]).join('').toUpperCase()
-  const operatorInitials = operatorName.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').toUpperCase()
+  const currentOperatorInitials = operatorInitials(operatorName)
   return (
     <div className="shell">
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
@@ -890,7 +892,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
           <LanguageSelector />
           <NavLink to="/admin/campaigns" className="nav-item"><Settings2 size={19} /><span>{t('nav.admin')}</span></NavLink>
           <div className="user-mini">
-            <span className="avatar">{operatorInitials || 'AN'}</span>
+            <span className="avatar">{currentOperatorInitials || 'AN'}</span>
             <span><strong>{operatorName}</strong><small>{t('shell.role')}</small></span>
             <button type="button" className="icon-button" onClick={onSignOut} aria-label={t('shell.signOut')} title={t('shell.signOut')}>
               <LogOut size={18} />
@@ -917,7 +919,7 @@ function Shell({ children, cellarMode, toggleCellarMode, menuOpen, setMenuOpen, 
               <span>{cellarMode ? t('shell.light') : t('shell.cellar')}</span>
             </button>
             <button className="icon-button notification-button" onClick={onNotifications} aria-label={t('shell.notifications')}><Bell size={19} /><i /></button>
-            <span className="avatar top-avatar">{operatorInitials || 'AN'}</span>
+            <span className="avatar top-avatar">{currentOperatorInitials || 'AN'}</span>
           </div>
         </header>
         {!pwa.online && <div className="offline-notice" role="status"><WifiOff /><span><strong>{t('pwa.offlineTitle')}</strong><small>{t('pwa.offlineText')}</small></span></div>}
@@ -946,9 +948,10 @@ interface DashboardProps {
   setTasks: React.Dispatch<React.SetStateAction<CellarTask[]>>
   onReading: (lotId: string) => void
   timeZone: string
+  operatorName: string
 }
 
-function Dashboard({ lots, tanks, tasks, setTasks, onReading, timeZone }: DashboardProps) {
+function Dashboard({ lots, tanks, tasks, setTasks, onReading, timeZone, operatorName }: DashboardProps) {
   const navigate = useNavigate()
   const { t, locale } = useLanguage()
   const [dashboardNow, setDashboardNow] = useState(() => new Date())
@@ -967,7 +970,7 @@ function Dashboard({ lots, tanks, tasks, setTasks, onReading, timeZone }: Dashbo
     <main>
       <PageHeader
         eyebrow={dashboardDate}
-        title={t('dashboard.greeting')}
+        title={t('dashboard.greeting', { name: operatorName })}
         description={t('dashboard.description')}
         action={<button className="primary-button" onClick={() => navigate('/production')}><Plus size={18} /> {t('dashboard.new')}</button>}
       />
@@ -1469,7 +1472,7 @@ function ReadingSheet({ lot, onClose, onSave }: { lot: WineLot; onClose: () => v
         </div>
         <label className="note-field"><span>{t('reading.observation')}</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('reading.placeholder')} /></label>
         {error && <p className="form-error reading-error">{t('reading.error')}</p>}
-        <div className="operator-row"><span className="avatar small-avatar">EM</span><span><small>{t('reading.operator')}</small><strong>Elena Martín · {t('common.now')}</strong></span><CheckCircle2 size={18} /></div>
+        <div className="operator-row"><span className="avatar small-avatar">{operatorInitials(getCurrentOperatorName()) || 'AN'}</span><span><small>{t('reading.operator')}</small><strong>{getCurrentOperatorName()} · {t('common.now')}</strong></span><CheckCircle2 size={18} /></div>
         <div className="sheet-actions"><button type="button" className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button type="submit" className="primary-button"><Save size={18} /> {t('reading.save')}</button></div>
       </form>
     </div>

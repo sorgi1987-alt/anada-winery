@@ -350,7 +350,7 @@ export const createOpeningTask = (lot: WineLot): CellarTask => ({
   title: lot.type === 'tinto' ? 'Completar selección y encubado' : lot.type === 'rosado' ? roseOpeningAction(lot.productionDetails?.rose?.method ?? 'direct_press') : 'Registrar prensado y fracciones',
   lot: lot.id,
   time: 'Hoy',
-  assignee: 'Elena',
+  assignee: getCurrentOperatorName(),
   priority: 'media',
   complete: false,
 })

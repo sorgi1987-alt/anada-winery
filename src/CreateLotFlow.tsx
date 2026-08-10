@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { getCurrentOperatorName } from './operator'
 import {
   ArrowLeft, ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardCheck,
   Droplets, Grape, Leaf, MapPin, Save, Scale, Sparkles, Thermometer, Warehouse, X,
@@ -272,7 +273,7 @@ interface NewTaskSheetProps {
 
 export function NewTaskSheet({ lots, onClose, onCreate }: NewTaskSheetProps) {
   const { t } = useLanguage()
-  const [draft, setDraft] = useState<NewTaskInput>({ title: '', lot: lots[0]?.id ?? '', time: t('common.today'), assignee: 'Elena', priority: 'normal' })
+  const [draft, setDraft] = useState<NewTaskInput>({ title: '', lot: lots[0]?.id ?? '', time: t('common.today'), assignee: getCurrentOperatorName(), priority: 'normal' })
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (draft.title.trim() && draft.lot) onCreate(draft)
