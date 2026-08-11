@@ -142,7 +142,16 @@ export function mergePulledRows<T extends Identified>(collection: string, local:
     if (!freshRow || rowsEqual(collection, row as Record<string, unknown>, freshRow as Record<string, unknown>)) return row
     changed = true
     const { _rev: _unused, ...rest } = freshRow
-    return rest as T
+    // Spread `row` first, not just `rest` alone: a synced collection can
+    // carry local-only fields Catalyst has no column for (VineyardParcel's
+    // required `sample`/`image`, for instance) - `rest` simply doesn't have
+    // those keys, so replacing the row wholesale silently drops them,
+    // producing a locally-required field that's suddenly `undefined` and
+    // crashes any code that reads it. Adopting every Catalyst-tracked field
+    // from `rest` while keeping local-only fields from `row` gets both:
+    // real remote changes for synced fields, no accidental data loss for
+    // fields that were never meant to sync.
+    return { ...row, ...rest } as T
   })
   const additions: T[] = []
   for (const row of fresh) {

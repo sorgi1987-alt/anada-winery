@@ -63,6 +63,21 @@ test('mergePulledRows adopts a fresh remote row the caller has not locally edite
   assert.equal(merged[0].name, 'Renamed elsewhere')
 })
 
+// Regression test for a real bug caught live: VineyardParcel.sample/.image
+// are required local-only fields Catalyst has no column for. Adopting a
+// fresh remote row used to replace the whole local object with only the
+// server-mapped fields, silently dropping `sample` - Harvest.tsx then did
+// `parcel.sample.potentialAlcohol.toFixed(1)` and crashed on `undefined`.
+test('mergePulledRows preserves a local-only required field when adopting a remote change to a different field', () => {
+  interface ParcelRow extends Row { sample: { potentialAlcohol: number } }
+  const original: ParcelRow = { ...baseRow(), sample: { potentialAlcohol: 13.4 } }
+  const fresh = { ...original, name: 'Renamed elsewhere' }
+  const merged = mergePulledRows('parcels', [original], [asBaseline(original)], [asBaseline(fresh, 'rev-2')])
+  assert.equal(merged.length, 1)
+  assert.equal(merged[0].name, 'Renamed elsewhere')
+  assert.equal(merged[0].sample.potentialAlcohol, 13.4, 'a local-only field must survive adopting a remote change to another field')
+})
+
 test('mergePulledRows leaves a locally-dirty row alone rather than clobbering the pending edit', () => {
   const original = baseRow()
   const localEdit = { ...original, name: 'My local edit' }

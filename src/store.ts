@@ -267,13 +267,32 @@ export const migrateLegacyState = (value: unknown): WineryState | null => {
   }
 }
 
+// A now-fixed sync-merge bug (adopting a remote parcel change used to
+// replace the whole local row, not just the fields Catalyst tracks) could
+// have already dropped `sample`/`image` - both required, local-only fields
+// - from an install before this fix shipped, leaving `parcel.sample`
+// `undefined` and crashing anything that reads it (e.g. Harvest.tsx). This
+// backfills a sane default for any parcel already missing them; harmless
+// no-op for every parcel that still has its real value.
+export const repairParcelsMissingLocalOnlyFields = (state: WineryState): WineryState => {
+  if (!state.parcels.some((parcel) => !parcel.sample || !parcel.image)) return state
+  return {
+    ...state,
+    parcels: state.parcels.map((parcel) => (parcel.sample && parcel.image) ? parcel : ({
+      ...parcel,
+      sample: parcel.sample ?? { sampledAt: new Date().toISOString().slice(0, 10), potentialAlcohol: 0, ph: 0, totalAcidity: 0, health: 0 },
+      image: parcel.image ?? '',
+    })),
+  }
+}
+
 export const browserWineryRepository: WineryRepository = {
   load() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const parsed: unknown = JSON.parse(stored)
-        return isWineryState(parsed) ? parsed : seedState()
+        return isWineryState(parsed) ? repairParcelsMissingLocalOnlyFields(parsed) : seedState()
       }
       const legacy = localStorage.getItem(LEGACY_V26_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V25_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V24_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V23_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V22_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V21_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V20_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V19_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V18_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V17_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V16_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V15_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V14_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V13_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V12_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V11_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V10_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V9_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V8_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V7_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V6_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V5_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V4_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V3_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V2_STORAGE_KEY) ?? localStorage.getItem(LEGACY_V1_STORAGE_KEY)
       if (!legacy) return seedState()

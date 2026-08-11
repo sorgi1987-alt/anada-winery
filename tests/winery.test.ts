@@ -5,7 +5,7 @@ import {
   MembershipValidationError, normalizeMemberships, normalizeUsers, normalizeWineries, setMembershipStatus, setUserStatus,
   setWineryStatus, updateUser, updateWinery, UserValidationError, validateMemberships, withWineryId, WineryValidationError,
 } from '../src/winery'
-import { migrateLegacyState, seedState } from '../src/store'
+import { migrateLegacyState, repairParcelsMissingLocalOnlyFields, seedState } from '../src/store'
 import { lots, tanks, winerySettings } from '../src/data'
 
 test('createWinery and updateWinery enforce unique codes', () => {
@@ -120,4 +120,26 @@ test('seedState produces two isolated wineries proving cross-winery scoping (Pha
   assert.ok(state.campaigns.every((campaign) => campaign.wineryId === primaryWinery.id), 'operational demo data (campaigns, lots, etc.) belongs entirely to the primary winery')
   assert.ok(state.lots.every((lot) => lot.wineryId === primaryWinery.id))
   assert.equal(state.campaigns.some((campaign) => campaign.wineryId === secondaryWinery.id), false, 'the secondary winery must not see the primary winery operational records')
+})
+
+// Regression test for a real bug caught live: a now-fixed sync-merge bug
+// could replace a whole local VineyardParcel with only the fields Catalyst
+// tracks, dropping the required local-only `sample`/`image` fields entirely
+// and crashing Harvest.tsx's `parcel.sample.potentialAlcohol.toFixed(1)` on
+// `undefined`. This repair heals an install already left in that state,
+// without touching any parcel that's still intact.
+test('repairParcelsMissingLocalOnlyFields backfills a missing sample/image without touching an intact parcel', () => {
+  const state = seedState()
+  const intact = state.parcels[0]
+  const corrupted = { ...state.parcels[1], sample: undefined as unknown as (typeof state.parcels)[number]['sample'], image: undefined as unknown as string }
+  const repaired = repairParcelsMissingLocalOnlyFields({ ...state, parcels: [intact, corrupted] })
+  assert.equal(repaired.parcels[0], intact, 'an already-intact parcel must not be replaced')
+  assert.ok(repaired.parcels[1].sample, 'the corrupted parcel must have a sample backfilled')
+  assert.equal(typeof repaired.parcels[1].sample.potentialAlcohol, 'number')
+  assert.equal(repaired.parcels[1].image, '')
+})
+
+test('repairParcelsMissingLocalOnlyFields returns the exact same state reference when nothing needs repair', () => {
+  const state = seedState()
+  assert.equal(repairParcelsMissingLocalOnlyFields(state), state)
 })
