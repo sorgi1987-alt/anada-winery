@@ -28,8 +28,10 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
   vineyards: ['createdAt', 'updatedAt'],
   parcels: ['createdAt', 'updatedAt'],
   campaignParcels: ['expectedHarvestDate', 'createdAt', 'updatedAt'],
-  // Phase 9.5 stage 3 (Batch 1): Tank has no datetime-typed field at all.
+  // Phase 9.5 stage 3 (Batch 1): Tank/CellarTask have no datetime-typed
+  // field at all - CellarTask.time is a free-text display string.
   tanks: [],
+  tasks: [],
 }
 
 function truncateToSeconds(value: unknown): unknown {

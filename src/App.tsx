@@ -241,6 +241,7 @@ function App() {
         vessels: allVessels.filter((vessel) => vessel.wineryId === currentWineryId),
         vesselAllocations: allVesselAllocations.filter((allocation) => allocation.wineryId === currentWineryId),
         tanks: demoTanks,
+        tasks,
       })
       if (!cancelled) setRemoteWineryContext(provisioned)
     })
@@ -267,6 +268,7 @@ function App() {
   const parcelsRef = useRef(parcels); parcelsRef.current = parcels
   const campaignParcelsRef = useRef(campaignParcels); campaignParcelsRef.current = campaignParcels
   const tanksRef = useRef(demoTanks); tanksRef.current = demoTanks
+  const tasksRef = useRef(tasks); tasksRef.current = tasks
   const remoteContextRef = useRef(remoteWineryContext); remoteContextRef.current = remoteWineryContext
 
   const syncTick = useCallback(async () => {
@@ -280,6 +282,7 @@ function App() {
       parcels: dirtyRows('parcels', parcelsRef.current, baseline.parcels),
       campaignParcels: dirtyRows('campaignParcels', campaignParcelsRef.current, baseline.campaignParcels),
       tanks: dirtyRows('tanks', tanksRef.current, baseline.tanks),
+      tasks: dirtyRows('tasks', tasksRef.current, baseline.tasks),
     }
     if (Object.values(dirty).some((rows) => rows.length > 0)) {
       const payload: SyncPushPayload = {}
@@ -289,6 +292,7 @@ function App() {
       if (dirty.parcels.length) payload.parcels = dirty.parcels
       if (dirty.campaignParcels.length) payload.campaignParcels = dirty.campaignParcels
       if (dirty.tanks.length) payload.tanks = dirty.tanks
+      if (dirty.tasks.length) payload.tasks = dirty.tasks
       const pushed = await pushWinerySync(payload)
       const conflictNames = pushed ? [
         ...(pushed.campaigns?.conflicts ?? []).map((row) => row.name),
@@ -297,6 +301,7 @@ function App() {
         ...(pushed.parcels?.conflicts ?? []).map((row) => row.name),
         ...(pushed.campaignParcels?.conflicts ?? []).map((row) => row.id),
         ...(pushed.tanks?.conflicts ?? []).map((row) => row.id),
+        ...(pushed.tasks?.conflicts ?? []).map((row) => row.title),
       ] : []
       if (conflictNames.length > 0) {
         setToast(locale.startsWith('es')
@@ -321,6 +326,8 @@ function App() {
     if (mergedCampaignParcels !== campaignParcelsRef.current) setCampaignParcels(mergedCampaignParcels)
     const mergedTanks = mergePulledRows('tanks', tanksRef.current, baseline.tanks, fresh.tanks)
     if (mergedTanks !== tanksRef.current) setDemoTanks(mergedTanks)
+    const mergedTasks = mergePulledRows('tasks', tasksRef.current, baseline.tasks, fresh.tasks)
+    if (mergedTasks !== tasksRef.current) setTasks(mergedTasks)
 
     setRemoteWineryContext(fresh)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -340,7 +347,7 @@ function App() {
     if (!authUser) return
     const timeout = window.setTimeout(() => { void syncTick() }, 3000)
     return () => window.clearTimeout(timeout)
-  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks])
+  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks])
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
     void fetchWineryWeather(settings.latitude, settings.longitude, settings.timezone)

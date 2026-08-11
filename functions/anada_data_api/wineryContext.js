@@ -101,6 +101,13 @@ const TABLE_FIELDS = {
     ['LotID', 'lot', 'string'], ['WineType', 'type', 'string'], ['Stage', 'stage', 'string'], ['TemperatureC', 'temperature', 'number'],
     ['Attention', 'attention', 'string'], ['UsableCapacity', 'usableCapacity', 'number'],
   ],
+  // CellarTask.time is a free-text display string ('Hoy', '16:00'), not a
+  // real timestamp - TaskTime is a plain varchar, not a datetime column.
+  // ('Time' itself is a reserved ZCQL keyword, hence the TaskTime name.)
+  Anada_Tasks: [
+    ['TaskID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['LotID', 'lot', 'string'], ['Title', 'title', 'string'],
+    ['TaskTime', 'time', 'string'], ['AssignedTo', 'assignee', 'string'], ['TaskPriority', 'priority', 'string'], ['CompletionState', 'complete', 'boolean'],
+  ],
 }
 
 // Winery-scoped tables read after membership is known, keyed by the
@@ -115,6 +122,7 @@ const WINERY_SCOPED_TABLES = {
   vessels: 'Anada_Vessels',
   vesselAllocations: 'Anada_VesselAllocations',
   tanks: 'Anada_Tanks',
+  tasks: 'Anada_Tasks',
 }
 
 function escapeZcqlString(value) {
@@ -282,6 +290,7 @@ const SYNCABLE_TABLES = {
   parcels: 'Anada_VineyardParcels',
   campaignParcels: 'Anada_CampaignParcelPlans',
   tanks: 'Anada_Tanks',
+  tasks: 'Anada_Tasks',
 }
 
 const ID_COLUMNS = {
@@ -291,6 +300,7 @@ const ID_COLUMNS = {
   Anada_VineyardParcels: 'ParcelID',
   Anada_CampaignParcelPlans: 'PlanID',
   Anada_Tanks: 'TankID',
+  Anada_Tasks: 'TaskID',
 }
 
 class SyncError extends Error {

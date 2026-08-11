@@ -132,3 +132,16 @@ test('dirtyRows/mergePulledRows treat an unset local field (undefined) as equal 
   const merged = mergePulledRows('tanks', local, [roundTripped], [roundTripped])
   assert.equal(merged, local, 'mergePulledRows must return the exact same array reference, not just equal content')
 })
+
+// Phase 9.5 stage 3 (Batch 1): tasks - confirms the generic mechanism works
+// for CellarTask.time, a free-text display string, not a datetime field.
+test('dirtyRows/mergePulledRows work for the tasks collection key (time is a display string, not a datetime)', () => {
+  interface TaskRow { id: string; wineryId?: string; title: string; time: string; complete: boolean }
+  const original: TaskRow = { id: 'task-1', wineryId: 'winery-default', title: 'Registrar densidad', time: 'Hoy', complete: false }
+  const baseline = { ...original, _rev: 'rev-1' }
+  assert.equal(dirtyRows('tasks', [original], [baseline]).length, 0)
+  const edited = { ...original, time: '16:00', complete: true }
+  const dirty = dirtyRows('tasks', [edited], [baseline])
+  assert.equal(dirty.length, 1)
+  assert.equal(dirty[0].time, '16:00')
+})

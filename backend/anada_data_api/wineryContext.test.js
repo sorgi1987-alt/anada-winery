@@ -294,3 +294,29 @@ test('syncWineryData creates and updates a tank with no audit-quartet fields', a
   assert.equal(updated.tanks.conflicts.length, 0)
   assert.equal(updated.tanks.written[0].temperature, 18.2)
 })
+
+// Phase 9.5 stage 3 (Batch 1): tasks. CellarTask.time is a free-text
+// display string ('Hoy', '16:00'), not a real timestamp - regression
+// coverage for the exact bug that broke the legacy Anada_Tasks.TaskDueAt
+// column (a datetime column silently rejecting a non-ISO string).
+function taskFixture(overrides = {}) {
+  return {
+    id: 'task-1', wineryId: 'winery-default', lot: 'T-26-017', title: 'Registrar densidad',
+    time: 'Hoy', assignee: 'Sergio Castañares', priority: 'media', complete: false, ...overrides,
+  }
+}
+
+test('syncWineryData round-trips CellarTask.time (a display string, not a datetime) unchanged', async () => {
+  const tableRows = { ...membershipFixture(), Anada_Tasks: [] }
+  const app = fakeCatalystApp(tableRows)
+  const created = await syncWineryData(app, { emailId: 'sergio@example.com' }, { tasks: [taskFixture({ time: 'Hoy' })] })
+  assert.equal(created.tasks.written.length, 1)
+  assert.equal(created.tasks.written[0].time, 'Hoy')
+  const currentRev = created.tasks.written[0]._rev
+  const updated = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    tasks: [taskFixture({ time: '16:00', complete: true, _rev: currentRev })],
+  })
+  assert.equal(updated.tasks.conflicts.length, 0)
+  assert.equal(updated.tasks.written[0].time, '16:00')
+  assert.equal(updated.tasks.written[0].complete, true)
+})
