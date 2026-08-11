@@ -32,6 +32,34 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
   // field at all - CellarTask.time is a free-text display string.
   tanks: [],
   tasks: [],
+  productionEvents: ['performedAt', 'recordedAt'],
+}
+
+// Fields whose value is a nested object/array rather than a scalar (e.g.
+// ProductionEvent.metrics). A freshly-pulled object is never the same
+// reference as its local counterpart even with byte-identical content, so
+// plain `===` would make every row with one of these fields look "changed"
+// forever - the same infinite-resync failure class DATETIME_FIELDS exists to
+// prevent, one level deeper. `deepEqualTolerant` recurses field-by-field,
+// treating undefined/null/a-missing-key as equivalent at every level, same
+// as the scalar case.
+const DEEP_FIELDS: Record<string, readonly string[]> = {
+  productionEvents: ['metrics'],
+}
+
+function deepEqualTolerant(a: unknown, b: unknown): boolean {
+  if (isAbsent(a) && isAbsent(b)) return true
+  if (a === b) return true
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+    return a.every((item, index) => deepEqualTolerant(item, b[index]))
+  }
+  const keys = new Set([...Object.keys(a as object), ...Object.keys(b as object)])
+  for (const key of keys) {
+    if (!deepEqualTolerant((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) return false
+  }
+  return true
 }
 
 function truncateToSeconds(value: unknown): unknown {
@@ -53,6 +81,7 @@ const isAbsent = (v: unknown) => v === null || v === undefined
 // definition. Caught live: a real, continuous ~3s self-retrigger loop.
 function fieldEqual(collection: string, key: string, a: unknown, b: unknown): boolean {
   if (DATETIME_FIELDS[collection]?.includes(key)) return truncateToSeconds(a) === truncateToSeconds(b)
+  if (DEEP_FIELDS[collection]?.includes(key)) return deepEqualTolerant(a, b)
   if (isAbsent(a) && isAbsent(b)) return true
   return a === b
 }

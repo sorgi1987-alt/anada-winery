@@ -27,6 +27,31 @@ const toCatalystDatetime = (v) => {
 
 const coerce = { string: str, number: num, boolean: bool, datetime: fromCatalystDatetime }
 
+// Dotted key paths (e.g. 'metrics.temperature') let a flat Catalyst column
+// map onto a nested browser field without any per-table special-casing.
+// A plain, non-dotted key behaves exactly as direct property access did
+// before these existed - every table but Anada_ProductionEvents still uses
+// only plain keys.
+function getPath(obj, path) {
+  let value = obj
+  for (const part of path.split('.')) {
+    if (value == null) return undefined
+    value = value[part]
+  }
+  return value
+}
+
+function setPath(obj, path, value) {
+  const parts = path.split('.')
+  let target = obj
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i]
+    if (target[part] == null) target[part] = {}
+    target = target[part]
+  }
+  target[parts[parts.length - 1]] = value
+}
+
 const TABLE_FIELDS = {
   Anada_Users: [
     ['UserID', 'id', 'string'], ['Name', 'name', 'string'], ['Email', 'email', 'string'], ['Status', 'status', 'string'],
@@ -108,6 +133,26 @@ const TABLE_FIELDS = {
     ['TaskID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['LotID', 'lot', 'string'], ['Title', 'title', 'string'],
     ['TaskTime', 'time', 'string'], ['AssignedTo', 'assignee', 'string'], ['TaskPriority', 'priority', 'string'], ['CompletionState', 'complete', 'boolean'],
   ],
+  // ProductionEventMetrics (27 optional scalar fields, no independent
+  // identity) is flattened directly onto this table rather than given its
+  // own child table - the dotted 'metrics.*' keys below are the only
+  // dotted-path entries in this map.
+  Anada_ProductionEvents: [
+    ['ProductionEventID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['LotID', 'lotId', 'string'], ['WineType', 'wineType', 'string'],
+    ['Kind', 'kind', 'string'], ['StageID', 'stageId', 'string'], ['OperationType', 'operationType', 'string'],
+    ['FromStageID', 'fromStageId', 'string'], ['ToStageID', 'toStageId', 'string'], ['PerformedAt', 'performedAt', 'datetime'],
+    ['RecordedAt', 'recordedAt', 'datetime'], ['Operator', 'operator', 'string'], ['Notes', 'notes', 'string'], ['StorageMode', 'storageMode', 'string'],
+    ['DurationMinutes', 'metrics.durationMinutes', 'number'], ['Temperature', 'metrics.temperature', 'number'], ['Density', 'metrics.density', 'number'],
+    ['VolumeBefore', 'metrics.volumeBefore', 'number'], ['VolumeAfter', 'metrics.volumeAfter', 'number'], ['FreeRunVolume', 'metrics.freeRunVolume', 'number'],
+    ['PressVolume', 'metrics.pressVolume', 'number'], ['Product', 'metrics.product', 'string'], ['ProductId', 'metrics.productId', 'string'],
+    ['ProductLotId', 'metrics.productLotId', 'string'], ['SupplierLot', 'metrics.supplierLot', 'string'], ['AdditionAmount', 'metrics.additionAmount', 'number'],
+    ['AdditionUnit', 'metrics.additionUnit', 'string'], ['MalicAcid', 'metrics.malicAcid', 'number'], ['FreeSo2', 'metrics.freeSo2', 'number'],
+    ['PotentialAlcohol', 'metrics.potentialAlcohol', 'number'], ['Turbidity', 'metrics.turbidity', 'number'], ['PressFraction', 'metrics.pressFraction', 'string'],
+    ['Protection', 'metrics.protection', 'string'], ['SettlingHours', 'metrics.settlingHours', 'number'], ['LeesDecision', 'metrics.leesDecision', 'string'],
+    ['ConductivityDrop', 'metrics.conductivityDrop', 'number'], ['ColorIntensity', 'metrics.colorIntensity', 'number'], ['SkinContactHours', 'metrics.skinContactHours', 'number'],
+    ['RedGrapePercentage', 'metrics.redGrapePercentage', 'number'], ['SeparateWeightsConfirmed', 'metrics.separateWeightsConfirmed', 'boolean'],
+    ['MixingAfterWeighing', 'metrics.mixingAfterWeighing', 'boolean'],
+  ],
 }
 
 // Winery-scoped tables read after membership is known, keyed by the
@@ -123,6 +168,7 @@ const WINERY_SCOPED_TABLES = {
   vesselAllocations: 'Anada_VesselAllocations',
   tanks: 'Anada_Tanks',
   tasks: 'Anada_Tasks',
+  productionEvents: 'Anada_ProductionEvents',
 }
 
 function escapeZcqlString(value) {
@@ -137,17 +183,48 @@ function escapeZcqlString(value) {
 function mapRow(tableName, raw) {
   const fields = TABLE_FIELDS[tableName]
   const out = {}
-  for (const [column, key, wireType] of fields) out[key] = coerce[wireType](raw[column])
+  for (const [column, key, wireType] of fields) setPath(out, key, coerce[wireType](raw[column]))
   out._rev = raw.MODIFIEDTIME !== undefined && raw.MODIFIEDTIME !== null ? String(raw.MODIFIEDTIME) : null
   return out
 }
 
+// ZCQL rejects any SELECT with more than 30 columns ("More than 30 select
+// columns are not allowed") - caught live once Anada_ProductionEvents (41
+// app columns) started actually being queried; every table before it fit in
+// one query. A wide table's columns are split into chunks small enough to
+// stay under that limit and the resulting rows re-joined on ROWID, which
+// every chunk shares since they're all the same WHERE over the same table.
+const ZCQL_MAX_SELECT_COLUMNS = 30
+const ZCQL_COLUMN_CHUNK_SIZE = 25
+
+function chunk(array, size) {
+  const chunks = []
+  for (let i = 0; i < array.length; i += size) chunks.push(array.slice(i, i + size))
+  return chunks
+}
+
 async function queryRows(catalystApp, tableName, whereSql) {
   const fields = TABLE_FIELDS[tableName]
-  const columns = [...fields.map(([column]) => column), 'MODIFIEDTIME'].join(', ')
-  const sql = `SELECT ${columns} FROM ${tableName}${whereSql ? ` WHERE ${whereSql}` : ''}`
-  const result = await catalystApp.zcql().executeZCQLQuery(sql)
-  return result.map((entry) => mapRow(tableName, entry[tableName]))
+  const columns = fields.map(([column]) => column)
+  const whereClause = whereSql ? ` WHERE ${whereSql}` : ''
+
+  if (columns.length + 1 <= ZCQL_MAX_SELECT_COLUMNS) {
+    const sql = `SELECT ${[...columns, 'MODIFIEDTIME'].join(', ')} FROM ${tableName}${whereClause}`
+    const result = await catalystApp.zcql().executeZCQLQuery(sql)
+    return result.map((entry) => mapRow(tableName, entry[tableName]))
+  }
+
+  const rowsByRowId = new Map()
+  for (const [index, columnChunk] of chunk(columns, ZCQL_COLUMN_CHUNK_SIZE).entries()) {
+    const extraColumns = index === 0 ? ['ROWID', 'MODIFIEDTIME'] : ['ROWID']
+    const sql = `SELECT ${[...extraColumns, ...columnChunk].join(', ')} FROM ${tableName}${whereClause}`
+    const result = await catalystApp.zcql().executeZCQLQuery(sql)
+    for (const entry of result) {
+      const row = entry[tableName]
+      rowsByRowId.set(row.ROWID, { ...rowsByRowId.get(row.ROWID), ...row })
+    }
+  }
+  return [...rowsByRowId.values()].map((raw) => mapRow(tableName, raw))
 }
 
 async function countRows(catalystApp, tableName) {
@@ -208,13 +285,14 @@ function toRow(tableName, obj) {
   const fields = TABLE_FIELDS[tableName]
   const row = {}
   for (const [column, key, wireType] of fields) {
-    if (obj[key] === undefined) continue
+    const value = getPath(obj, key)
+    if (value === undefined) continue
     if (wireType === 'datetime') {
-      const value = toCatalystDatetime(obj[key])
-      if (value !== undefined) row[column] = value
+      const coerced = toCatalystDatetime(value)
+      if (coerced !== undefined) row[column] = coerced
       continue
     }
-    row[column] = obj[key]
+    row[column] = value
   }
   return row
 }
@@ -291,6 +369,7 @@ const SYNCABLE_TABLES = {
   campaignParcels: 'Anada_CampaignParcelPlans',
   tanks: 'Anada_Tanks',
   tasks: 'Anada_Tasks',
+  productionEvents: 'Anada_ProductionEvents',
 }
 
 const ID_COLUMNS = {
@@ -301,6 +380,7 @@ const ID_COLUMNS = {
   Anada_CampaignParcelPlans: 'PlanID',
   Anada_Tanks: 'TankID',
   Anada_Tasks: 'TaskID',
+  Anada_ProductionEvents: 'ProductionEventID',
 }
 
 class SyncError extends Error {

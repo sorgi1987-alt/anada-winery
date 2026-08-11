@@ -2,7 +2,7 @@
 
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const { getContextForUser, provisionFirstWinery, syncWineryData, ProvisionError, SyncError, escapeZcqlString, toCatalystDatetime, fromCatalystDatetime, TABLE_FIELDS, WINERY_SCOPED_TABLES } = require('./wineryContext')
+const { getContextForUser, provisionFirstWinery, syncWineryData, queryRows, ProvisionError, SyncError, escapeZcqlString, toCatalystDatetime, fromCatalystDatetime, TABLE_FIELDS, WINERY_SCOPED_TABLES } = require('./wineryContext')
 
 function matchesWhere(row, whereSql) {
   if (!whereSql) return true
@@ -60,6 +60,46 @@ test('every winery-scoped table name has a matching field map', () => {
   for (const tableName of Object.values(WINERY_SCOPED_TABLES)) {
     assert.ok(TABLE_FIELDS[tableName], `${tableName} is missing a field map`)
   }
+})
+
+// Regression test for a real bug caught live: ZCQL rejects any SELECT with
+// more than 30 columns ("More than 30 select columns are not allowed").
+// Anada_ProductionEvents has 41 app columns, so queryRows must split the
+// SELECT into chunks and re-join the results by ROWID - this fake simulates
+// Catalyst's own column-count enforcement and column projection (unlike the
+// generic fakeCatalystApp below, which returns full rows regardless of what
+// was actually selected and so can't catch this class of bug).
+function fakeZcqlColumnLimitedApp(rows) {
+  return {
+    zcql: () => ({
+      executeZCQLQuery: async (sql) => {
+        const selectMatch = sql.match(/^SELECT (.+) FROM (\w+)/)
+        const columns = selectMatch[1].split(',').map((c) => c.trim())
+        const tableName = selectMatch[2]
+        if (columns.length > 30) throw new Error('More than 30 select columns are not allowed')
+        return rows.map((row) => {
+          const projected = {}
+          for (const column of columns) projected[column] = row[column]
+          return { [tableName]: projected }
+        })
+      },
+    }),
+  }
+}
+
+test('queryRows splits a wide table\'s SELECT into ZCQL-legal chunks and re-joins them by ROWID', async () => {
+  assert.ok(TABLE_FIELDS.Anada_ProductionEvents.length > 30, 'this test only proves something if the table actually needs chunking')
+  const app = fakeZcqlColumnLimitedApp([{
+    ROWID: 'row-1', MODIFIEDTIME: '2026-08-11 09:00:00', ProductionEventID: 'pe-1', WineryID: 'winery-default',
+    LotID: 'T-26-017', Temperature: 24.8, Density: 1.046, SeparateWeightsConfirmed: 'true', MixingAfterWeighing: 'false',
+  }])
+  const rows = await queryRows(app, 'Anada_ProductionEvents', "WineryID = 'winery-default'")
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].id, 'pe-1')
+  assert.equal(rows[0].metrics.temperature, 24.8)
+  assert.equal(rows[0].metrics.density, 1.046)
+  assert.equal(rows[0].metrics.separateWeightsConfirmed, true)
+  assert.equal(rows[0]._rev, '2026-08-11 09:00:00')
 })
 
 test('escapeZcqlString neutralizes embedded quotes', () => {
@@ -319,4 +359,44 @@ test('syncWineryData round-trips CellarTask.time (a display string, not a dateti
   assert.equal(updated.tasks.conflicts.length, 0)
   assert.equal(updated.tasks.written[0].time, '16:00')
   assert.equal(updated.tasks.written[0].complete, true)
+})
+
+// Phase 9.5 stage 3 (Batch 1): productionEvents. ProductionEventMetrics (27
+// optional scalar fields) is flattened onto flat Catalyst columns via dotted
+// TABLE_FIELDS keys ('metrics.temperature', etc.) but stays a nested object
+// on the browser side - this is the first table exercising getPath/setPath.
+function productionEventFixture(overrides = {}) {
+  return {
+    id: 'production-event-1', wineryId: 'winery-default', lotId: 'L-2026-001', wineType: 'tinto', kind: 'operation',
+    stageId: 'fermentacion', operationType: 'remontado', performedAt: '2026-08-11T09:00:00.000Z',
+    recordedAt: '2026-08-11T09:00:05.000Z', operator: 'Sergio Castañares', notes: '', storageMode: 'browser-local',
+    metrics: { temperature: 24.5, density: 1.0421, durationMinutes: 15 },
+    ...overrides,
+  }
+}
+
+test('syncWineryData round-trips ProductionEvent.metrics through dotted-path flattened columns', async () => {
+  const tableRows = { ...membershipFixture(), Anada_ProductionEvents: [] }
+  const app = fakeCatalystApp(tableRows)
+  const created = await syncWineryData(app, { emailId: 'sergio@example.com' }, { productionEvents: [productionEventFixture()] })
+  assert.equal(created.productionEvents.written.length, 1)
+  const writtenEvent = created.productionEvents.written[0]
+  assert.equal(writtenEvent.metrics.temperature, 24.5)
+  assert.equal(writtenEvent.metrics.density, 1.0421)
+  assert.equal(writtenEvent.metrics.durationMinutes, 15)
+  // Metrics fields never set on this event come back null (Catalyst has no
+  // concept of "unset column"), not absent - the browser-side equality fix
+  // in wineryDiff.ts is what tolerates this, not this layer.
+  assert.equal(writtenEvent.metrics.malicAcid, null)
+  // Flat Catalyst storage really did receive dotted columns, not a nested object.
+  assert.equal(tableRows.Anada_ProductionEvents[0].Temperature, 24.5)
+  assert.equal(tableRows.Anada_ProductionEvents[0].metrics, undefined)
+
+  const currentRev = writtenEvent._rev
+  const updated = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    productionEvents: [productionEventFixture({ metrics: { temperature: 26.1, colorIntensity: 0.82 }, _rev: currentRev })],
+  })
+  assert.equal(updated.productionEvents.conflicts.length, 0)
+  assert.equal(updated.productionEvents.written[0].metrics.temperature, 26.1)
+  assert.equal(updated.productionEvents.written[0].metrics.colorIntensity, 0.82)
 })

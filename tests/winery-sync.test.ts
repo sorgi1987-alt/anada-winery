@@ -145,3 +145,39 @@ test('dirtyRows/mergePulledRows work for the tasks collection key (time is a dis
   assert.equal(dirty.length, 1)
   assert.equal(dirty[0].time, '16:00')
 })
+
+// Phase 9.5 stage 3 (Batch 1): productionEvents. `metrics` is a nested
+// object, not a scalar - a freshly-pulled metrics object is never `===` its
+// local counterpart even with identical content. Without a tolerant deep
+// comparison, every productionEvent would look "dirty" forever after any
+// pull - the same self-retrigger failure class as the null/undefined bug,
+// one level deeper. This is the required regression test for that fix.
+test('dirtyRows treats a productionEvent as clean when its nested metrics object is content-equal but a different reference', () => {
+  interface EventRow { id: string; wineryId?: string; metrics: { temperature?: number; malicAcid?: number } }
+  const local: EventRow = { id: 'pe-1', wineryId: 'winery-default', metrics: { temperature: 24.5 } }
+  // Simulates a freshly-pulled row: same content, but Catalyst always emits
+  // every metrics.* column, so unset fields arrive as `null`, not absent.
+  const pulled: EventRow = { id: 'pe-1', wineryId: 'winery-default', metrics: { temperature: 24.5, malicAcid: null as unknown as undefined } }
+  const baseline = { ...pulled, _rev: 'rev-1' }
+  assert.equal(dirtyRows('productionEvents', [local], [baseline]).length, 0)
+})
+
+test('dirtyRows detects a real change inside a productionEvent\'s nested metrics object', () => {
+  interface EventRow { id: string; wineryId?: string; metrics: { temperature?: number } }
+  const original: EventRow = { id: 'pe-1', wineryId: 'winery-default', metrics: { temperature: 24.5 } }
+  const baseline = { ...original, _rev: 'rev-1' }
+  const edited: EventRow = { id: 'pe-1', wineryId: 'winery-default', metrics: { temperature: 26.1 } }
+  const dirty = dirtyRows('productionEvents', [edited], [baseline])
+  assert.equal(dirty.length, 1)
+  assert.equal(dirty[0].metrics.temperature, 26.1)
+})
+
+test('mergePulledRows returns the exact same array reference for productionEvents when nothing changed (no self-retrigger loop)', () => {
+  interface EventRow { id: string; wineryId?: string; metrics: { temperature?: number } }
+  const original: EventRow = { id: 'pe-1', wineryId: 'winery-default', metrics: { temperature: 24.5 } }
+  const local = [original]
+  const baseline = { ...original, metrics: { temperature: 24.5 }, _rev: 'rev-1' }
+  const fresh = { ...original, metrics: { temperature: 24.5 }, _rev: 'rev-1' }
+  const merged = mergePulledRows('productionEvents', local, [baseline], [fresh])
+  assert.equal(merged, local, 'mergePulledRows must return the exact same array reference, not just equal content')
+})
