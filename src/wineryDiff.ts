@@ -36,6 +36,11 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
   movements: ['performedAt', 'recordedAt'],
   // Legs are immutable once created and have no datetime field of their own.
   movementLegs: [],
+  // WineLot itself has no synced datetime field - nextTime is a display
+  // string, not a real timestamp, and never synced (see Anada_WineLots).
+  lots: [],
+  readings: ['recordedAt'],
+  activities: ['recordedAt'],
 }
 
 // Fields whose value is a nested object/array rather than a scalar (e.g.
@@ -48,6 +53,12 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
 // as the scalar case.
 const DEEP_FIELDS: Record<string, readonly string[]> = {
   productionEvents: ['metrics'],
+  // WineLot.process/.productionDetails round-trip through Catalyst as a
+  // JSON.stringify'd text column (the 'json' wireType) but stay real
+  // objects/arrays on the browser side - same reasoning as
+  // productionEvents.metrics, one level up: a freshly-parsed object is
+  // never `===` its local counterpart even with identical content.
+  lots: ['process', 'productionDetails'],
 }
 
 // Exported for App.tsx's movement-legs reattachment step, which needs the

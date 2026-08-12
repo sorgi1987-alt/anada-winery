@@ -24,8 +24,9 @@ import { RedProcessControl } from './RedProcess'
 import { usePwaStatus, type PwaStatus } from './pwa'
 import { ProductUsePanel } from './ProductUse'
 import { browserWineryRepository } from './store'
-import { fetchWineryContext, provisionWinery, pushWinerySync, type SyncedMovementLeg, type SyncPushPayload, type WineryContextResult } from './wineryRemote'
+import { fetchWineryContext, provisionWinery, pushWinerySync, type SyncedActivity, type SyncedMovementLeg, type SyncedReading, type SyncPushPayload, type WineryContextResult } from './wineryRemote'
 import { deepEqualTolerant, dirtyRows, groupSortedBy, mergePulledRows } from './wineryDiff'
+import { formatZonedDateTime } from './time'
 import { fetchWineryWeather, unavailableWeatherSnapshot, weatherSnapshotFromWeather } from './weather'
 import { activateCampaign, archiveCampaign, closeCampaign, createCampaign, reopenCampaign, setDefaultCampaign, updateCampaign, CampaignValidationError, type CampaignUpdateInput } from './campaigns'
 import { createGrower, setGrowerStatus, updateGrower, GrowerValidationError, type GrowerUpdateInput } from './growers'
@@ -33,7 +34,7 @@ import { createVineyard, setVineyardStatus, updateVineyard, VineyardValidationEr
 import { setTankUsableCapacity, tankUsableCapacity } from './cellar'
 import { DEFAULT_WINERY_ID, withWineryId } from './winery'
 import { createParcel, setParcelCampaignMembership, setParcelStatus, updateParcel, ParcelValidationError, type ParcelUpdateInput } from './parcels'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewVineyardInput, NewParcelInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardEstate, CampaignParcelPlan, VineyardParcel, WeatherSnapshot, Winery, WinerySettings, WineLot, WineMovement, WineMovementLeg, WineType } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, LotActivity, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewVineyardInput, NewParcelInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardEstate, CampaignParcelPlan, VineyardParcel, WeatherSnapshot, Winery, WinerySettings, WineLot, WineMovement, WineMovementLeg, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -134,6 +135,74 @@ function reattachMovementLegs(movements: WineMovement[], legs: SyncedMovementLeg
     return { ...movement, sourceLegs, destinationLegs }
   })
   return changed ? result : movements
+}
+
+// ReadingPoint/LotActivity are not promoted to top-level WineryState fields
+// (they'd need touching ~10 call sites in domain.ts with no independent
+// identity for ReadingPoint) - instead, sync-only derived projections are
+// computed fresh from `demoLots` every tick, the same "derive on read,
+// reattach after merge" approach as movement legs. `recordedAt` is what
+// gives a reading its synthesized identity, never array index: readings
+// append repeatedly, potentially from multiple devices with diverged local
+// array lengths, so an index-based id could collide across genuinely
+// different readings the way it can't for a movement's legs (created once,
+// atomically, never revisited).
+function deriveReadings(lots: WineLot[]): SyncedReading[] {
+  const rows: SyncedReading[] = []
+  for (const lot of lots) {
+    for (const reading of lot.readings) {
+      if (!reading.recordedAt) continue
+      rows.push({ id: `${lot.id}::${reading.recordedAt}`, wineryId: lot.wineryId, lotId: lot.id, temperature: reading.temperature, density: reading.density, volume: reading.volume, note: reading.note, recordedAt: reading.recordedAt })
+    }
+  }
+  return rows
+}
+
+function deriveActivities(lots: WineLot[]): SyncedActivity[] {
+  const rows: SyncedActivity[] = []
+  for (const lot of lots) {
+    for (const activity of lot.activities ?? []) rows.push({ ...activity, wineryId: lot.wineryId, lotId: lot.id })
+  }
+  return rows
+}
+
+// `time` (a display string like 'Ahora') is never a Catalyst column on
+// either table - a reading/activity pulled fresh from another device (no
+// local counterpart to preserve it from) arrives with `time` missing, so
+// one is reconstructed from `recordedAt` here. Deliberately a fixed
+// clock-time string (formatZonedDateTime), not a relative one
+// (formatRelativeTime): a relative string's value keeps changing as time
+// passes, which would make a lot whose readings/activities include a
+// remote-only entry look "changed" on every single tick forever, purely
+// from the display string drifting - not a self-retrigger network storm
+// (readings/activities aren't WineLot columns, so this never makes `lots`
+// itself dirty), but a pointless re-render all the same.
+const stripReadingMeta = (reading: SyncedReading, locale: string, timeZone: string): ReadingPoint =>
+  ({ time: formatZonedDateTime(reading.recordedAt, locale, timeZone), temperature: reading.temperature, density: reading.density, volume: reading.volume, note: reading.note, recordedAt: reading.recordedAt })
+
+const stripActivityMeta = (activity: SyncedActivity, locale: string, timeZone: string): LotActivity =>
+  ({ id: activity.id, title: activity.title, person: activity.person, time: activity.time ?? formatZonedDateTime(activity.recordedAt, locale, timeZone), detail: activity.detail, recordedAt: activity.recordedAt })
+
+// Rebuilds each lot's readings/activities from the merged, independently-
+// synced child collections - required for the same reason as movement-leg
+// reattachment: neither is a WineLot column, so a lot pulled fresh from
+// another device would otherwise render with none at all. Readings are
+// ordered oldest-first (matches how domain.ts appends them, and what the
+// fermentation chart expects); activities newest-first (domain.ts always
+// prepends a new one). Preserves each lot's exact object reference when its
+// readings/activities didn't actually change.
+function reattachLotChildren(lots: WineLot[], readings: SyncedReading[], activities: SyncedActivity[], locale: string, timeZone: string): WineLot[] {
+  const readingsByLot = groupSortedBy(readings, (reading) => reading.lotId, (reading) => new Date(reading.recordedAt).getTime())
+  const activitiesByLot = groupSortedBy(activities, (activity) => activity.lotId, (activity) => -new Date(activity.recordedAt).getTime())
+  let changed = false
+  const result = lots.map((lot) => {
+    const nextReadings = (readingsByLot.get(lot.id) ?? []).map((reading) => stripReadingMeta(reading, locale, timeZone))
+    const nextActivities = (activitiesByLot.get(lot.id) ?? []).map((activity) => stripActivityMeta(activity, locale, timeZone))
+    if (deepEqualTolerant(lot.readings, nextReadings) && deepEqualTolerant(lot.activities ?? [], nextActivities)) return lot
+    changed = true
+    return { ...lot, readings: nextReadings, activities: nextActivities }
+  })
+  return changed ? result : lots
 }
 
 function App() {
@@ -286,6 +355,9 @@ function App() {
         productionEvents,
         movements,
         movementLegs: deriveMovementLegs(movements),
+        lots: demoLots,
+        readings: deriveReadings(demoLots),
+        activities: deriveActivities(demoLots),
       })
       if (!cancelled) setRemoteWineryContext(provisioned)
     })
@@ -315,16 +387,22 @@ function App() {
   const tasksRef = useRef(tasks); tasksRef.current = tasks
   const productionEventsRef = useRef(productionEvents); productionEventsRef.current = productionEvents
   const movementsRef = useRef(movements); movementsRef.current = movements
+  const demoLotsRef = useRef(demoLots); demoLotsRef.current = demoLots
+  const settingsRef = useRef(settings); settingsRef.current = settings
   const remoteContextRef = useRef(remoteWineryContext); remoteContextRef.current = remoteWineryContext
 
   const syncTick = useCallback(async () => {
     const baseline = remoteContextRef.current
     if (!baseline || baseline.status !== 'authenticated_with_membership') return
 
-    // Legs have no state of their own - re-derived fresh from `movements`
-    // every tick, then diffed/merged through the same generic mechanism as
-    // any other collection. See deriveMovementLegs/reattachMovementLegs.
+    // Legs/readings/activities have no state of their own - re-derived
+    // fresh from `movements`/`demoLots` every tick, then diffed/merged
+    // through the same generic mechanism as any other collection. See
+    // deriveMovementLegs/reattachMovementLegs and
+    // deriveReadings/deriveActivities/reattachLotChildren.
     const derivedLegs = deriveMovementLegs(movementsRef.current)
+    const derivedReadings = deriveReadings(demoLotsRef.current)
+    const derivedActivities = deriveActivities(demoLotsRef.current)
 
     const dirty = {
       campaigns: dirtyRows('campaigns', campaignsRef.current, baseline.campaigns),
@@ -337,6 +415,9 @@ function App() {
       productionEvents: dirtyRows('productionEvents', productionEventsRef.current, baseline.productionEvents),
       movements: dirtyRows('movements', movementsRef.current, baseline.movements),
       movementLegs: dirtyRows('movementLegs', derivedLegs, baseline.movementLegs),
+      lots: dirtyRows('lots', demoLotsRef.current, baseline.lots),
+      readings: dirtyRows('readings', derivedReadings, baseline.readings),
+      activities: dirtyRows('activities', derivedActivities, baseline.activities),
     }
     if (Object.values(dirty).some((rows) => rows.length > 0)) {
       const payload: SyncPushPayload = {}
@@ -350,6 +431,9 @@ function App() {
       if (dirty.productionEvents.length) payload.productionEvents = dirty.productionEvents
       if (dirty.movements.length) payload.movements = dirty.movements
       if (dirty.movementLegs.length) payload.movementLegs = dirty.movementLegs
+      if (dirty.lots.length) payload.lots = dirty.lots
+      if (dirty.readings.length) payload.readings = dirty.readings
+      if (dirty.activities.length) payload.activities = dirty.activities
       const pushed = await pushWinerySync(payload)
       const conflictNames = pushed ? [
         ...(pushed.campaigns?.conflicts ?? []).map((row) => row.name),
@@ -362,6 +446,9 @@ function App() {
         ...(pushed.productionEvents?.conflicts ?? []).map((row) => row.id),
         ...(pushed.movements?.conflicts ?? []).map((row) => row.code),
         ...(pushed.movementLegs?.conflicts ?? []).map((row) => row.id),
+        ...(pushed.lots?.conflicts ?? []).map((row) => row.name),
+        ...(pushed.readings?.conflicts ?? []).map((row) => row.id),
+        ...(pushed.activities?.conflicts ?? []).map((row) => row.title),
       ] : []
       if (conflictNames.length > 0) {
         setToast(locale.startsWith('es')
@@ -394,6 +481,11 @@ function App() {
     const mergedMovementLegs = mergePulledRows('movementLegs', derivedLegs, baseline.movementLegs, fresh.movementLegs)
     const reattachedMovements = reattachMovementLegs(mergedMovements, mergedMovementLegs)
     if (reattachedMovements !== movementsRef.current) setMovements(reattachedMovements)
+    const mergedLots = mergePulledRows('lots', demoLotsRef.current, baseline.lots, fresh.lots)
+    const mergedReadings = mergePulledRows('readings', derivedReadings, baseline.readings, fresh.readings)
+    const mergedActivities = mergePulledRows('activities', derivedActivities, baseline.activities, fresh.activities)
+    const reattachedLots = reattachLotChildren(mergedLots, mergedReadings, mergedActivities, locale, settingsRef.current.timezone)
+    if (reattachedLots !== demoLotsRef.current) setDemoLots(reattachedLots)
 
     setRemoteWineryContext(fresh)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -413,7 +505,7 @@ function App() {
     if (!authUser) return
     const timeout = window.setTimeout(() => { void syncTick() }, 3000)
     return () => window.clearTimeout(timeout)
-  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks, allProductionEvents, allMovements])
+  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks, allProductionEvents, allMovements, allDemoLots])
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
     void fetchWineryWeather(settings.latitude, settings.longitude, settings.timezone)

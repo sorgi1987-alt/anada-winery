@@ -258,3 +258,60 @@ test('synthesized movement-leg ids are distinct across sides and preserve creati
   assert.equal(new Set(ids).size, ids.length, 'every leg id must be unique')
   assert.deepEqual(ids, ['movement-1-source-0', 'movement-1-destination-0', 'movement-1-destination-1', 'movement-1-destination-2'])
 })
+
+// Phase 9.5 stage 3 (Batch 1): lots - flat scalar fields sync exactly like
+// any other collection. process/productionDetails (below) are the one part
+// that needs special handling.
+test('dirtyRows/mergePulledRows work for the lots collection key', () => {
+  interface LotRow { id: string; wineryId?: string; name: string; stage: string }
+  const original: LotRow = { id: 'L-2026-001', wineryId: 'winery-default', name: 'Ladera del Iregua', stage: 'Fermentación' }
+  const baseline = { ...original, _rev: 'rev-1' }
+  assert.equal(dirtyRows('lots', [original], [baseline]).length, 0)
+  const edited = { ...original, stage: 'Descube' }
+  assert.equal(dirtyRows('lots', [edited], [baseline]).length, 1)
+})
+
+// Regression test for the JSON-blob equivalent of the earlier
+// undefined/null and nested-object self-retrigger bugs: WineLot.process is
+// an array (not a scalar) that round-trips through Catalyst as a
+// JSON.stringify'd text column but stays real objects on the browser side -
+// a freshly-parsed array is never `===` its local counterpart even with
+// byte-identical content.
+test('dirtyRows treats a lot as clean when its process/productionDetails are content-equal but freshly parsed (different references)', () => {
+  interface LotRow { id: string; wineryId?: string; process: { id: string; status: string }[]; productionDetails: { receivedKg: number } }
+  const local: LotRow = { id: 'L-2026-001', wineryId: 'winery-default', process: [{ id: 'recepcion', status: 'complete' }], productionDetails: { receivedKg: 9340 } }
+  const freshlyParsed: LotRow = { id: 'L-2026-001', wineryId: 'winery-default', process: JSON.parse(JSON.stringify(local.process)), productionDetails: JSON.parse(JSON.stringify(local.productionDetails)) }
+  const baseline = { ...freshlyParsed, _rev: 'rev-1' }
+  assert.notEqual(local.process, baseline.process, 'the test only proves something if these are genuinely different references')
+  assert.equal(dirtyRows('lots', [local], [baseline]).length, 0)
+})
+
+test('dirtyRows detects a real change inside a lot\'s process array', () => {
+  interface LotRow { id: string; wineryId?: string; process: { id: string; status: string }[] }
+  const original: LotRow = { id: 'L-2026-001', wineryId: 'winery-default', process: [{ id: 'recepcion', status: 'complete' }] }
+  const baseline = { ...original, _rev: 'rev-1' }
+  const edited: LotRow = { id: 'L-2026-001', wineryId: 'winery-default', process: [{ id: 'recepcion', status: 'complete' }, { id: 'encubado', status: 'current' }] }
+  assert.equal(dirtyRows('lots', [edited], [baseline]).length, 1)
+})
+
+// readings/activities are synced as independent flat collections keyed by a
+// synthesized (readings) or already-real (activities) id - dirtyRows/
+// mergePulledRows need nothing collection-specific for either.
+test('dirtyRows/mergePulledRows work for the readings collection key', () => {
+  interface ReadingRow { id: string; wineryId?: string; lotId: string; temperature: number; recordedAt: string }
+  const original: ReadingRow = { id: 'L-2026-001::2026-08-12T10:00:00.000Z', wineryId: 'winery-default', lotId: 'L-2026-001', temperature: 24.8, recordedAt: '2026-08-12T10:00:00.000Z' }
+  const baseline = { ...original, _rev: 'rev-1' }
+  assert.equal(dirtyRows('readings', [original], [baseline]).length, 0)
+  const pendingCreate: ReadingRow = { ...original, id: 'L-2026-001::2026-08-12T11:00:00.000Z', recordedAt: '2026-08-12T11:00:00.000Z', temperature: 25.1 }
+  assert.equal(dirtyRows('readings', [pendingCreate], []).length, 1)
+})
+
+test('dirtyRows/mergePulledRows work for the activities collection key', () => {
+  interface ActivityRow { id: string; wineryId?: string; lotId: string; title: string; recordedAt: string }
+  const original: ActivityRow = { id: 'activity-1', wineryId: 'winery-default', lotId: 'L-2026-001', title: 'Lote creado', recordedAt: '2026-08-12T10:00:00.000Z' }
+  const local = [original]
+  const baseline = { ...original, _rev: 'rev-1' }
+  assert.equal(dirtyRows('activities', local, [baseline]).length, 0)
+  const merged = mergePulledRows('activities', local, [baseline], [baseline])
+  assert.equal(merged, local, 'mergePulledRows must return the exact same array reference when nothing changed')
+})

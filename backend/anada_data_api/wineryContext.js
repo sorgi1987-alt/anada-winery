@@ -25,7 +25,16 @@ const toCatalystDatetime = (v) => {
   return date.toISOString().replace('T', ' ').slice(0, 19)
 }
 
-const coerce = { string: str, number: num, boolean: bool, datetime: fromCatalystDatetime }
+// A 'json' column stores a JSON.stringify'd blob in a plain text column -
+// Catalyst has no native JSON type. A malformed or empty value coerces to
+// null rather than throwing, matching every other coerce function's
+// tolerance for absent data.
+const json = (v) => {
+  if (v === null || v === undefined || v === '') return null
+  try { return JSON.parse(v) } catch { return null }
+}
+
+const coerce = { string: str, number: num, boolean: bool, datetime: fromCatalystDatetime, json }
 
 // Dotted key paths (e.g. 'metrics.temperature') let a flat Catalyst column
 // map onto a nested browser field without any per-table special-casing.
@@ -169,6 +178,36 @@ const TABLE_FIELDS = {
     ['Sequence', 'sequence', 'number'], ['LotID', 'lotId', 'string'], ['LotName', 'lotName', 'string'], ['VesselID', 'vesselId', 'string'],
     ['VolumeBefore', 'volumeBefore', 'number'], ['MovementVolume', 'movementVolume', 'number'], ['VolumeAfter', 'volumeAfter', 'number'],
   ],
+  // WineLot.image/.readings/.activities are deliberately not columns here -
+  // image is a Vite-bundled local asset path, not portable data; readings
+  // and activities are synced as their own child tables (below) since they
+  // append repeatedly and have no fixed size, unlike ProductionEvent.metrics.
+  Anada_WineLots: [
+    ['LotID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Name', 'name', 'string'], ['WineType', 'type', 'string'],
+    ['Varieties', 'varieties', 'string'], ['Origin', 'origin', 'string'], ['Vintage', 'vintage', 'number'], ['VolumeLitres', 'volume', 'number'],
+    ['VesselID', 'vessel', 'string'], ['Stage', 'stage', 'string'], ['Progress', 'progress', 'number'], ['Attention', 'attention', 'string'],
+    ['NextAction', 'nextAction', 'string'], ['NextTime', 'nextTime', 'string'], ['ProcessJSON', 'process', 'json'], ['ProductionJSON', 'productionDetails', 'json'],
+    ['Day', 'day', 'number'], ['TemperatureC', 'temperature', 'number'], ['Density', 'density', 'number'], ['AttentionText', 'attentionText', 'string'],
+    ['OperationalStatus', 'operationalStatus', 'string'], ['CampaignID', 'campaignId', 'string'], ['CurrentVesselID', 'currentVesselId', 'string'],
+  ],
+  // ReadingPoint has no identity of its own - App.tsx's deriveReadings
+  // synthesizes `${lotId}::${recordedAt}` (never index-based: readings
+  // append repeatedly, potentially from multiple devices with diverged
+  // local array lengths, so an index could collide across genuinely
+  // different readings). `time` (a display string like 'Ahora') is
+  // deliberately not a column - it's reconstructed client-side from
+  // `recordedAt` when a reading arrives from another device with no local
+  // counterpart to preserve it from.
+  Anada_Readings: [
+    ['ReadingID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['LotID', 'lotId', 'string'], ['RecordedAt', 'recordedAt', 'datetime'],
+    ['TemperatureC', 'temperature', 'number'], ['Density', 'density', 'number'], ['VolumeLitres', 'volume', 'number'], ['Note', 'note', 'string'],
+  ],
+  // LotActivity does have its own `id`, unlike a reading, so no synthesized
+  // id is needed here - same `time`-is-not-a-column reasoning as readings.
+  Anada_Activities: [
+    ['ActivityID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['LotID', 'lotId', 'string'], ['Title', 'title', 'string'],
+    ['Person', 'person', 'string'], ['Detail', 'detail', 'string'], ['RecordedAt', 'recordedAt', 'datetime'],
+  ],
 }
 
 // Winery-scoped tables read after membership is known, keyed by the
@@ -187,6 +226,9 @@ const WINERY_SCOPED_TABLES = {
   productionEvents: 'Anada_ProductionEvents',
   movements: 'Anada_WineMovements',
   movementLegs: 'Anada_MovementLegs',
+  lots: 'Anada_WineLots',
+  readings: 'Anada_Readings',
+  activities: 'Anada_Activities',
 }
 
 function escapeZcqlString(value) {
@@ -310,6 +352,10 @@ function toRow(tableName, obj) {
       if (coerced !== undefined) row[column] = coerced
       continue
     }
+    if (wireType === 'json') {
+      row[column] = JSON.stringify(value)
+      continue
+    }
     row[column] = value
   }
   return row
@@ -390,6 +436,9 @@ const SYNCABLE_TABLES = {
   productionEvents: 'Anada_ProductionEvents',
   movements: 'Anada_WineMovements',
   movementLegs: 'Anada_MovementLegs',
+  lots: 'Anada_WineLots',
+  readings: 'Anada_Readings',
+  activities: 'Anada_Activities',
 }
 
 const ID_COLUMNS = {
@@ -403,6 +452,9 @@ const ID_COLUMNS = {
   Anada_ProductionEvents: 'ProductionEventID',
   Anada_WineMovements: 'MovementID',
   Anada_MovementLegs: 'LegID',
+  Anada_WineLots: 'LotID',
+  Anada_Readings: 'ReadingID',
+  Anada_Activities: 'ActivityID',
 }
 
 class SyncError extends Error {

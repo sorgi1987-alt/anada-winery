@@ -453,3 +453,70 @@ test('syncWineryData authorizes movement legs the same way as any other row - by
   assert.equal(result.movementLegs.written.length, 0)
   assert.deepEqual(tableRows.Anada_MovementLegs, [])
 })
+
+// Phase 9.5 stage 3 (Batch 1): lots + readings + activities - the last and
+// most complex slice of this batch. `process`/`productionDetails` use the
+// new 'json' wireType (a JSON.stringify'd blob in a plain text column,
+// since Catalyst has no native JSON type). `image`/`readings`/`activities`
+// are deliberately not lot columns - readings/activities sync as their own
+// child tables instead (below), with no fixed size unlike ProductionEvent's
+// flattened metrics.
+function lotFixture(overrides = {}) {
+  return {
+    id: 'L-2026-001', wineryId: 'winery-default', name: 'Ladera del Iregua', type: 'tinto', varieties: 'Tempranillo',
+    origin: 'Alberite', vintage: 2026, volume: 7850, vessel: 'D-12', stage: 'Fermentación alcohólica y maceración',
+    progress: 40, attention: 'normal', nextAction: 'Registrar densidad', nextTime: '16:00',
+    process: [{ id: 'recepcion', label: 'Recepción', shortLabel: 'Recepción', status: 'complete' }],
+    productionDetails: { receivedKg: 9340, receptionDate: '2026-08-01', initialDensity: 1.098, receptionTemperature: 17.8 },
+    day: 4, temperature: 24.8, density: 1.046, attentionText: '', operationalStatus: 'active',
+    campaignId: 'campaign-2026', currentVesselId: 'D-12', ...overrides,
+  }
+}
+
+function readingFixture(overrides = {}) {
+  return {
+    id: 'L-2026-001::2026-08-12T10:00:00.000Z', wineryId: 'winery-default', lotId: 'L-2026-001',
+    recordedAt: '2026-08-12T10:00:00.000Z', temperature: 24.8, density: 1.046, volume: 7850, note: 'Probe reading', ...overrides,
+  }
+}
+
+function activityFixture(overrides = {}) {
+  return {
+    id: 'activity-1', wineryId: 'winery-default', lotId: 'L-2026-001', title: 'Lote creado',
+    person: 'Sergio Castañares', detail: '9340 kg recibidos', recordedAt: '2026-08-12T10:00:00.000Z', ...overrides,
+  }
+}
+
+test('syncWineryData round-trips a lot\'s process/productionDetails through the json wireType', async () => {
+  const tableRows = { ...membershipFixture(), Anada_WineLots: [] }
+  const app = fakeCatalystApp(tableRows)
+  const created = await syncWineryData(app, { emailId: 'sergio@example.com' }, { lots: [lotFixture()] })
+  assert.equal(created.lots.written.length, 1)
+  const writtenLot = created.lots.written[0]
+  assert.deepEqual(writtenLot.process, [{ id: 'recepcion', label: 'Recepción', shortLabel: 'Recepción', status: 'complete' }])
+  assert.equal(writtenLot.productionDetails.receivedKg, 9340)
+  // Flat Catalyst storage really did receive a JSON string, not a nested object.
+  assert.equal(typeof tableRows.Anada_WineLots[0].ProcessJSON, 'string')
+  assert.equal(JSON.parse(tableRows.Anada_WineLots[0].ProductionJSON).receivedKg, 9340)
+
+  const currentRev = writtenLot._rev
+  const updated = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    lots: [lotFixture({ process: [{ id: 'recepcion', label: 'Recepción', shortLabel: 'Recepción', status: 'complete' }, { id: 'encubado', label: 'Encubado', shortLabel: 'Encubado', status: 'current' }], _rev: currentRev })],
+  })
+  assert.equal(updated.lots.conflicts.length, 0)
+  assert.equal(updated.lots.written[0].process.length, 2)
+})
+
+test('syncWineryData creates a lot\'s readings and activities as independent child collections', async () => {
+  const tableRows = { ...membershipFixture(), Anada_Readings: [], Anada_Activities: [] }
+  const app = fakeCatalystApp(tableRows)
+  const result = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    readings: [readingFixture()],
+    activities: [activityFixture()],
+  })
+  assert.equal(result.readings.written.length, 1)
+  assert.equal(result.readings.written[0].lotId, 'L-2026-001')
+  assert.equal(result.readings.written[0].temperature, 24.8)
+  assert.equal(result.activities.written.length, 1)
+  assert.equal(result.activities.written[0].title, 'Lote creado')
+})
