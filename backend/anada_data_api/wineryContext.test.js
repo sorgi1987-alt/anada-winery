@@ -553,3 +553,34 @@ test('syncWineryData round-trips a delivery, including its plain-string schedule
   assert.equal(updated.deliveries.conflicts.length, 0)
   assert.equal(updated.deliveries.written[0].notes, 'Uva sana')
 })
+
+// Batch 2 (Lab slice): samples. requestedAnalyses/results round-trip
+// through the 'json' wireType (arrays with no independent identity);
+// dueAt is a plain time-of-day string, not a real datetime.
+function labSampleFixture(overrides = {}) {
+  return {
+    id: 'sample-1', wineryId: 'winery-default', code: 'LAB-26-001', sourceType: 'lot', sourceId: 'T-26-017',
+    sourceName: 'Ladera del Iregua', wineType: 'tinto', profile: 'fermentation', collectedAt: '2026-08-12T15:00:00.000Z',
+    collectedBy: 'Lucía Sáenz', assignedTo: 'Lucía Sáenz', dueAt: '17:00', priority: 'today', status: 'queued',
+    requestedAnalyses: ['temperature', 'density', 'potential_alcohol'], results: [], notes: '', ...overrides,
+  }
+}
+
+test('syncWineryData round-trips a lab sample\'s requestedAnalyses/results through the json wireType', async () => {
+  const tableRows = { ...membershipFixture(), Anada_LabSamples: [] }
+  const app = fakeCatalystApp(tableRows)
+  const created = await syncWineryData(app, { emailId: 'sergio@example.com' }, { samples: [labSampleFixture()] })
+  assert.equal(created.samples.written.length, 1)
+  const written = created.samples.written[0]
+  assert.deepEqual(written.requestedAnalyses, ['temperature', 'density', 'potential_alcohol'])
+  assert.equal(written.dueAt, '17:00')
+  assert.equal(typeof tableRows.Anada_LabSamples[0].RequestedAnalysesJSON, 'string')
+
+  const currentRev = written._rev
+  const results = [{ analysis: 'temperature', value: 24.8, unit: '°C', status: 'normal' }]
+  const updated = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    samples: [labSampleFixture({ status: 'validated', results, validatedAt: '2026-08-12T16:00:00.000Z', _rev: currentRev })],
+  })
+  assert.equal(updated.samples.conflicts.length, 0)
+  assert.deepEqual(updated.samples.written[0].results, results)
+})

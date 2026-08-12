@@ -1,6 +1,6 @@
 'use strict'
 
-const SCHEMA_VERSION = 4
+const SCHEMA_VERSION = 5
 
 const TABLES = Object.freeze([
   Object.freeze({ name: 'Anada_Wineries', id: '11922000000093921' }),
@@ -24,6 +24,7 @@ const TABLES = Object.freeze([
   Object.freeze({ name: 'Anada_WineMovements', id: '11922000000125238' }),
   Object.freeze({ name: 'Anada_MovementLegs', id: '11922000000130364' }),
   Object.freeze({ name: 'Anada_Deliveries', id: '11922000000125690' }),
+  Object.freeze({ name: 'Anada_LabSamples', id: '11922000000132212' }),
 ])
 
 function healthPayload(checks = []) {

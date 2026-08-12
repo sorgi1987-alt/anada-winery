@@ -220,6 +220,23 @@ const TABLE_FIELDS = {
     ['PotentialAlcohol', 'potentialAlcohol', 'number'], ['GrapeCondition', 'condition', 'string'], ['Notes', 'notes', 'string'],
     ['GrowerID', 'growerId', 'string'], ['CampaignID', 'campaignId', 'string'],
   ],
+  // Batch 2 (Lab slice). DueAt is a plain time-of-day string ('17:00', an
+  // <input type="time"> value), not a real datetime - only CollectedAt/
+  // ValidatedAt are real ISO timestamps. requestedAnalyses/results are
+  // arrays with no independent identity, flattened via the 'json' wireType
+  // rather than given their own child table (same reasoning as
+  // ProductionEvent.metrics/WineLot.process). 'Priority' is a reserved
+  // ZCQL keyword (found live creating this table), hence SamplePriority;
+  // SampleStatus follows the same naming for consistency, though 'Status'
+  // alone has worked fine on every other table.
+  Anada_LabSamples: [
+    ['SampleID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Code', 'code', 'string'], ['SourceType', 'sourceType', 'string'],
+    ['SourceID', 'sourceId', 'string'], ['SourceName', 'sourceName', 'string'], ['WineType', 'wineType', 'string'], ['Profile', 'profile', 'string'],
+    ['CollectedAt', 'collectedAt', 'datetime'], ['CollectedBy', 'collectedBy', 'string'], ['AssignedTo', 'assignedTo', 'string'],
+    ['DueAt', 'dueAt', 'string'], ['SamplePriority', 'priority', 'string'], ['SampleStatus', 'status', 'string'],
+    ['RequestedAnalysesJSON', 'requestedAnalyses', 'json'], ['ResultsJSON', 'results', 'json'], ['Notes', 'notes', 'string'],
+    ['ValidatedAt', 'validatedAt', 'datetime'],
+  ],
 }
 
 // Winery-scoped tables read after membership is known, keyed by the
@@ -242,6 +259,7 @@ const WINERY_SCOPED_TABLES = {
   readings: 'Anada_Readings',
   activities: 'Anada_Activities',
   deliveries: 'Anada_Deliveries',
+  samples: 'Anada_LabSamples',
 }
 
 function escapeZcqlString(value) {
@@ -453,6 +471,7 @@ const SYNCABLE_TABLES = {
   readings: 'Anada_Readings',
   activities: 'Anada_Activities',
   deliveries: 'Anada_Deliveries',
+  samples: 'Anada_LabSamples',
 }
 
 const ID_COLUMNS = {
@@ -470,6 +489,7 @@ const ID_COLUMNS = {
   Anada_Readings: 'ReadingID',
   Anada_Activities: 'ActivityID',
   Anada_Deliveries: 'DeliveryID',
+  Anada_LabSamples: 'SampleID',
 }
 
 class SyncError extends Error {

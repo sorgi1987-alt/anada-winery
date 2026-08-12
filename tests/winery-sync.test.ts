@@ -331,3 +331,24 @@ test('dirtyRows/mergePulledRows work for the deliveries collection key', () => {
   const merged = mergePulledRows('deliveries', local, [baseline], [baseline])
   assert.equal(merged, local, 'mergePulledRows must return the exact same array reference when nothing changed')
 })
+
+// Batch 2 (Lab slice): samples. requestedAnalyses/results are the JSON-blob
+// equivalent of productionEvents.metrics/lots.process - a freshly-parsed
+// array is never `===` its local counterpart even with identical content.
+test('dirtyRows treats a sample as clean when its requestedAnalyses/results are content-equal but freshly parsed', () => {
+  interface SampleRow { id: string; wineryId?: string; requestedAnalyses: string[]; results: { analysis: string; value: number }[] }
+  const local: SampleRow = { id: 'sample-1', wineryId: 'winery-default', requestedAnalyses: ['temperature', 'density'], results: [{ analysis: 'temperature', value: 24.8 }] }
+  const freshlyParsed: SampleRow = { id: 'sample-1', wineryId: 'winery-default', requestedAnalyses: JSON.parse(JSON.stringify(local.requestedAnalyses)), results: JSON.parse(JSON.stringify(local.results)) }
+  const baseline = { ...freshlyParsed, _rev: 'rev-1' }
+  assert.notEqual(local.results, baseline.results, 'the test only proves something if these are genuinely different references')
+  assert.equal(dirtyRows('samples', [local], [baseline]).length, 0)
+})
+
+test('dirtyRows/mergePulledRows work for the samples collection key', () => {
+  interface SampleRow { id: string; wineryId?: string; code: string; dueAt: string; status: string }
+  const original: SampleRow = { id: 'sample-1', wineryId: 'winery-default', code: 'LAB-26-001', dueAt: '17:00', status: 'queued' }
+  const baseline = { ...original, _rev: 'rev-1' }
+  assert.equal(dirtyRows('samples', [original], [baseline]).length, 0)
+  const edited = { ...original, status: 'validated' }
+  assert.equal(dirtyRows('samples', [edited], [baseline]).length, 1)
+})

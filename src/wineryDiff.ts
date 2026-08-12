@@ -44,6 +44,9 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
   // scheduledDate/scheduledTime are plain form strings ('2026-09-17',
   // '09:00'), not full ISO timestamps - only receivedAt is a real datetime.
   deliveries: ['receivedAt'],
+  // dueAt is a plain time-of-day string ('17:00'), not a real datetime -
+  // only collectedAt/validatedAt are real ISO timestamps.
+  samples: ['collectedAt', 'validatedAt'],
 }
 
 // Fields whose value is a nested object/array rather than a scalar (e.g.
@@ -62,6 +65,9 @@ const DEEP_FIELDS: Record<string, readonly string[]> = {
   // productionEvents.metrics, one level up: a freshly-parsed object is
   // never `===` its local counterpart even with identical content.
   lots: ['process', 'productionDetails'],
+  // LabSample.requestedAnalyses/.results are arrays with no independent
+  // identity, flattened via the 'json' wireType (same as WineLot.process).
+  samples: ['requestedAnalyses', 'results'],
 }
 
 // Exported for App.tsx's movement-legs reattachment step, which needs the
