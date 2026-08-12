@@ -358,6 +358,7 @@ function App() {
         lots: demoLots,
         readings: deriveReadings(demoLots),
         activities: deriveActivities(demoLots),
+        deliveries,
       })
       if (!cancelled) setRemoteWineryContext(provisioned)
     })
@@ -388,6 +389,7 @@ function App() {
   const productionEventsRef = useRef(productionEvents); productionEventsRef.current = productionEvents
   const movementsRef = useRef(movements); movementsRef.current = movements
   const demoLotsRef = useRef(demoLots); demoLotsRef.current = demoLots
+  const deliveriesRef = useRef(deliveries); deliveriesRef.current = deliveries
   const settingsRef = useRef(settings); settingsRef.current = settings
   const remoteContextRef = useRef(remoteWineryContext); remoteContextRef.current = remoteWineryContext
 
@@ -418,6 +420,7 @@ function App() {
       lots: dirtyRows('lots', demoLotsRef.current, baseline.lots),
       readings: dirtyRows('readings', derivedReadings, baseline.readings),
       activities: dirtyRows('activities', derivedActivities, baseline.activities),
+      deliveries: dirtyRows('deliveries', deliveriesRef.current, baseline.deliveries),
     }
     if (Object.values(dirty).some((rows) => rows.length > 0)) {
       const payload: SyncPushPayload = {}
@@ -434,6 +437,7 @@ function App() {
       if (dirty.lots.length) payload.lots = dirty.lots
       if (dirty.readings.length) payload.readings = dirty.readings
       if (dirty.activities.length) payload.activities = dirty.activities
+      if (dirty.deliveries.length) payload.deliveries = dirty.deliveries
       const pushed = await pushWinerySync(payload)
       const conflictNames = pushed ? [
         ...(pushed.campaigns?.conflicts ?? []).map((row) => row.name),
@@ -449,6 +453,7 @@ function App() {
         ...(pushed.lots?.conflicts ?? []).map((row) => row.name),
         ...(pushed.readings?.conflicts ?? []).map((row) => row.id),
         ...(pushed.activities?.conflicts ?? []).map((row) => row.title),
+        ...(pushed.deliveries?.conflicts ?? []).map((row) => row.code),
       ] : []
       if (conflictNames.length > 0) {
         setToast(locale.startsWith('es')
@@ -486,6 +491,8 @@ function App() {
     const mergedActivities = mergePulledRows('activities', derivedActivities, baseline.activities, fresh.activities)
     const reattachedLots = reattachLotChildren(mergedLots, mergedReadings, mergedActivities, locale, settingsRef.current.timezone)
     if (reattachedLots !== demoLotsRef.current) setDemoLots(reattachedLots)
+    const mergedDeliveries = mergePulledRows('deliveries', deliveriesRef.current, baseline.deliveries, fresh.deliveries)
+    if (mergedDeliveries !== deliveriesRef.current) setDeliveries(mergedDeliveries)
 
     setRemoteWineryContext(fresh)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -505,7 +512,7 @@ function App() {
     if (!authUser) return
     const timeout = window.setTimeout(() => { void syncTick() }, 3000)
     return () => window.clearTimeout(timeout)
-  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks, allProductionEvents, allMovements, allDemoLots])
+  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks, allProductionEvents, allMovements, allDemoLots, allDeliveries])
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
     void fetchWineryWeather(settings.latitude, settings.longitude, settings.timezone)

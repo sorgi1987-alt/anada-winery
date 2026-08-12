@@ -520,3 +520,36 @@ test('syncWineryData creates a lot\'s readings and activities as independent chi
   assert.equal(result.activities.written.length, 1)
   assert.equal(result.activities.written[0].title, 'Lote creado')
 })
+
+// Batch 2 (Harvest slice): deliveries. scheduledDate/scheduledTime are plain
+// form strings ('2026-09-17', '09:00'), not full ISO timestamps - only
+// receivedAt is a real datetime.
+function deliveryFixture(overrides = {}) {
+  return {
+    id: 'delivery-1', wineryId: 'winery-default', code: 'ENT-26-041', parcelId: 'PAR-ALB-014', grower: 'Viñedos Iregua',
+    varieties: 'Tempranillo', origin: 'Alberite · Rioja Oriental', scheduledDate: '2026-09-17', scheduledTime: '09:00',
+    expectedKg: 9340, status: 'received', vehicle: '1234ABC', processingDestination: 'Mesa de selección',
+    receivedAt: '2026-08-12T13:00:00.000Z', grossKg: 9500, tareKg: 160, netKg: 9340, temperature: 17.8,
+    potentialAlcohol: 13.4, condition: 'excellent', notes: '', growerId: 'grower-vinedos-iregua', campaignId: 'campaign-2026',
+    ...overrides,
+  }
+}
+
+test('syncWineryData round-trips a delivery, including its plain-string scheduledDate/scheduledTime', async () => {
+  const tableRows = { ...membershipFixture(), Anada_Deliveries: [] }
+  const app = fakeCatalystApp(tableRows)
+  const created = await syncWineryData(app, { emailId: 'sergio@example.com' }, { deliveries: [deliveryFixture()] })
+  assert.equal(created.deliveries.written.length, 1)
+  const written = created.deliveries.written[0]
+  assert.equal(written.scheduledDate, '2026-09-17')
+  assert.equal(written.scheduledTime, '09:00')
+  assert.equal(written.netKg, 9340)
+  assert.equal(written.condition, 'excellent')
+
+  const currentRev = written._rev
+  const updated = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    deliveries: [deliveryFixture({ status: 'received', notes: 'Uva sana', _rev: currentRev })],
+  })
+  assert.equal(updated.deliveries.conflicts.length, 0)
+  assert.equal(updated.deliveries.written[0].notes, 'Uva sana')
+})

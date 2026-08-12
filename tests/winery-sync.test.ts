@@ -315,3 +315,19 @@ test('dirtyRows/mergePulledRows work for the activities collection key', () => {
   const merged = mergePulledRows('activities', local, [baseline], [baseline])
   assert.equal(merged, local, 'mergePulledRows must return the exact same array reference when nothing changed')
 })
+
+// Batch 2 (Harvest slice): deliveries - flat, confirms the generic
+// mechanism needs nothing collection-specific. scheduledDate/scheduledTime
+// are plain form strings, not full ISO timestamps - only receivedAt is a
+// real datetime, matching the DATETIME_FIELDS entry in wineryDiff.ts.
+test('dirtyRows/mergePulledRows work for the deliveries collection key', () => {
+  interface DeliveryRow { id: string; wineryId?: string; code: string; scheduledDate: string; status: string }
+  const original: DeliveryRow = { id: 'delivery-1', wineryId: 'winery-default', code: 'ENT-26-041', scheduledDate: '2026-09-17', status: 'received' }
+  const baseline = { ...original, _rev: 'rev-1' }
+  assert.equal(dirtyRows('deliveries', [original], [baseline]).length, 0)
+  const edited = { ...original, status: 'planned' }
+  assert.equal(dirtyRows('deliveries', [edited], [baseline]).length, 1)
+  const local = [original]
+  const merged = mergePulledRows('deliveries', local, [baseline], [baseline])
+  assert.equal(merged, local, 'mergePulledRows must return the exact same array reference when nothing changed')
+})

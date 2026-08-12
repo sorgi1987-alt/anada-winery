@@ -41,6 +41,9 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
   lots: [],
   readings: ['recordedAt'],
   activities: ['recordedAt'],
+  // scheduledDate/scheduledTime are plain form strings ('2026-09-17',
+  // '09:00'), not full ISO timestamps - only receivedAt is a real datetime.
+  deliveries: ['receivedAt'],
 }
 
 // Fields whose value is a nested object/array rather than a scalar (e.g.

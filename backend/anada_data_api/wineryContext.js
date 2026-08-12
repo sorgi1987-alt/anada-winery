@@ -208,6 +208,18 @@ const TABLE_FIELDS = {
     ['ActivityID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['LotID', 'lotId', 'string'], ['Title', 'title', 'string'],
     ['Person', 'person', 'string'], ['Detail', 'detail', 'string'], ['RecordedAt', 'recordedAt', 'datetime'],
   ],
+  // Batch 2 (Harvest slice). ScheduledDate/ScheduledTime are plain form
+  // strings, not full ISO timestamps - deliberately not the 'datetime'
+  // wireType (same reasoning as CellarTask.time/ReadingPoint.time).
+  Anada_Deliveries: [
+    ['DeliveryID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Code', 'code', 'string'], ['ParcelID', 'parcelId', 'string'],
+    ['Grower', 'grower', 'string'], ['Varieties', 'varieties', 'string'], ['Origin', 'origin', 'string'], ['ScheduledDate', 'scheduledDate', 'string'],
+    ['ScheduledTime', 'scheduledTime', 'string'], ['ExpectedKg', 'expectedKg', 'number'], ['DeliveryStatus', 'status', 'string'],
+    ['Vehicle', 'vehicle', 'string'], ['ProcessingDestination', 'processingDestination', 'string'], ['ReceivedAt', 'receivedAt', 'datetime'],
+    ['GrossKg', 'grossKg', 'number'], ['TareKg', 'tareKg', 'number'], ['NetKg', 'netKg', 'number'], ['Temperature', 'temperature', 'number'],
+    ['PotentialAlcohol', 'potentialAlcohol', 'number'], ['GrapeCondition', 'condition', 'string'], ['Notes', 'notes', 'string'],
+    ['GrowerID', 'growerId', 'string'], ['CampaignID', 'campaignId', 'string'],
+  ],
 }
 
 // Winery-scoped tables read after membership is known, keyed by the
@@ -229,6 +241,7 @@ const WINERY_SCOPED_TABLES = {
   lots: 'Anada_WineLots',
   readings: 'Anada_Readings',
   activities: 'Anada_Activities',
+  deliveries: 'Anada_Deliveries',
 }
 
 function escapeZcqlString(value) {
@@ -439,6 +452,7 @@ const SYNCABLE_TABLES = {
   lots: 'Anada_WineLots',
   readings: 'Anada_Readings',
   activities: 'Anada_Activities',
+  deliveries: 'Anada_Deliveries',
 }
 
 const ID_COLUMNS = {
@@ -455,6 +469,7 @@ const ID_COLUMNS = {
   Anada_WineLots: 'LotID',
   Anada_Readings: 'ReadingID',
   Anada_Activities: 'ActivityID',
+  Anada_Deliveries: 'DeliveryID',
 }
 
 class SyncError extends Error {
