@@ -400,3 +400,56 @@ test('syncWineryData round-trips ProductionEvent.metrics through dotted-path fla
   assert.equal(updated.productionEvents.written[0].metrics.temperature, 26.1)
   assert.equal(updated.productionEvents.written[0].metrics.colorIntensity, 0.82)
 })
+
+// Phase 9.5 stage 3 (Batch 1): movements + movementLegs - the first child
+// table. A leg has no independent identity on the browser side (the id is
+// synthesized as `${movementId}-${side}-${index}` in App.tsx), and every
+// synced leg carries its own denormalized WineryID so syncTable's existing
+// authorization check (wineryIds.includes(row.wineryId)) works unchanged -
+// no child-table-specific authorization code was needed.
+function movementFixture(overrides = {}) {
+  return {
+    id: 'movement-1', wineryId: 'winery-default', code: 'MOV-26-001', kind: 'transfer', wineType: 'tinto',
+    grossSourceVolume: 5000, receivedVolume: 4950, lossVolume: 50, lossPercentage: 1,
+    performedAt: '2026-08-12T10:00:00.000Z', recordedAt: '2026-08-12T10:00:05.000Z',
+    operator: 'Sergio Castañares', notes: '', storageMode: 'browser-local', ...overrides,
+  }
+}
+
+function movementLegFixture(overrides = {}) {
+  return {
+    id: 'movement-1-source-0', wineryId: 'winery-default', movementId: 'movement-1', side: 'source', sequence: 0,
+    lotId: 'T-26-017', lotName: 'Ladera del Iregua', vesselId: 'D-12', volumeBefore: 5000, movementVolume: 5000, volumeAfter: 0,
+    ...overrides,
+  }
+}
+
+test('syncWineryData creates a movement alongside its child legs in one call', async () => {
+  const tableRows = { ...membershipFixture(), Anada_WineMovements: [], Anada_MovementLegs: [] }
+  const app = fakeCatalystApp(tableRows)
+  const result = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    movements: [movementFixture()],
+    movementLegs: [
+      movementLegFixture(),
+      movementLegFixture({ id: 'movement-1-destination-0', side: 'destination', vesselId: 'D-14', volumeBefore: 0, movementVolume: 4950, volumeAfter: 4950 }),
+    ],
+  })
+  assert.equal(result.movements.written.length, 1)
+  assert.equal(result.movements.written[0].code, 'MOV-26-001')
+  assert.equal(result.movementLegs.written.length, 2)
+  const [sourceLeg, destinationLeg] = result.movementLegs.written
+  assert.equal(sourceLeg.side, 'source')
+  assert.equal(sourceLeg.movementId, 'movement-1')
+  assert.equal(destinationLeg.side, 'destination')
+  assert.equal(destinationLeg.volumeAfter, 4950)
+})
+
+test('syncWineryData authorizes movement legs the same way as any other row - by their own denormalized wineryId', async () => {
+  const tableRows = { ...membershipFixture(), Anada_MovementLegs: [] }
+  const app = fakeCatalystApp(tableRows)
+  const result = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    movementLegs: [movementLegFixture({ id: 'leg-not-mine', wineryId: 'winery-not-mine' })],
+  })
+  assert.equal(result.movementLegs.written.length, 0)
+  assert.deepEqual(tableRows.Anada_MovementLegs, [])
+})

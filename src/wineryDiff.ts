@@ -33,6 +33,9 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
   tanks: [],
   tasks: [],
   productionEvents: ['performedAt', 'recordedAt'],
+  movements: ['performedAt', 'recordedAt'],
+  // Legs are immutable once created and have no datetime field of their own.
+  movementLegs: [],
 }
 
 // Fields whose value is a nested object/array rather than a scalar (e.g.
@@ -47,7 +50,11 @@ const DEEP_FIELDS: Record<string, readonly string[]> = {
   productionEvents: ['metrics'],
 }
 
-function deepEqualTolerant(a: unknown, b: unknown): boolean {
+// Exported for App.tsx's movement-legs reattachment step, which needs the
+// same undefined/null-tolerant deep comparison to decide whether a
+// movement's re-derived sourceLegs/destinationLegs actually changed, to
+// preserve reference stability the same way this module's own functions do.
+export function deepEqualTolerant(a: unknown, b: unknown): boolean {
   if (isAbsent(a) && isAbsent(b)) return true
   if (a === b) return true
   if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false
@@ -161,4 +168,22 @@ export function mergePulledRows<T extends Identified>(collection: string, local:
     additions.push(rest as T)
   }
   return changed ? [...merged, ...additions] : local
+}
+
+// Groups items by a string key, sorting each group by a numeric key. Used to
+// reconstruct a parent's ordered children (e.g. a WineMovement's
+// sourceLegs/destinationLegs) from a flat, independently-synced child
+// collection - ZCQL's `queryRows` gives no ORDER BY guarantee, so the
+// child's own `sequence` field (not array position) is the only reliable
+// order.
+export function groupSortedBy<T>(items: T[], keyOf: (item: T) => string, sortValueOf: (item: T) => number): Map<string, T[]> {
+  const groups = new Map<string, T[]>()
+  for (const item of items) {
+    const key = keyOf(item)
+    const bucket = groups.get(key)
+    if (bucket) bucket.push(item)
+    else groups.set(key, [item])
+  }
+  for (const bucket of groups.values()) bucket.sort((a, b) => sortValueOf(a) - sortValueOf(b))
+  return groups
 }

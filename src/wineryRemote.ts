@@ -1,9 +1,23 @@
 import { catalystFoundation } from './catalyst'
 import type { WithRev } from './wineryDiff'
-import type { Campaign, CampaignParcelPlan, CellarTask, Grower, Membership, ProductionEvent, Tank, User, Vessel, VesselAllocation, VineyardEstate, VineyardParcel, Winery, WineryLocation } from './types'
+import type { Campaign, CampaignParcelPlan, CellarTask, Grower, Membership, ProductionEvent, Tank, User, Vessel, VesselAllocation, VineyardEstate, VineyardParcel, Winery, WineryLocation, WineMovement, WineMovementLeg } from './types'
 
 export type { WithRev } from './wineryDiff'
 export { dirtyRows, mergePulledRows } from './wineryDiff'
+
+// A movement's legs have no independent identity in `WineMovementLeg` (it's
+// a plain value object nested in `WineMovement.sourceLegs`/`.destinationLegs`).
+// The browser synthesizes one before syncing - see App.tsx's
+// deriveMovementLegs/reattachMovementLegs - so this table's rows can be
+// diffed, pushed and pulled through the exact same generic
+// dirtyRows/mergePulledRows mechanism every other collection uses.
+export interface SyncedMovementLeg extends WineMovementLeg {
+  id: string
+  wineryId?: string
+  movementId: string
+  side: 'source' | 'destination'
+  sequence: number
+}
 
 export interface WineryContextData {
   user: WithRev<User>
@@ -20,6 +34,8 @@ export interface WineryContextData {
   tanks: WithRev<Tank>[]
   tasks: WithRev<CellarTask>[]
   productionEvents: WithRev<ProductionEvent>[]
+  movements: WithRev<WineMovement>[]
+  movementLegs: WithRev<SyncedMovementLeg>[]
 }
 
 export type WineryContextResult =
@@ -41,6 +57,8 @@ export interface WineryBootstrapPayload {
   tanks: Tank[]
   tasks: CellarTask[]
   productionEvents: ProductionEvent[]
+  movements: WineMovement[]
+  movementLegs: SyncedMovementLeg[]
 }
 
 async function callWineryApi<T>(path: string, init: RequestInit | undefined, onUnauthenticated: T, onUnavailable: T): Promise<T> {
@@ -87,6 +105,8 @@ export interface SyncPushPayload {
   tanks?: WithRev<Tank>[]
   tasks?: WithRev<CellarTask>[]
   productionEvents?: WithRev<ProductionEvent>[]
+  movements?: WithRev<WineMovement>[]
+  movementLegs?: WithRev<SyncedMovementLeg>[]
 }
 
 export interface SyncPushResponse {
@@ -99,6 +119,8 @@ export interface SyncPushResponse {
   tanks?: SyncTableResult<Tank>
   tasks?: SyncTableResult<CellarTask>
   productionEvents?: SyncTableResult<ProductionEvent>
+  movements?: SyncTableResult<WineMovement>
+  movementLegs?: SyncTableResult<SyncedMovementLeg>
 }
 
 // POST /me/sync: Phase 9.5 stage 2 - pushes locally-dirty rows for the 5

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { dirtyRows, mergePulledRows, type WithRev } from '../src/wineryDiff'
+import { dirtyRows, groupSortedBy, mergePulledRows, type WithRev } from '../src/wineryDiff'
 
 interface Row {
   id: string
@@ -195,4 +195,66 @@ test('mergePulledRows returns the exact same array reference for productionEvent
   const fresh = { ...original, metrics: { temperature: 24.5 }, _rev: 'rev-1' }
   const merged = mergePulledRows('productionEvents', local, [baseline], [fresh])
   assert.equal(merged, local, 'mergePulledRows must return the exact same array reference, not just equal content')
+})
+
+// Phase 9.5 stage 3 (Batch 1): movements - flat, immutable-after-creation,
+// confirms the generic mechanism needs nothing collection-specific.
+test('dirtyRows/mergePulledRows work for the movements collection key', () => {
+  interface MovementRow { id: string; wineryId?: string; code: string; grossSourceVolume: number }
+  const original: MovementRow = { id: 'movement-1', wineryId: 'winery-default', code: 'MOV-26-001', grossSourceVolume: 5000 }
+  const baseline = { ...original, _rev: 'rev-1' }
+  assert.equal(dirtyRows('movements', [original], [baseline]).length, 0)
+  const pendingCreate: MovementRow = { id: 'movement-2', wineryId: 'winery-default', code: 'MOV-26-002', grossSourceVolume: 3000 }
+  const dirty = dirtyRows('movements', [pendingCreate], [])
+  assert.equal(dirty.length, 1)
+  assert.equal(dirty[0]._rev, null)
+})
+
+// Movement legs are a synced flat collection like any other from
+// dirtyRows/mergePulledRows's point of view - their synthesized identity
+// (`${movementId}-${side}-${index}`) is App.tsx's concern, not this layer's.
+test('dirtyRows/mergePulledRows work for the movementLegs collection key', () => {
+  interface LegRow { id: string; wineryId?: string; movementId: string; side: string; sequence: number; volumeAfter: number }
+  const original: LegRow = { id: 'movement-1-source-0', wineryId: 'winery-default', movementId: 'movement-1', side: 'source', sequence: 0, volumeAfter: 0 }
+  const baseline = { ...original, _rev: 'rev-1' }
+  const local = [original]
+  assert.equal(dirtyRows('movementLegs', local, [baseline]).length, 0)
+  const merged = mergePulledRows('movementLegs', local, [baseline], [baseline])
+  assert.equal(merged, local, 'mergePulledRows must return the exact same array reference when nothing changed')
+})
+
+// groupSortedBy is what the movement-legs reattachment step (and, later,
+// readings/activities) relies on to reconstruct a parent's ordered children
+// from a flat, independently-synced collection - ZCQL gives no ORDER BY
+// guarantee, so array position can never be trusted, only each child's own
+// stable `sequence` field.
+test('groupSortedBy buckets items by key and orders each bucket by its numeric sort value, not insertion order', () => {
+  interface Leg { movementId: string; side: string; sequence: number; label: string }
+  const legs: Leg[] = [
+    { movementId: 'movement-1', side: 'source', sequence: 1, label: 'second' },
+    { movementId: 'movement-1', side: 'destination', sequence: 0, label: 'only-destination' },
+    { movementId: 'movement-1', side: 'source', sequence: 0, label: 'first' },
+    { movementId: 'movement-2', side: 'source', sequence: 0, label: 'other-movement' },
+  ]
+  const grouped = groupSortedBy(legs, (leg) => `${leg.movementId}::${leg.side}`, (leg) => leg.sequence)
+  assert.deepEqual(grouped.get('movement-1::source')?.map((leg) => leg.label), ['first', 'second'])
+  assert.deepEqual(grouped.get('movement-1::destination')?.map((leg) => leg.label), ['only-destination'])
+  assert.deepEqual(grouped.get('movement-2::source')?.map((leg) => leg.label), ['other-movement'])
+})
+
+// Regression coverage for the exact synthesized-id scheme App.tsx's
+// deriveMovementLegs uses: two legs on the same movement (one per side, or
+// several via index) must get stable, distinct, order-preserving ids -
+// unlike readings (finding 7 in the plan), a movement's legs are created
+// atomically once and never revisited, so an index-based id is safe here.
+test('synthesized movement-leg ids are distinct across sides and preserve creation order across a multi-leg split', () => {
+  const synthesize = (movementId: string, side: 'source' | 'destination', index: number) => `${movementId}-${side}-${index}`
+  const ids = [
+    synthesize('movement-1', 'source', 0),
+    synthesize('movement-1', 'destination', 0),
+    synthesize('movement-1', 'destination', 1),
+    synthesize('movement-1', 'destination', 2),
+  ]
+  assert.equal(new Set(ids).size, ids.length, 'every leg id must be unique')
+  assert.deepEqual(ids, ['movement-1-source-0', 'movement-1-destination-0', 'movement-1-destination-1', 'movement-1-destination-2'])
 })

@@ -153,6 +153,22 @@ const TABLE_FIELDS = {
     ['RedGrapePercentage', 'metrics.redGrapePercentage', 'number'], ['SeparateWeightsConfirmed', 'metrics.separateWeightsConfirmed', 'boolean'],
     ['MixingAfterWeighing', 'metrics.mixingAfterWeighing', 'boolean'],
   ],
+  Anada_WineMovements: [
+    ['MovementID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Code', 'code', 'string'], ['Kind', 'kind', 'string'],
+    ['WineType', 'wineType', 'string'], ['GrossSourceVolume', 'grossSourceVolume', 'number'], ['ReceivedVolume', 'receivedVolume', 'number'],
+    ['LossVolume', 'lossVolume', 'number'], ['LossPercentage', 'lossPercentage', 'number'], ['PerformedAt', 'performedAt', 'datetime'],
+    ['RecordedAt', 'recordedAt', 'datetime'], ['Operator', 'operator', 'string'], ['Notes', 'notes', 'string'], ['StorageMode', 'storageMode', 'string'],
+  ],
+  // A movement's legs have no independent browser-side identity of their
+  // own (WineMovementLeg carries no `id`) - the browser derives this
+  // table's rows from movement.sourceLegs/.destinationLegs on every sync
+  // tick rather than persisting them as a top-level collection; see
+  // App.tsx's deriveMovementLegs/reattachMovementLegs.
+  Anada_MovementLegs: [
+    ['LegID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['MovementID', 'movementId', 'string'], ['Side', 'side', 'string'],
+    ['Sequence', 'sequence', 'number'], ['LotID', 'lotId', 'string'], ['LotName', 'lotName', 'string'], ['VesselID', 'vesselId', 'string'],
+    ['VolumeBefore', 'volumeBefore', 'number'], ['MovementVolume', 'movementVolume', 'number'], ['VolumeAfter', 'volumeAfter', 'number'],
+  ],
 }
 
 // Winery-scoped tables read after membership is known, keyed by the
@@ -169,6 +185,8 @@ const WINERY_SCOPED_TABLES = {
   tanks: 'Anada_Tanks',
   tasks: 'Anada_Tasks',
   productionEvents: 'Anada_ProductionEvents',
+  movements: 'Anada_WineMovements',
+  movementLegs: 'Anada_MovementLegs',
 }
 
 function escapeZcqlString(value) {
@@ -370,6 +388,8 @@ const SYNCABLE_TABLES = {
   tanks: 'Anada_Tanks',
   tasks: 'Anada_Tasks',
   productionEvents: 'Anada_ProductionEvents',
+  movements: 'Anada_WineMovements',
+  movementLegs: 'Anada_MovementLegs',
 }
 
 const ID_COLUMNS = {
@@ -381,6 +401,8 @@ const ID_COLUMNS = {
   Anada_Tanks: 'TankID',
   Anada_Tasks: 'TaskID',
   Anada_ProductionEvents: 'ProductionEventID',
+  Anada_WineMovements: 'MovementID',
+  Anada_MovementLegs: 'LegID',
 }
 
 class SyncError extends Error {

@@ -24,8 +24,8 @@ import { RedProcessControl } from './RedProcess'
 import { usePwaStatus, type PwaStatus } from './pwa'
 import { ProductUsePanel } from './ProductUse'
 import { browserWineryRepository } from './store'
-import { fetchWineryContext, provisionWinery, pushWinerySync, type SyncPushPayload, type WineryContextResult } from './wineryRemote'
-import { dirtyRows, mergePulledRows } from './wineryDiff'
+import { fetchWineryContext, provisionWinery, pushWinerySync, type SyncedMovementLeg, type SyncPushPayload, type WineryContextResult } from './wineryRemote'
+import { deepEqualTolerant, dirtyRows, groupSortedBy, mergePulledRows } from './wineryDiff'
 import { fetchWineryWeather, unavailableWeatherSnapshot, weatherSnapshotFromWeather } from './weather'
 import { activateCampaign, archiveCampaign, closeCampaign, createCampaign, reopenCampaign, setDefaultCampaign, updateCampaign, CampaignValidationError, type CampaignUpdateInput } from './campaigns'
 import { createGrower, setGrowerStatus, updateGrower, GrowerValidationError, type GrowerUpdateInput } from './growers'
@@ -33,7 +33,7 @@ import { createVineyard, setVineyardStatus, updateVineyard, VineyardValidationEr
 import { setTankUsableCapacity, tankUsableCapacity } from './cellar'
 import { DEFAULT_WINERY_ID, withWineryId } from './winery'
 import { createParcel, setParcelCampaignMembership, setParcelStatus, updateParcel, ParcelValidationError, type ParcelUpdateInput } from './parcels'
-import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewVineyardInput, NewParcelInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardEstate, CampaignParcelPlan, VineyardParcel, WeatherSnapshot, Winery, WinerySettings, WineLot, WineMovement, WineType } from './types'
+import type { AdvanceRedStageInput, AdvanceRoseStageInput, AdvanceWhiteStageInput, Barrel, BarrelOperation, BlendCandidate, BlendTastingInput, BlendTrial, BottlingGateKey, BottlingOrder, CellarTask, CompleteBottlingOrderInput, GrapeDelivery, LabResultsInput, LabSample, NewBarrelInput, NewBarrelOperationInput, NewCampaignInput, NewGrowerInput, NewVineyardInput, NewParcelInput, NewBlendTrialInput, NewBottlingOrderInput, NewGrapeIntakeInput, NewLabSampleInput, NewLotInput, NewMergeInput, NewProductConsumptionInput, NewProductLotInput, ProductConsumptionCorrectionInput, ProductDisposalInput, ProductLocationTransferInput, ProductStockAdjustmentInput, NewProductMasterInput, NewRecallSimulationInput, NewRedOperationInput, NewRoseOperationInput, NewSplitInput, NewSupplierInput, NewTaskInput, NewTransferInput, NewWhiteOperationInput, PackagingMaterial, ProductLot, ProductLotStatus, ProductMaster, ProductStockTransaction, ProductionEvent, ReadingPoint, RecallSimulation, RoseMethod, Supplier, Tank, TraceabilityEntity, TraceabilityLink, VineyardEstate, CampaignParcelPlan, VineyardParcel, WeatherSnapshot, Winery, WinerySettings, WineLot, WineMovement, WineMovementLeg, WineType } from './types'
 
 const formatVolume = (volume: number, locale: string) => `${new Intl.NumberFormat(locale).format(volume)} L`
 
@@ -93,6 +93,47 @@ function useWineryScopedState<T extends { wineryId?: string }>(
     setAll((prevAll) => [...prevAll.filter((item) => item.wineryId !== wineryId), ...stamped])
   }
   return [scoped, setScoped]
+}
+
+// WineMovementLeg has no independent identity of its own - it's a plain
+// value object nested inside WineMovement.sourceLegs/.destinationLegs. To
+// sync legs through the same generic dirtyRows/mergePulledRows mechanism
+// every other collection uses, a synthetic identity is derived fresh from
+// `movements` on every sync tick rather than persisted as its own
+// WineryState field (the same "sync-only derived projection, not promoted
+// to top-level state" approach as readings/activities will use later).
+function deriveMovementLegs(movements: WineMovement[]): SyncedMovementLeg[] {
+  const legs: SyncedMovementLeg[] = []
+  for (const movement of movements) {
+    movement.sourceLegs.forEach((leg, index) => legs.push({ ...leg, id: `${movement.id}-source-${index}`, wineryId: movement.wineryId, movementId: movement.id, side: 'source', sequence: index }))
+    movement.destinationLegs.forEach((leg, index) => legs.push({ ...leg, id: `${movement.id}-destination-${index}`, wineryId: movement.wineryId, movementId: movement.id, side: 'destination', sequence: index }))
+  }
+  return legs
+}
+
+const stripLegMeta = ({ lotId, lotName, vesselId, volumeBefore, movementVolume, volumeAfter }: SyncedMovementLeg): WineMovementLeg =>
+  ({ lotId, lotName, vesselId, volumeBefore, movementVolume, volumeAfter })
+
+// Rebuilds each movement's sourceLegs/destinationLegs from the merged,
+// independently-synced legs collection - required because `movements`
+// itself carries no leg data over the wire (WineMovementLeg isn't a
+// WineMovement column), so a movement pulled fresh from another device
+// would otherwise render with no legs at all. `legs` must already be
+// grouped by movementId+side and sorted by `sequence`, since ZCQL gives no
+// ORDER BY guarantee and array position can't be trusted. Preserves a
+// movement's exact object reference when its legs didn't actually change,
+// same reference-stability contract as mergePulledRows itself.
+function reattachMovementLegs(movements: WineMovement[], legs: SyncedMovementLeg[]): WineMovement[] {
+  const grouped = groupSortedBy(legs, (leg) => `${leg.movementId}::${leg.side}`, (leg) => leg.sequence)
+  let changed = false
+  const result = movements.map((movement) => {
+    const sourceLegs = (grouped.get(`${movement.id}::source`) ?? []).map(stripLegMeta)
+    const destinationLegs = (grouped.get(`${movement.id}::destination`) ?? []).map(stripLegMeta)
+    if (deepEqualTolerant(movement.sourceLegs, sourceLegs) && deepEqualTolerant(movement.destinationLegs, destinationLegs)) return movement
+    changed = true
+    return { ...movement, sourceLegs, destinationLegs }
+  })
+  return changed ? result : movements
 }
 
 function App() {
@@ -243,6 +284,8 @@ function App() {
         tanks: demoTanks,
         tasks,
         productionEvents,
+        movements,
+        movementLegs: deriveMovementLegs(movements),
       })
       if (!cancelled) setRemoteWineryContext(provisioned)
     })
@@ -271,11 +314,17 @@ function App() {
   const tanksRef = useRef(demoTanks); tanksRef.current = demoTanks
   const tasksRef = useRef(tasks); tasksRef.current = tasks
   const productionEventsRef = useRef(productionEvents); productionEventsRef.current = productionEvents
+  const movementsRef = useRef(movements); movementsRef.current = movements
   const remoteContextRef = useRef(remoteWineryContext); remoteContextRef.current = remoteWineryContext
 
   const syncTick = useCallback(async () => {
     const baseline = remoteContextRef.current
     if (!baseline || baseline.status !== 'authenticated_with_membership') return
+
+    // Legs have no state of their own - re-derived fresh from `movements`
+    // every tick, then diffed/merged through the same generic mechanism as
+    // any other collection. See deriveMovementLegs/reattachMovementLegs.
+    const derivedLegs = deriveMovementLegs(movementsRef.current)
 
     const dirty = {
       campaigns: dirtyRows('campaigns', campaignsRef.current, baseline.campaigns),
@@ -286,6 +335,8 @@ function App() {
       tanks: dirtyRows('tanks', tanksRef.current, baseline.tanks),
       tasks: dirtyRows('tasks', tasksRef.current, baseline.tasks),
       productionEvents: dirtyRows('productionEvents', productionEventsRef.current, baseline.productionEvents),
+      movements: dirtyRows('movements', movementsRef.current, baseline.movements),
+      movementLegs: dirtyRows('movementLegs', derivedLegs, baseline.movementLegs),
     }
     if (Object.values(dirty).some((rows) => rows.length > 0)) {
       const payload: SyncPushPayload = {}
@@ -297,6 +348,8 @@ function App() {
       if (dirty.tanks.length) payload.tanks = dirty.tanks
       if (dirty.tasks.length) payload.tasks = dirty.tasks
       if (dirty.productionEvents.length) payload.productionEvents = dirty.productionEvents
+      if (dirty.movements.length) payload.movements = dirty.movements
+      if (dirty.movementLegs.length) payload.movementLegs = dirty.movementLegs
       const pushed = await pushWinerySync(payload)
       const conflictNames = pushed ? [
         ...(pushed.campaigns?.conflicts ?? []).map((row) => row.name),
@@ -307,6 +360,8 @@ function App() {
         ...(pushed.tanks?.conflicts ?? []).map((row) => row.id),
         ...(pushed.tasks?.conflicts ?? []).map((row) => row.title),
         ...(pushed.productionEvents?.conflicts ?? []).map((row) => row.id),
+        ...(pushed.movements?.conflicts ?? []).map((row) => row.code),
+        ...(pushed.movementLegs?.conflicts ?? []).map((row) => row.id),
       ] : []
       if (conflictNames.length > 0) {
         setToast(locale.startsWith('es')
@@ -335,6 +390,10 @@ function App() {
     if (mergedTasks !== tasksRef.current) setTasks(mergedTasks)
     const mergedProductionEvents = mergePulledRows('productionEvents', productionEventsRef.current, baseline.productionEvents, fresh.productionEvents)
     if (mergedProductionEvents !== productionEventsRef.current) setProductionEvents(mergedProductionEvents)
+    const mergedMovements = mergePulledRows('movements', movementsRef.current, baseline.movements, fresh.movements)
+    const mergedMovementLegs = mergePulledRows('movementLegs', derivedLegs, baseline.movementLegs, fresh.movementLegs)
+    const reattachedMovements = reattachMovementLegs(mergedMovements, mergedMovementLegs)
+    if (reattachedMovements !== movementsRef.current) setMovements(reattachedMovements)
 
     setRemoteWineryContext(fresh)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -354,7 +413,7 @@ function App() {
     if (!authUser) return
     const timeout = window.setTimeout(() => { void syncTick() }, 3000)
     return () => window.clearTimeout(timeout)
-  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks, allProductionEvents])
+  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks, allProductionEvents, allMovements])
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
     void fetchWineryWeather(settings.latitude, settings.longitude, settings.timezone)
