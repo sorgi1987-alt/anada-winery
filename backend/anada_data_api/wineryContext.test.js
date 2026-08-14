@@ -584,3 +584,44 @@ test('syncWineryData round-trips a lab sample\'s requestedAnalyses/results throu
   assert.equal(updated.samples.conflicts.length, 0)
   assert.deepEqual(updated.samples.written[0].results, results)
 })
+
+// Batch 2 (Barrels slice): barrels + barrelOperations. filledAt is a
+// date-only string ('2026-08-01', no time), still the 'datetime' wireType -
+// toCatalystDatetime/fromCatalystDatetime both normalize it the same way a
+// full ISO timestamp would. barrelIds is an array with no independent
+// identity, round-tripping through the 'json' wireType.
+function barrelFixture(overrides = {}) {
+  return {
+    id: 'barrel-1', wineryId: 'winery-default', code: 'BR-N-01', cooperage: 'Radoux', oakOrigin: 'french', toast: 'medium',
+    grain: 'fine', capacity: 225, volume: 225, status: 'filled', room: 'Sala 1', rack: 'A', position: 'A1', useNumber: 1,
+    lotId: 'T-26-017', lotName: 'Ladera del Iregua', wineType: 'tinto', filledAt: '2026-08-01', plannedMonths: 12,
+    attention: 'normal', nextAction: 'Control de SO₂', nextDue: '7 días', notes: '', ...overrides,
+  }
+}
+
+function barrelOperationFixture(overrides = {}) {
+  return {
+    id: 'barrel-op-1', wineryId: 'winery-default', type: 'top_up', barrelIds: ['barrel-1'], targetLabel: 'BR-N-01',
+    performedAt: '2026-08-14T10:00:00.000Z', person: 'Sergio Castañares', volumeAdded: 3.5, notes: '', ...overrides,
+  }
+}
+
+test('syncWineryData round-trips a barrel\'s date-only filledAt through the datetime wireType', async () => {
+  const tableRows = { ...membershipFixture(), Anada_Barrels: [] }
+  const app = fakeCatalystApp(tableRows)
+  const created = await syncWineryData(app, { emailId: 'sergio@example.com' }, { barrels: [barrelFixture()] })
+  assert.equal(created.barrels.written.length, 1)
+  const written = created.barrels.written[0]
+  assert.equal(written.filledAt, '2026-08-01T00:00:00.000Z')
+  assert.equal(written.nextDue, '7 días')
+})
+
+test('syncWineryData round-trips a barrel operation targeting multiple barrels through the json wireType', async () => {
+  const tableRows = { ...membershipFixture(), Anada_BarrelOperations: [] }
+  const app = fakeCatalystApp(tableRows)
+  const created = await syncWineryData(app, { emailId: 'sergio@example.com' }, {
+    barrelOperations: [barrelOperationFixture({ barrelIds: ['barrel-1', 'barrel-2', 'barrel-3'] })],
+  })
+  assert.equal(created.barrelOperations.written.length, 1)
+  assert.deepEqual(created.barrelOperations.written[0].barrelIds, ['barrel-1', 'barrel-2', 'barrel-3'])
+})

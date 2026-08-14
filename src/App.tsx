@@ -360,6 +360,8 @@ function App() {
         activities: deriveActivities(demoLots),
         deliveries,
         samples,
+        barrels,
+        barrelOperations,
       })
       if (!cancelled) setRemoteWineryContext(provisioned)
     })
@@ -392,6 +394,8 @@ function App() {
   const demoLotsRef = useRef(demoLots); demoLotsRef.current = demoLots
   const deliveriesRef = useRef(deliveries); deliveriesRef.current = deliveries
   const samplesRef = useRef(samples); samplesRef.current = samples
+  const barrelsRef = useRef(barrels); barrelsRef.current = barrels
+  const barrelOperationsRef = useRef(barrelOperations); barrelOperationsRef.current = barrelOperations
   const settingsRef = useRef(settings); settingsRef.current = settings
   const remoteContextRef = useRef(remoteWineryContext); remoteContextRef.current = remoteWineryContext
 
@@ -424,6 +428,8 @@ function App() {
       activities: dirtyRows('activities', derivedActivities, baseline.activities),
       deliveries: dirtyRows('deliveries', deliveriesRef.current, baseline.deliveries),
       samples: dirtyRows('samples', samplesRef.current, baseline.samples),
+      barrels: dirtyRows('barrels', barrelsRef.current, baseline.barrels),
+      barrelOperations: dirtyRows('barrelOperations', barrelOperationsRef.current, baseline.barrelOperations),
     }
     if (Object.values(dirty).some((rows) => rows.length > 0)) {
       const payload: SyncPushPayload = {}
@@ -442,6 +448,8 @@ function App() {
       if (dirty.activities.length) payload.activities = dirty.activities
       if (dirty.deliveries.length) payload.deliveries = dirty.deliveries
       if (dirty.samples.length) payload.samples = dirty.samples
+      if (dirty.barrels.length) payload.barrels = dirty.barrels
+      if (dirty.barrelOperations.length) payload.barrelOperations = dirty.barrelOperations
       const pushed = await pushWinerySync(payload)
       const conflictNames = pushed ? [
         ...(pushed.campaigns?.conflicts ?? []).map((row) => row.name),
@@ -459,6 +467,8 @@ function App() {
         ...(pushed.activities?.conflicts ?? []).map((row) => row.title),
         ...(pushed.deliveries?.conflicts ?? []).map((row) => row.code),
         ...(pushed.samples?.conflicts ?? []).map((row) => row.code),
+        ...(pushed.barrels?.conflicts ?? []).map((row) => row.code),
+        ...(pushed.barrelOperations?.conflicts ?? []).map((row) => row.targetLabel),
       ] : []
       if (conflictNames.length > 0) {
         setToast(locale.startsWith('es')
@@ -500,6 +510,10 @@ function App() {
     if (mergedDeliveries !== deliveriesRef.current) setDeliveries(mergedDeliveries)
     const mergedSamples = mergePulledRows('samples', samplesRef.current, baseline.samples, fresh.samples)
     if (mergedSamples !== samplesRef.current) setSamples(mergedSamples)
+    const mergedBarrels = mergePulledRows('barrels', barrelsRef.current, baseline.barrels, fresh.barrels)
+    if (mergedBarrels !== barrelsRef.current) setBarrels(mergedBarrels)
+    const mergedBarrelOperations = mergePulledRows('barrelOperations', barrelOperationsRef.current, baseline.barrelOperations, fresh.barrelOperations)
+    if (mergedBarrelOperations !== barrelOperationsRef.current) setBarrelOperations(mergedBarrelOperations)
 
     setRemoteWineryContext(fresh)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -519,7 +533,7 @@ function App() {
     if (!authUser) return
     const timeout = window.setTimeout(() => { void syncTick() }, 3000)
     return () => window.clearTimeout(timeout)
-  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks, allProductionEvents, allMovements, allDemoLots, allDeliveries, allSamples])
+  }, [authUser, syncTick, allCampaigns, allGrowers, allVineyards, allParcels, allCampaignParcels, allDemoTanks, allTasks, allProductionEvents, allMovements, allDemoLots, allDeliveries, allSamples, allBarrels, allBarrelOperations])
 
   const captureWeather = (entityType: WeatherSnapshot['entityType'], entityId: string) => {
     void fetchWineryWeather(settings.latitude, settings.longitude, settings.timezone)

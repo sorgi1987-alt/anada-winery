@@ -237,6 +237,30 @@ const TABLE_FIELDS = {
     ['RequestedAnalysesJSON', 'requestedAnalyses', 'json'], ['ResultsJSON', 'results', 'json'], ['Notes', 'notes', 'string'],
     ['ValidatedAt', 'validatedAt', 'datetime'],
   ],
+  // Batch 2 (Barrels slice). FilledAt is stored as a date-only string
+  // ('2026-08-01', no time component) but still uses the 'datetime'
+  // wireType - toCatalystDatetime/fromCatalystDatetime and the frontend's
+  // truncateToSeconds comparison both normalize a date-only value and a
+  // full ISO timestamp to the same "yyyy-MM-ddT00:00:00" representation,
+  // so this round-trips correctly without special-casing. NextDue is a
+  // free-text display string ('7 días', 'Esta semana'), not a real
+  // timestamp - deliberately plain varchar, same as CellarTask.time.
+  Anada_Barrels: [
+    ['BarrelID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['Code', 'code', 'string'], ['Cooperage', 'cooperage', 'string'],
+    ['OakOrigin', 'oakOrigin', 'string'], ['Toast', 'toast', 'string'], ['Grain', 'grain', 'string'], ['Capacity', 'capacity', 'number'],
+    ['VolumeLitres', 'volume', 'number'], ['Status', 'status', 'string'], ['Room', 'room', 'string'], ['Rack', 'rack', 'string'],
+    ['Position', 'position', 'string'], ['UseNumber', 'useNumber', 'number'], ['LotID', 'lotId', 'string'], ['LotName', 'lotName', 'string'],
+    ['WineType', 'wineType', 'string'], ['FilledAt', 'filledAt', 'datetime'], ['PlannedMonths', 'plannedMonths', 'number'],
+    ['Attention', 'attention', 'string'], ['NextAction', 'nextAction', 'string'], ['NextDue', 'nextDue', 'string'], ['Notes', 'notes', 'string'],
+  ],
+  // BarrelOperation.barrelIds is an array with no independent identity
+  // (an operation can target several barrels at once, e.g. a batch
+  // racking), flattened via the 'json' wireType rather than a child table.
+  Anada_BarrelOperations: [
+    ['OperationID', 'id', 'string'], ['WineryID', 'wineryId', 'string'], ['OperationType', 'type', 'string'],
+    ['BarrelIDsJSON', 'barrelIds', 'json'], ['TargetLabel', 'targetLabel', 'string'], ['PerformedAt', 'performedAt', 'datetime'],
+    ['Person', 'person', 'string'], ['VolumeAdded', 'volumeAdded', 'number'], ['Notes', 'notes', 'string'],
+  ],
 }
 
 // Winery-scoped tables read after membership is known, keyed by the
@@ -260,6 +284,8 @@ const WINERY_SCOPED_TABLES = {
   activities: 'Anada_Activities',
   deliveries: 'Anada_Deliveries',
   samples: 'Anada_LabSamples',
+  barrels: 'Anada_Barrels',
+  barrelOperations: 'Anada_BarrelOperations',
 }
 
 function escapeZcqlString(value) {
@@ -472,6 +498,8 @@ const SYNCABLE_TABLES = {
   activities: 'Anada_Activities',
   deliveries: 'Anada_Deliveries',
   samples: 'Anada_LabSamples',
+  barrels: 'Anada_Barrels',
+  barrelOperations: 'Anada_BarrelOperations',
 }
 
 const ID_COLUMNS = {
@@ -490,6 +518,8 @@ const ID_COLUMNS = {
   Anada_Activities: 'ActivityID',
   Anada_Deliveries: 'DeliveryID',
   Anada_LabSamples: 'SampleID',
+  Anada_Barrels: 'BarrelID',
+  Anada_BarrelOperations: 'OperationID',
 }
 
 class SyncError extends Error {

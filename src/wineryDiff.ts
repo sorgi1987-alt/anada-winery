@@ -47,6 +47,14 @@ const DATETIME_FIELDS: Record<string, readonly string[]> = {
   // dueAt is a plain time-of-day string ('17:00'), not a real datetime -
   // only collectedAt/validatedAt are real ISO timestamps.
   samples: ['collectedAt', 'validatedAt'],
+  // filledAt is date-only ('2026-08-01', no time) but truncateToSeconds
+  // still normalizes it the same way as a full ISO timestamp, so it's
+  // still listed here - see Anada_Barrels in wineryContext.js. nextDue is
+  // a free-text display string ('7 días'), not a real timestamp.
+  barrels: ['filledAt'],
+  // Immutable once created, like movement legs - no datetime field of its
+  // own beyond performedAt.
+  barrelOperations: ['performedAt'],
 }
 
 // Fields whose value is a nested object/array rather than a scalar (e.g.
@@ -68,6 +76,9 @@ const DEEP_FIELDS: Record<string, readonly string[]> = {
   // LabSample.requestedAnalyses/.results are arrays with no independent
   // identity, flattened via the 'json' wireType (same as WineLot.process).
   samples: ['requestedAnalyses', 'results'],
+  // BarrelOperation.barrelIds is an array with no independent identity,
+  // flattened via the 'json' wireType (same as WineLot.process).
+  barrelOperations: ['barrelIds'],
 }
 
 // Exported for App.tsx's movement-legs reattachment step, which needs the

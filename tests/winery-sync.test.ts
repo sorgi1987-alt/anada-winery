@@ -352,3 +352,27 @@ test('dirtyRows/mergePulledRows work for the samples collection key', () => {
   const edited = { ...original, status: 'validated' }
   assert.equal(dirtyRows('samples', [edited], [baseline]).length, 1)
 })
+
+// Batch 2 (Barrels slice): barrels - flat, confirms the generic mechanism
+// needs nothing collection-specific, including for a date-only field
+// (filledAt) that's still listed in DATETIME_FIELDS.
+test('dirtyRows/mergePulledRows work for the barrels collection key', () => {
+  interface BarrelRow { id: string; wineryId?: string; code: string; filledAt?: string; status: string }
+  const original: BarrelRow = { id: 'barrel-1', wineryId: 'winery-default', code: 'BR-N-01', filledAt: '2026-08-01', status: 'filled' }
+  const baseline = { ...original, _rev: 'rev-1' }
+  assert.equal(dirtyRows('barrels', [original], [baseline]).length, 0)
+  const edited = { ...original, status: 'empty' }
+  assert.equal(dirtyRows('barrels', [edited], [baseline]).length, 1)
+})
+
+// barrelOperations.barrelIds is the JSON-blob equivalent of
+// samples.requestedAnalyses/lots.process - a freshly-parsed array is never
+// `===` its local counterpart even with identical content.
+test('dirtyRows treats a barrel operation as clean when its barrelIds array is content-equal but freshly parsed', () => {
+  interface OperationRow { id: string; wineryId?: string; barrelIds: string[] }
+  const local: OperationRow = { id: 'barrel-op-1', wineryId: 'winery-default', barrelIds: ['barrel-1', 'barrel-2'] }
+  const freshlyParsed: OperationRow = { id: 'barrel-op-1', wineryId: 'winery-default', barrelIds: JSON.parse(JSON.stringify(local.barrelIds)) }
+  const baseline = { ...freshlyParsed, _rev: 'rev-1' }
+  assert.notEqual(local.barrelIds, baseline.barrelIds, 'the test only proves something if these are genuinely different references')
+  assert.equal(dirtyRows('barrelOperations', [local], [baseline]).length, 0)
+})

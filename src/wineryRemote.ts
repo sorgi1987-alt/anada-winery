@@ -1,6 +1,6 @@
 import { catalystFoundation } from './catalyst'
 import type { WithRev } from './wineryDiff'
-import type { Campaign, CampaignParcelPlan, CellarTask, GrapeDelivery, Grower, LabSample, LotActivity, Membership, ProductionEvent, ReadingPoint, Tank, User, Vessel, VesselAllocation, VineyardEstate, VineyardParcel, Winery, WineryLocation, WineLot, WineMovement, WineMovementLeg } from './types'
+import type { Barrel, BarrelOperation, Campaign, CampaignParcelPlan, CellarTask, GrapeDelivery, Grower, LabSample, LotActivity, Membership, ProductionEvent, ReadingPoint, Tank, User, Vessel, VesselAllocation, VineyardEstate, VineyardParcel, Winery, WineryLocation, WineLot, WineMovement, WineMovementLeg } from './types'
 
 export type { WithRev } from './wineryDiff'
 export { dirtyRows, mergePulledRows } from './wineryDiff'
@@ -62,6 +62,8 @@ export interface WineryContextData {
   activities: WithRev<SyncedActivity>[]
   deliveries: WithRev<GrapeDelivery>[]
   samples: WithRev<LabSample>[]
+  barrels: WithRev<Barrel>[]
+  barrelOperations: WithRev<BarrelOperation>[]
 }
 
 export type WineryContextResult =
@@ -90,6 +92,8 @@ export interface WineryBootstrapPayload {
   activities: SyncedActivity[]
   deliveries: GrapeDelivery[]
   samples: LabSample[]
+  barrels: Barrel[]
+  barrelOperations: BarrelOperation[]
 }
 
 async function callWineryApi<T>(path: string, init: RequestInit | undefined, onUnauthenticated: T, onUnavailable: T): Promise<T> {
@@ -143,6 +147,8 @@ export interface SyncPushPayload {
   activities?: WithRev<SyncedActivity>[]
   deliveries?: WithRev<GrapeDelivery>[]
   samples?: WithRev<LabSample>[]
+  barrels?: WithRev<Barrel>[]
+  barrelOperations?: WithRev<BarrelOperation>[]
 }
 
 export interface SyncPushResponse {
@@ -162,6 +168,8 @@ export interface SyncPushResponse {
   activities?: SyncTableResult<SyncedActivity>
   deliveries?: SyncTableResult<GrapeDelivery>
   samples?: SyncTableResult<LabSample>
+  barrels?: SyncTableResult<Barrel>
+  barrelOperations?: SyncTableResult<BarrelOperation>
 }
 
 // POST /me/sync: Phase 9.5 stage 2 - pushes locally-dirty rows for the 5
